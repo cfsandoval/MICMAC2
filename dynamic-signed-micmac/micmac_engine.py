@@ -20,6 +20,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import openpyxl
+from openpyxl.chart import BarChart, Reference, ScatterChart, Series
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 import pandas as pd
@@ -867,6 +868,110 @@ def crear_libro_excel_completo(
         ws11.cell(row=row_d, column=1, value=d_text)
         row_d += 1
     auto_ancho(ws11)
+
+    # ---------------------------------------------------------
+    # INCORPORACIÓN DE GRÁFICOS NATIVOS EXCEL
+    # ---------------------------------------------------------
+    num_vars = len(c_df)
+    start_row = 5
+    end_row = 4 + num_vars
+
+    xvals = Reference(ws10, min_col=6, min_row=start_row, max_row=end_row)
+    yvals = Reference(ws10, min_col=5, min_row=start_row, max_row=end_row)
+    cats = Reference(ws10, min_col=1, min_row=start_row, max_row=end_row)
+    data_mc = Reference(ws10, min_col=2, min_row=4, max_row=end_row)
+    data_mn = Reference(ws10, min_col=5, min_row=4, max_row=end_row)
+    data_f = Reference(ws10, min_col=9, min_row=4, max_row=end_row)
+    data_om = Reference(ws10, min_col=10, min_row=4, max_row=end_row)
+
+    # 1. Gráficos integrados en ws10 al lado de los datos
+    sc_10 = ScatterChart()
+    sc_10.title = "Plano Dinámico (Motricidad Neta vs. Dependencia Neta)"
+    sc_10.style = 13
+    sc_10.x_axis.title = "Dependencia Neta (Dⁿᵉᵗᵃ)"
+    sc_10.y_axis.title = "Motricidad Neta (Mⁿᵉᵗᵃ)"
+    s10 = Series(yvals, xvals, title_from_data=False)
+    s10.marker.symbol = "circle"
+    s10.marker.size = 9
+    s10.graphicalProperties.line.noFill = True
+    sc_10.series.append(s10)
+    sc_10.width = 17
+    sc_10.height = 11
+    ws10.add_chart(sc_10, "O4")
+
+    bc_10 = BarChart()
+    bc_10.title = "Desplazamiento: Motricidad Clásica vs. Neta Dinámica"
+    bc_10.style = 10
+    bc_10.y_axis.title = "Intensidad Motriz"
+    bc_10.x_axis.title = "Variable"
+    bc_10.add_data(data_mc, titles_from_data=True)
+    bc_10.add_data(data_mn, titles_from_data=True)
+    bc_10.set_categories(cats)
+    bc_10.width = 17
+    bc_10.height = 11
+    ws10.add_chart(bc_10, "O25")
+
+    # ---------------------------------------------------------
+    # HOJA 12: Graficos_Estructurales (Tablero Visual Completo)
+    # ---------------------------------------------------------
+    ws12 = wb.create_sheet(title="12_Graficos_Estructurales")
+    ws12.views.sheetView[0].showGridLines = True
+    ws12.cell(row=1, column=1, value="TABLERO DE GRÁFICOS ESTRUCTURALES Y PROSPECTIVOS").font = font_title
+    ws12.cell(row=2, column=1, value="Visualizaciones nativas interactivas en Excel: planos de cuadrantes, desplazamientos de motricidad, bucles propios y contradicción.").font = font_subtitle
+
+    # Gráfico A: Plano Dinámico 4D
+    sc_dash = ScatterChart()
+    sc_dash.title = "1. Plano Estructural Dinámico 4D (Motricidad Neta vs. Dependencia Neta)"
+    sc_dash.style = 13
+    sc_dash.x_axis.title = "Dependencia Neta Efectiva"
+    sc_dash.y_axis.title = "Motricidad Neta Efectiva"
+    s_dash = Series(yvals, xvals, title_from_data=False)
+    s_dash.marker.symbol = "circle"
+    s_dash.marker.size = 10
+    s_dash.graphicalProperties.line.noFill = True
+    sc_dash.series.append(s_dash)
+    sc_dash.width = 18
+    sc_dash.height = 12
+    ws12.add_chart(sc_dash, "B4")
+
+    # Gráfico B: Comparativa de Motricidad
+    bc_dash = BarChart()
+    bc_dash.title = "2. Comparativa: Motricidad Clásica (Godet) vs. Neta (Katz-Bonacich)"
+    bc_dash.style = 10
+    bc_dash.y_axis.title = "Intensidad de Motricidad"
+    bc_dash.x_axis.title = "Variable"
+    bc_dash.add_data(data_mc, titles_from_data=True)
+    bc_dash.add_data(data_mn, titles_from_data=True)
+    bc_dash.set_categories(cats)
+    bc_dash.width = 18
+    bc_dash.height = 12
+    ws12.add_chart(bc_dash, "L4")
+
+    # Gráfico C: Bucle Propio F
+    bc_f = BarChart()
+    bc_f.title = "3. Retorno Sistémico / Bucle Propio F (+ Amplificador / − Regulador)"
+    bc_f.style = 11
+    bc_f.y_axis.title = "Valor Bucle F"
+    bc_f.x_axis.title = "Variable"
+    bc_f.add_data(data_f, titles_from_data=True)
+    bc_f.set_categories(cats)
+    bc_f.legend = None
+    bc_f.width = 18
+    bc_f.height = 12
+    ws12.add_chart(bc_f, "B28")
+
+    # Gráfico D: Ambigüedad Omega
+    bc_om = BarChart()
+    bc_om.title = "4. Índice de Ambigüedad y Contradicción Estructural Ω (%)"
+    bc_om.style = 12
+    bc_om.y_axis.title = "Contradicción Sistémica (%)"
+    bc_om.x_axis.title = "Variable"
+    bc_om.add_data(data_om, titles_from_data=True)
+    bc_om.set_categories(cats)
+    bc_om.legend = None
+    bc_om.width = 18
+    bc_om.height = 12
+    ws12.add_chart(bc_om, "L28")
 
     # Eliminar hoja en blanco por defecto
     if hoja_default in wb.worksheets and len(wb.worksheets) > 1:
