@@ -13,6 +13,19 @@ const DEFAULT_VARS = [
   ['NOR', 'Normativa y acreditación', 'Exigencias externas de calidad y regulación (variable exógena).', 50]
 ];
 
+const DEFAULT_VARS_EN = [
+  ['LID', 'Executive Leadership', "Direction's capability to set strategic priorities, sponsor key projects, and communicate vision.", 60],
+  ['INV', 'Investment & Budget', 'Financial resources available for educational technology, faculty training, and maintenance.', 50],
+  ['INF', 'IT Infrastructure', 'LMS platforms, campus connectivity, digital hardware, and continuous technical support.', 45],
+  ['COM', 'Faculty Competencies', 'Digital and pedagogical instructional mastery among teaching professors.', 40],
+  ['CUL', 'Innovation Culture', 'Collective organizational willingness to experiment, collaborate, and learn from mistakes.', 40],
+  ['EXP', 'Student Experience', 'Perceived quality of learning, user satisfaction, and digital academic support services.', 50],
+  ['RES', 'Resistance to Change', 'Active or passive opposition from faculty and staff toward new digital workflows.', 60],
+  ['RET', 'Student Retention', 'Proportion of enrolled students persisting and successfully continuing their academic degree.', 55],
+  ['NOR', 'Accreditation Standards', 'External governmental quality compliance, audit regulations, and certification bodies.', 50]
+];
+
+
 /* [origen, destino, valor(-3..3), concepto, evidencia práctica, indicador] */
 const DEFAULT_LINKS = [
   ['LID','INV',3,'Teoría de agencia / poder de asignación: quien decide las prioridades controla el flujo de recursos. Relación directa e inmediata.','Los proyectos con patrocinio directivo explícito se financian primero; los que no lo tienen quedan en lista de espera presupuestaria.','% del presupuesto de TI aprobado a proyectos con patrocinador directivo'],

@@ -11,20 +11,24 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="logo">◈</span><div><h1>Micmac extendido</h1><p>Influencias · Dependencias · Dinámica del sistema</p></div></div>
+  <div class="brand"><span class="logo">◈</span><div><h1 data-i18n="brand_title">Micmac extendido</h1><p data-i18n="brand_subtitle">Influencias · Dependencias · Dinámica del sistema</p></div></div>
   <nav class="tabs" id="tabs">
-    <button data-tab="vars" class="active" id="tab-btn-vars">1 · Variables</button>
-    <button data-tab="matrix" id="tab-btn-matrix">2 · Matriz justificada</button>
-    <button data-tab="plane" id="tab-btn-plane">3 · Plano de cuadrantes</button>
-    <button data-tab="sim" id="tab-btn-sim">4 · Simulación temporal</button>
-    <button data-tab="dynamic" id="tab-btn-dynamic">5 · Signed-MICMAC Dinámico 4D</button>
-    <button data-tab="method" id="tab-btn-method">6 · Metodología</button>
+    <button data-tab="vars" class="active" id="tab-btn-vars" data-i18n="tab_vars">1 · Variables</button>
+    <button data-tab="matrix" id="tab-btn-matrix" data-i18n="tab_matrix">2 · Matriz justificada</button>
+    <button data-tab="plane" id="tab-btn-plane" data-i18n="tab_plane">3 · Plano de cuadrantes</button>
+    <button data-tab="sim" id="tab-btn-sim" data-i18n="tab_sim">4 · Simulación temporal</button>
+    <button data-tab="dynamic" id="tab-btn-dynamic" data-i18n="tab_dynamic">5 · Signed-MICMAC Dinámico 4D</button>
+    <button data-tab="method" id="tab-btn-method" data-i18n="tab_method">6 · Metodología</button>
   </nav>
   <div class="actions">
-    <a class="btn primary" href="analisis_micmac_convergente.xlsx" download="analisis_micmac_convergente.xlsx" id="btn-export-excel" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><span>⬇</span><b>Excel Multi-Hoja (.xlsx)</b></a>
-    <button class="btn ghost" id="btn-export">Exportar JSON</button>
-    <label class="btn ghost" for="file-import">Importar JSON</label><input type="file" id="file-import" accept=".json" hidden>
-    <button class="btn danger" id="btn-reset">Restablecer base</button>
+    <div class="lang-switcher" id="lang-menu" title="Idioma / Language">
+      <button class="lang-btn active" data-lang="es" id="lang-btn-es">🇪🇸 ES</button>
+      <button class="lang-btn" data-lang="en" id="lang-btn-en">🇬🇧 EN</button>
+    </div>
+    <a class="btn primary" href="analisis_micmac_convergente.xlsx" download="analisis_micmac_convergente.xlsx" id="btn-export-excel" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><span>⬇</span><b data-i18n="btn_excel">Excel Multi-Hoja (.xlsx)</b></a>
+    <button class="btn ghost" id="btn-export" data-i18n="btn_export_json">Exportar JSON</button>
+    <label class="btn ghost" for="file-import" data-i18n="btn_import_json">Importar JSON</label><input type="file" id="file-import" accept=".json" hidden>
+    <button class="btn danger" id="btn-reset" data-i18n="btn_reset">Restablecer base</button>
   </div>
 </header>
 
@@ -32,8 +36,8 @@
 <!-- 1 VARIABLES -->
 <section id="tab-vars" class="panel active">
   <div class="card">
-    <div class="card-head"><h2>Variables del sistema</h2><button class="btn" id="add-var">+ Agregar variable</button></div>
-    <p class="muted">Defina cada variable y su <b>valor inicial</b> (0–100) usado en la simulación. Cambiar variables actualiza matriz, plano y simulación.</p>
+    <div class="card-head"><h2 data-i18n="vars_title">Variables del sistema</h2><button class="btn" id="add-var" data-i18n="vars_add">+ Agregar variable</button></div>
+    <p class="muted" data-i18n="vars_desc">Defina cada variable y su <b>valor inicial</b> (0–100) usado en la simulación. Cambiar variables actualiza matriz, plano y simulación.</p>
     <div class="table-wrap"><table id="vars-table"></table></div>
   </div>
 </section>
@@ -42,20 +46,28 @@
 <section id="tab-matrix" class="panel">
   <div class="grid-2">
     <div class="card">
-      <div class="card-head"><h2>Matriz de influencias directas</h2><span class="chip" id="completeness"></span></div>
-      <p class="muted">Lea <b>fila → columna</b>: “la variable de la fila influye en la de la columna”. Clic en una celda para ver/editar su valor y su justificación. Signo <b>+</b> refuerza, <b>−</b> reduce.</p>
+      <div class="card-head"><h2 data-i18n="matrix_title">Matriz de influencias directas</h2><span class="chip" id="completeness"></span></div>
+      <p class="muted" data-i18n="matrix_desc">Lea <b>fila → columna</b>: “la variable de la fila influye en la de la columna”. Clic en una celda para ver/editar su valor y su justificación. Signo <b>+</b> refuerza, <b>−</b> reduce.</p>
       <div class="table-wrap"><table id="matrix"></table></div>
       <div class="legend" id="matrix-legend"></div>
     </div>
     <div class="card sticky" id="cell-editor"></div>
   </div>
   <div class="card">
-    <div class="card-head"><h2>Rúbrica de valoración</h2></div>
+    <div class="card-head"><h2 data-i18n="rubric_title">Rúbrica de valoración</h2></div>
     <div class="rubric" id="rubric"></div>
   </div>
   <div class="card">
-    <div class="card-head"><h2>Registro de justificaciones</h2>
-      <select id="log-filter"><option value="all">Todos los vínculos</option><option value="missing">Solo sin justificar</option><option value="3">Fuertes (±3)</option><option value="2">Moderados (±2)</option><option value="1">Débiles (±1)</option><option value="neg">Negativos</option></select></div>
+    <div class="card-head"><h2 data-i18n="log_title">Registro de justificaciones</h2>
+      <select id="log-filter">
+        <option value="all" data-i18n="filter_all">Todos los vínculos</option>
+        <option value="missing" data-i18n="filter_missing">Solo sin justificar</option>
+        <option value="3" data-i18n="filter_3">Fuertes (±3)</option>
+        <option value="2" data-i18n="filter_2">Moderados (±2)</option>
+        <option value="1" data-i18n="filter_1">Débiles (±1)</option>
+        <option value="neg" data-i18n="filter_neg">Negativos</option>
+      </select>
+    </div>
     <div class="table-wrap"><table id="log"></table></div>
   </div>
 </section>
@@ -63,50 +75,59 @@
 <!-- 3 PLANO -->
 <section id="tab-plane" class="panel">
   <div class="card controls">
-    <label>Tipo de influencia
-      <select id="pl-mode"><option value="direct">Directa (suma de filas/columnas)</option><option value="indirect">Indirecta MICMAC (caminos hasta k)</option></select></label>
-    <label>Profundidad k <input type="range" id="pl-k" min="2" max="6" value="4"><output id="pl-k-out">4</output></label>
-    <label>Umbral de cuadrantes
-      <select id="pl-thr"><option value="mean">Media</option><option value="median">Mediana</option><option value="mid">Punto medio del rango</option></select></label>
-    <label class="check"><input type="checkbox" id="pl-zoom" checked> Ampliar diferencias</label>
-    <label class="check"><input type="checkbox" id="pl-links"> Mostrar vínculos fuertes</label>
+    <label><span data-i18n="pl_mode_lbl">Tipo de influencia</span>
+      <select id="pl-mode">
+        <option value="direct" data-i18n="pl_mode_direct">Directa (suma de filas/columnas)</option>
+        <option value="indirect" data-i18n="pl_mode_indirect">Indirecta MICMAC (caminos hasta k)</option>
+      </select>
+    </label>
+    <label><span data-i18n="pl_k_lbl">Profundidad k</span> <input type="range" id="pl-k" min="2" max="6" value="4"><output id="pl-k-out">4</output></label>
+    <label><span data-i18n="pl_thr_lbl">Umbral de cuadrantes</span>
+      <select id="pl-thr">
+        <option value="mean" data-i18n="pl_thr_mean">Media</option>
+        <option value="median" data-i18n="pl_thr_median">Mediana</option>
+        <option value="mid" data-i18n="pl_thr_mid">Punto medio del rango</option>
+      </select>
+    </label>
+    <label class="check"><input type="checkbox" id="pl-zoom" checked> <span data-i18n="pl_zoom_lbl">Ampliar diferencias</span></label>
+    <label class="check"><input type="checkbox" id="pl-links"> <span data-i18n="pl_links_lbl">Mostrar vínculos fuertes</span></label>
   </div>
   <div class="grid-plane">
     <div class="card"><div id="plane-wrap"></div></div>
     <div class="side">
-      <div class="card"><div class="card-head"><h2>Posiciones</h2></div><div class="table-wrap"><table id="rank"></table></div></div>
+      <div class="card"><div class="card-head"><h2 data-i18n="rank_title">Posiciones</h2></div><div class="table-wrap"><table id="rank"></table></div></div>
     </div>
   </div>
   <div class="card" id="var-detail"></div>
-  <div class="card"><div class="card-head"><h2>Marco conceptual de los cuadrantes</h2></div><div class="quad-cards" id="quad-cards"></div></div>
+  <div class="card"><div class="card-head"><h2 data-i18n="quad_cards_title">Marco conceptual de los cuadrantes</h2></div><div class="quad-cards" id="quad-cards"></div></div>
 </section>
 
 <!-- 4 SIMULACIÓN -->
 <section id="tab-sim" class="panel">
   <div class="grid-sim">
     <div class="card">
-      <div class="card-head"><h2>Intervenciones externas</h2></div>
-      <p class="muted">Agregue influencias externas sobre variables y observe cómo se propagan por la matriz a lo largo del tiempo.</p>
+      <div class="card-head"><h2 data-i18n="sim_ints_title">Intervenciones externas</h2></div>
+      <p class="muted" data-i18n="sim_ints_desc">Agregue influencias externas sobre variables y observe cómo se propagan por la matriz a lo largo del tiempo.</p>
       <div id="interventions"></div>
-      <h3>Impulso rápido (+20 en t=1)</h3>
+      <h3 data-i18n="sim_quick_title">Impulso rápido (+20 en t=1)</h3>
       <div class="chips" id="quick"></div>
-      <h3>Parámetros del modelo</h3>
+      <h3 data-i18n="sim_params_title">Parámetros del modelo</h3>
       <div class="params">
-        <label>Acoplamiento β <input type="range" id="p-beta" min="0.02" max="0.4" step="0.01" value="0.15"><output id="o-beta"></output></label>
-        <label>Recuperación λ <input type="range" id="p-lambda" min="0" max="0.3" step="0.01" value="0.05"><output id="o-lambda"></output></label>
-        <label>Horizonte (pasos) <input type="range" id="p-steps" min="10" max="120" step="5" value="50"><output id="o-steps"></output></label>
+        <label><span data-i18n="sim_beta_lbl">Acoplamiento β</span> <input type="range" id="p-beta" min="0.02" max="0.4" step="0.01" value="0.15"><output id="o-beta"></output></label>
+        <label><span data-i18n="sim_lambda_lbl">Recuperación λ</span> <input type="range" id="p-lambda" min="0" max="0.3" step="0.01" value="0.05"><output id="o-lambda"></output></label>
+        <label><span data-i18n="sim_steps_lbl">Horizonte (pasos)</span> <input type="range" id="p-steps" min="10" max="120" step="5" value="50"><output id="o-steps"></output></label>
       </div>
       <p class="formula">Δxᵢ(t+1) = Δxᵢ(t) + β·Σⱼ wⱼᵢ·Δxⱼ(t) − λ·Δxᵢ(t) + uᵢ(t)</p>
     </div>
     <div class="card">
-      <div class="card-head"><h2>Trayectorias</h2>
-        <div class="seg"><button id="v-abs" class="active">Valor</button><button id="v-delta">Δ vs. base</button></div></div>
+      <div class="card-head"><h2 data-i18n="sim_traj_title">Trayectorias</h2>
+        <div class="seg"><button id="v-abs" class="active" data-i18n="sim_val_btn">Valor</button><button id="v-delta" data-i18n="sim_delta_btn">Δ vs. base</button></div></div>
       <div class="chips" id="legend"></div>
       <div id="chart-wrap"></div>
       <div id="hover-read" class="muted"></div>
     </div>
   </div>
-  <div class="card"><div class="card-head"><h2>Impacto por variable</h2></div><div class="table-wrap"><table id="impact"></table></div></div>
+  <div class="card"><div class="card-head"><h2 data-i18n="sim_impact_title">Impacto por variable</h2></div><div class="table-wrap"><table id="impact"></table></div></div>
 </section>
 
 <!-- 5 DYNAMIC SIGNED-MICMAC -->
@@ -114,36 +135,36 @@
   <div class="card">
     <div class="card-head">
       <div>
-        <h2>Micmac extendido · Modelo Dinámico Convergente 4D</h2>
-        <p class="muted">Supera las tres limitaciones del MICMAC clásico (Godet): convergencia por operador de Katz-Bonacich / Leontief (reemplaza potencias de Perron-Frobenius), polaridad/signos [-3, 3] y fricción temporal exp(-λt).</p>
+        <h2 data-i18n="dyn_title">Micmac extendido · Modelo Dinámico Convergente 4D</h2>
+        <p class="muted" data-i18n="dyn_subtitle">Supera las tres limitaciones del MICMAC clásico (Godet): convergencia por operador de Katz-Bonacich / Leontief (reemplaza potencias de Perron-Frobenius), polaridad/signos [-3, 3] y fricción temporal exp(-λt).</p>
       </div>
-      <a class="btn primary" href="analisis_micmac_convergente.xlsx" download="analisis_micmac_convergente.xlsx" style="text-decoration:none;white-space:nowrap">⬇ Descargar Excel Multi-Hoja</a>
+      <a class="btn primary" href="analisis_micmac_convergente.xlsx" download="analisis_micmac_convergente.xlsx" style="text-decoration:none;white-space:nowrap" data-i18n="btn_excel">⬇ Descargar Excel Multi-Hoja</a>
     </div>
 
     <div class="kpi-row" id="dyn-kpis">
-      <div class="kpi-card"><b id="kpi-rho">—</b><span>Radio espectral ρ(|W|)</span></div>
-      <div class="kpi-card"><b id="kpi-alpha">—</b><span>Factor convergente α</span></div>
-      <div class="kpi-card"><b id="kpi-omega">—</b><span>Ambigüedad media Ω</span></div>
-      <div class="kpi-card"><b id="kpi-palancas">—</b><span>Palancas maestras consistentes</span></div>
-      <div class="kpi-card"><b id="kpi-trampas" style="color:#fb7185">—</b><span>Trampas de política</span></div>
+      <div class="kpi-card"><b id="kpi-rho">—</b><span data-i18n="kpi_rho">Radio espectral ρ(|W|)</span></div>
+      <div class="kpi-card"><b id="kpi-alpha">—</b><span data-i18n="kpi_alpha">Factor convergente α</span></div>
+      <div class="kpi-card"><b id="kpi-omega">—</b><span data-i18n="kpi_omega">Ambigüedad media Ω</span></div>
+      <div class="kpi-card"><b id="kpi-palancas">—</b><span data-i18n="kpi_palancas">Palancas maestras consistentes</span></div>
+      <div class="kpi-card"><b id="kpi-trampas" style="color:#fb7185">—</b><span data-i18n="kpi_trampas">Trampas de política</span></div>
     </div>
 
     <div class="controls" style="margin-bottom:14px">
-      <label>Tasa de fricción temporal λ
+      <label><span data-i18n="dyn_lbl_lambda">Tasa de fricción temporal λ</span>
         <input type="range" id="dyn-lambda" min="0.01" max="0.50" step="0.01" value="0.10">
         <output id="dyn-lambda-out">0.10</output>
       </label>
-      <label>Ratio espectral (α·ρ)
+      <label><span data-i18n="dyn_lbl_alpha">Ratio espectral (α·ρ)</span>
         <input type="range" id="dyn-alpha-ratio" min="0.05" max="0.99" step="0.01" value="0.80">
         <output id="dyn-alpha-out">0.80</output>
       </label>
-      <label>Criterio de umbrales
+      <label><span data-i18n="dyn_lbl_crit">Criterio de umbrales</span>
         <select id="dyn-criterio">
           <option value="media">Media aritmética</option>
           <option value="mediana">Mediana</option>
         </select>
       </label>
-      <label>Umbral trampa Ω (%)
+      <label><span data-i18n="dyn_lbl_omega">Umbral trampa Ω (%)</span>
         <input type="range" id="dyn-omega-trampa" min="5" max="80" step="5" value="30">
         <output id="dyn-omega-out">30 %</output>
       </label>
@@ -153,14 +174,14 @@
   <div class="grid-plane">
     <div class="card">
       <div class="card-head">
-        <h2>Plano Estructural Dinámico 4D (Motricidad Neta vs. Dependencia Neta)</h2>
+        <h2 data-i18n="dyn_plane_title">Plano Estructural Dinámico 4D (Motricidad Neta vs. Dependencia Neta)</h2>
       </div>
-      <p class="muted">Eje Y: Motricidad Neta | Eje X: Dependencia Neta | Color: Bucle propio Fᵢ (verde = amplificador, rosa = estabilizador) | Anillo exterior: Ambigüedad Ωᵢ | Tamaño: Motricidad Bruta Sᵦᵣᵤₜₐ.</p>
+      <p class="muted" data-i18n="dyn_plane_desc">Eje Y: Motricidad Neta | Eje X: Dependencia Neta | Color: Bucle propio Fᵢ (verde = amplificador, rosa = estabilizador) | Anillo exterior: Ambigüedad Ωᵢ | Tamaño: Motricidad Bruta Sᵦᵣᵤₜₐ.</p>
       <div id="dyn-plane-wrap"></div>
     </div>
     <div class="side">
       <div class="card">
-        <div class="card-head"><h2>Diagnóstico y Cuadrantes</h2></div>
+        <div class="card-head"><h2 data-i18n="dyn_diag_title">Diagnóstico y Cuadrantes</h2></div>
         <div class="table-wrap"><table id="dyn-diag-table"></table></div>
       </div>
     </div>
@@ -168,108 +189,183 @@
 
   <div class="card">
     <div class="card-head">
-      <h2>Tablero Comparativo Completo · Clásico Godet vs. Dinámico Katz-Bonacich</h2>
+      <h2 data-i18n="dyn_full_title">Tablero Comparativo Completo · Clásico Godet vs. Dinámico Katz-Bonacich</h2>
     </div>
     <div class="table-wrap"><table id="dyn-full-table"></table></div>
   </div>
 
   <div class="card">
     <div class="card-head">
-      <h2>Visualización de Matrices del Modelo</h2>
+      <h2 data-i18n="dyn_matrix_title">Visualización de Matrices del Modelo</h2>
       <div class="seg" id="dyn-matrix-switch">
-        <button class="active" data-m="w">Matriz W (descontada)</button>
-        <button data-m="sbruta">S^bruta (Leontief)</button>
-        <button data-m="sneta">S^neta (Signada)</button>
-        <button data-m="z">Flujos Indirectos (S^neta - W)</button>
+        <button class="active" data-m="w" data-i18n="btn_mat_w">Matriz W (descontada)</button>
+        <button data-m="sbruta" data-i18n="btn_mat_sbruta">S^bruta (Leontief)</button>
+        <button data-m="sneta" data-i18n="btn_mat_sneta">S^neta (Signada)</button>
+        <button data-m="z" data-i18n="btn_mat_z">Flujos Indirectos (S^neta - W)</button>
       </div>
     </div>
     <div class="table-wrap"><table id="dyn-matrix-view"></table></div>
   </div>
 
   <div class="card">
-    <div class="card-head"><h2>Informe Ejecutivo Automatizado para la Toma de Decisiones</h2></div>
+    <div class="card-head"><h2 data-i18n="dyn_report_title">Informe Ejecutivo Automatizado para la Toma de Decisiones</h2></div>
     <div id="dyn-report" class="muted" style="line-height:1.7;color:var(--txt)"></div>
   </div>
 </section>
 
 <!-- 6 METODOLOGÍA -->
 <section id="tab-method" class="panel">
-  <div class="card method">
-    <h2>Metodología de cálculo</h2>
-    <p class="muted">Descripción de todos los procedimientos usados por la aplicación. Cada fórmula corresponde exactamente a lo implementado en <code>app.js</code>.</p>
-    <nav class="toc"><a href="#m1">1 Enfoque</a><a href="#m2">2 Matriz</a><a href="#m3">3 Influencia y dependencia</a><a href="#m4">4 Indirecta (MICMAC)</a><a href="#m5">5 Cuadrantes</a><a href="#m6">6 Visualización</a><a href="#m7">7 Simulación</a><a href="#m8">8 Justificación</a><a href="#m9">9 Límites</a><a href="#m10">10 Referencias</a></nav>
+  <!-- Spanish Methodology -->
+  <div id="method-es" class="method-lang-block">
+    <div class="card method">
+      <h2>Metodología de cálculo</h2>
+      <p class="muted">Descripción de todos los procedimientos usados por la aplicación. Cada fórmula corresponde exactamente a lo implementado en <code>app.js</code>.</p>
+      <nav class="toc"><a href="#m1">1 Enfoque</a><a href="#m2">2 Matriz</a><a href="#m3">3 Influencia y dependencia</a><a href="#m4">4 Indirecta (MICMAC)</a><a href="#m5">5 Cuadrantes</a><a href="#m6">6 Visualización</a><a href="#m7">7 Simulación</a><a href="#m8">8 Justificación</a><a href="#m9">9 Límites</a><a href="#m10">10 Referencias</a></nav>
+    </div>
+
+    <div class="card method" id="m1"><h3>1 · Enfoque general</h3>
+      <p>Se aplica el <b>análisis estructural</b> (método MICMAC, Godet): el sistema se describe como un conjunto de <i>n</i> variables y una matriz que registra la influencia directa de cada variable sobre las demás. A partir de ella se calcula qué variables son motrices, de enlace, dependientes o autónomas, y se simula cómo se propaga una perturbación externa en el tiempo.</p>
+      <p>Flujo: <b>variables → matriz justificada → influencia/dependencia → cuadrantes → simulación dinámica</b>. Todo el cálculo se realiza en el navegador y los datos se guardan en <code>localStorage</code>.</p></div>
+
+    <div class="card method" id="m2"><h3>2 · Matriz de influencias directas (W)</h3>
+      <p>W es una matriz <i>n × n</i>; <code>W[i][j]</code> es la influencia de la variable <i>i</i> (fila) sobre la <i>j</i> (columna). La diagonal es 0 (no hay auto-influencia).</p>
+      <table class="mt"><tr><th>Valor</th><th>Significado</th></tr>
+      <tr><td>0</td><td>Sin mecanismo causal directo plausible</td></tr><tr><td>±1</td><td>Débil: indirecta, lenta o condicionada</td></tr><tr><td>±2</td><td>Moderada: reconocible con atenuantes</td></tr><tr><td>±3</td><td>Fuerte: directa, rápida y poco sustituible</td></tr></table>
+      <p>El <b>signo</b> indica polaridad (+ refuerza, − reduce). El signo se usa <u>solo en la simulación</u>; en el análisis estructural (secciones 3–5) se usa el <b>valor absoluto</b> |W|, porque lo que importa ahí es la intensidad del vínculo, no su sentido.</p></div>
+
+    <div class="card method" id="m3"><h3>3 · Influencia y dependencia directas</h3>
+      <p class="fm">Influencia bruta (i) = Σⱼ |W[i][j]|  &nbsp;·&nbsp;  Dependencia bruta (j) = Σᵢ |W[i][j]|</p>
+      <p>Son la suma de la fila y la suma de la columna (se muestran como «Σ infl.» y «Σ dep.» en la matriz). Para graficar se normalizan en porcentaje con una <b>escala común</b>:</p>
+      <p class="fm">Infl%ᵢ = 100 · Influenciaᵢ / M &nbsp;·&nbsp; Dep%ⱼ = 100 · Dependenciaⱼ / M &nbsp;, &nbsp; M = máx(todas las influencias y dependencias)</p>
+      <p>Usar el mismo divisor M en ambos ejes mantiene comparables las dos magnitudes y evita distorsionar la posición relativa de cada variable.</p></div>
+
+    <div class="card method" id="m4"><h3>4 · Influencia indirecta (MICMAC)</h3>
+      <p>Una variable también influye a través de cadenas (A→B→C). Se define A = |W| / 3 (valores entre 0 y 1) y se acumulan los caminos de longitud 1 hasta <i>k</i> (profundidad ajustable de 2 a 6), atenuando los largos:</p>
+      <p class="fm">T = Σ<sub>p=1..k</sub> 0,6<sup>p−1</sup> · Aᵖ</p>
+      <p>Aᵖ es la potencia matricial: su elemento (i,j) acumula la intensidad de todos los caminos de <i>p</i> pasos de i a j. El factor 0,6<sup>p−1</sup> refleja que los efectos lejanos son más débiles e inciertos. Luego influencia = suma de filas de T, dependencia = suma de columnas de T, normalizadas por M como en la sección 3.</p>
+      <p><b>Cambio de rango:</b> en modo indirecto la tabla muestra Δ = (rango en influencia directa) − (rango en influencia indirecta). ▲ indica que la variable gana posición al considerar caminos indirectos: su importancia estaba subestimada. El atenuante 0,6 es una convención del modelo (no un valor estándar de la literatura) y puede cambiarse en <code>scores()</code>.</p></div>
+
+    <div class="card method" id="m5"><h3>5 · Umbrales y cuadrantes</h3>
+      <p>Los umbrales dividen el plano en cuatro zonas. Opciones: <b>media</b> aritmética, <b>mediana</b> o <b>punto medio</b> del rango [mín+máx]/2, calculados sobre cada eje por separado. Regla de asignación (con ≥ en los umbrales):</p>
+      <table class="mt"><tr><th>Influencia</th><th>Dependencia</th><th>Cuadrante</th></tr>
+      <tr><td>Alta</td><td>Baja</td><td style="color:#34d399">Poder (motrices)</td></tr><tr><td>Alta</td><td>Alta</td><td style="color:#f59e0b">Conflicto (enlace)</td></tr>
+      <tr><td>Baja</td><td>Alta</td><td style="color:#a78bfa">Resultado (dependientes)</td></tr><tr><td>Baja</td><td>Baja</td><td style="color:#94a3b8">Autónoma</td></tr></table>
+      <p>La <b>media</b> es sensible a valores extremos; la <b>mediana</b> reparte las variables de forma más equilibrada (mitad sobre y mitad bajo el umbral); el <b>punto medio</b> es útil para comparar escenarios con una referencia fija. Una variable se marca «≈ frontera» si su distancia a un umbral es menor al 4 % del rango visible del eje: su clasificación es frágil y conviene analizarla con ambos umbrales.</p></div>
+
+    <div class="card method" id="m6"><h3>6 · Parámetros de visualización del plano</h3>
+      <ul><li><b>Ampliar diferencias:</b> en lugar de 0–100, cada eje se acota a [mín − p, máx + p] con p = máx(4, 14 % del rango), limitado a 0–105. Es solo un cambio de escala visual; no altera ningún valor ni la clasificación.</li>
+      <li><b>Tamaño de la burbuja:</b> r = 7 + 9·(Infl% + Dep%)/200, es decir, mayor tamaño = mayor conectividad total.</li>
+      <li><b>Vínculos fuertes:</b> se dibujan las flechas de los cruces con |W| = 3.</li>
+      <li><b>Etiquetas:</b> se separan con un algoritmo iterativo de repulsión (80 iteraciones) para evitar solapes; los puntos coincidentes se desplazan ligeramente.</li></ul></div>
+
+    <div class="card method" id="m7"><h3>7 · Simulación dinámica</h3>
+      <p>Cada variable tiene un valor inicial x⁰ᵢ (0–100) tomado como estado de equilibrio. Se modela la <b>desviación</b> Δxᵢ respecto a ese equilibrio, con la matriz con signo normalizada: wⱼᵢ = W[j][i] / 3 (entre −1 y 1).</p>
+      <p class="fm">Δxᵢ(t+1) = Δxᵢ(t) + β · Σⱼ wⱼᵢ · Δxⱼ(t) − λ · Δxᵢ(t) + uᵢ(t+1)</p>
+      <table class="mt"><tr><th>Término</th><th>Interpretación</th></tr>
+      <tr><td>β · Σ wⱼᵢ Δxⱼ</td><td>Propagación: cada variable recibe el efecto de las demás, ponderado por la intensidad y el signo del vínculo. β (acoplamiento, 0,02–0,4) fija la velocidad de transmisión.</td></tr>
+      <tr><td>− λ · Δxᵢ</td><td>Recuperación o amortiguación hacia el valor inicial (0–0,3). Con λ = 0 los cambios persisten.</td></tr>
+      <tr><td>uᵢ(t)</td><td>Influencia externa (intervención) sobre la variable.</td></tr></table>
+      <p><b>Intervenciones:</b> <i>pulso</i> → u = magnitud solo en el paso de inicio (puntos aplicados una vez). <i>sostenida</i> → u = magnitud en cada paso entre inicio e inicio+duración−1. Varias intervenciones sobre la misma variable se suman.</p>
+      <p><b>Acotamiento:</b> tras cada paso se impone 0 ≤ x ≤ 100 (saturación física del indicador), de modo que el sistema no diverge. Las actualizaciones son <b>síncronas</b> (todas las variables se calculan con el estado del paso anterior).</p>
+      <p><b>Indicadores de impacto:</b> Δ final = Δx en el último paso; <i>pico</i> = mayor |Δx| alcanzado y el paso en que ocurre. Sin intervenciones Δx permanece en 0: el modelo representa respuesta a perturbaciones, no pronóstico de tendencias.</p>
+      <p><b>Interpretación de β·ρ:</b> si el producto de β por el mayor autovalor de W/3 supera 1, las retroalimentaciones positivas tienden a amplificar el cambio hasta saturar en 0 o 100; los lazos negativos (p. ej. cultura → resistencia) estabilizan el sistema.</p></div>
+
+    <div class="card method" id="m8"><h3>8 · Justificación de valores</h3>
+      <p>Cada valor debe sustentarse con tres elementos: <b>(1) mecanismo conceptual</b> (por qué A afecta a B, apoyado en teoría), <b>(2) evidencia práctica</b> (caso o dato observable) e <b>(3) indicador</b> para contrastarlo con datos propios. Un vínculo no nulo se considera «justificado» si concepto y evidencia superan 10 caracteres; el contador de la pestaña 2 sigue esa regla.</p>
+      <p>Criterios para elegir la magnitud: <i>inmediatez</i> (efecto rápido o rezagado), <i>exclusividad</i> (existen o no sustitutos), <i>alcance</i> (efecto directo o mediado) y <i>consistencia</i> (se observa siempre o sólo condicionado). Si es posible, se recomienda que varios expertos califiquen de forma independiente y se promedie o se discuta cada divergencia (Delphi).</p></div>
+
+    <div class="card method" id="m9"><h3>9 · Supuestos y limitaciones</h3>
+      <ul><li>La escala 0–3 es ordinal; sumar valores supone intervalos equivalentes, lo cual es una aproximación.</li>
+      <li>La simulación es lineal con saturación: no captura umbrales, retardos, efectos no lineales ni heterogeneidad entre actores.</li>
+      <li>Los parámetros β, λ y el atenuante 0,6 son de calibración: sirven para comparar escenarios (análisis relativo), no para predecir magnitudes absolutas sin calibrar con datos históricos.</li>
+      <li>El ejemplo cargado es ilustrativo: sus evidencias deben validarse con información de la institución real.</li>
+      <li>Los resultados dependen de la completitud del listado de variables: variables omitidas pueden modificar los cuadrantes.</li>
+      <li>Se recomienda un análisis de sensibilidad: cambiar el umbral, la profundidad k y ±1 en los vínculos más inciertos para ver si el cuadrante se mantiene.</li></ul></div>
+
+    <div class="card method" id="m10"><h3>10 · Referencias conceptuales</h3>
+      <ul><li>Godet, M. — <i>From Anticipation to Action</i> y <i>La prospectiva estratégica</i> (método MICMAC y análisis estructural).</li>
+      <li>Forrester, J. W. — <i>Industrial Dynamics</i> / dinámica de sistemas (retroalimentación y simulación).</li>
+      <li>Kotter, J. — <i>Leading Change</i> (gestión de la resistencia).</li>
+      <li>Schein, E. — <i>Organizational Culture and Leadership</i>.</li>
+      <li>Tinto, V. — modelo de integración y permanencia estudiantil.</li>
+      <li>Linstone &amp; Turoff — técnica Delphi para calificación experta.</li></ul></div>
   </div>
 
-  <div class="card method" id="m1"><h3>1 · Enfoque general</h3>
-    <p>Se aplica el <b>análisis estructural</b> (método MICMAC, Godet): el sistema se describe como un conjunto de <i>n</i> variables y una matriz que registra la influencia directa de cada variable sobre las demás. A partir de ella se calcula qué variables son motrices, de enlace, dependientes o autónomas, y se simula cómo se propaga una perturbación externa en el tiempo.</p>
-    <p>Flujo: <b>variables → matriz justificada → influencia/dependencia → cuadrantes → simulación dinámica</b>. Todo el cálculo se realiza en el navegador y los datos se guardan en <code>localStorage</code>.</p></div>
+  <!-- English Methodology -->
+  <div id="method-en" class="method-lang-block" style="display:none">
+    <div class="card method">
+      <h2>Calculation Methodology</h2>
+      <p class="muted">Comprehensive mathematical description of all algorithms and analytical procedures executed by the application. Every formulation matches the exact client-side implementation in <code>app.js</code>.</p>
+      <nav class="toc"><a href="#m1-en">1 Overview</a><a href="#m2-en">2 Matrix</a><a href="#m3-en">3 Influence & Dependence</a><a href="#m4-en">4 Indirect (MICMAC)</a><a href="#m5-en">5 Quadrants</a><a href="#m6-en">6 Visualization</a><a href="#m7-en">7 Simulation</a><a href="#m8-en">8 Justification</a><a href="#m9-en">9 Limitations</a><a href="#m10-en">10 References</a></nav>
+    </div>
 
-  <div class="card method" id="m2"><h3>2 · Matriz de influencias directas (W)</h3>
-    <p>W es una matriz <i>n × n</i>; <code>W[i][j]</code> es la influencia de la variable <i>i</i> (fila) sobre la <i>j</i> (columna). La diagonal es 0 (no hay auto-influencia).</p>
-    <table class="mt"><tr><th>Valor</th><th>Significado</th></tr>
-    <tr><td>0</td><td>Sin mecanismo causal directo plausible</td></tr><tr><td>±1</td><td>Débil: indirecta, lenta o condicionada</td></tr><tr><td>±2</td><td>Moderada: reconocible con atenuantes</td></tr><tr><td>±3</td><td>Fuerte: directa, rápida y poco sustituible</td></tr></table>
-    <p>El <b>signo</b> indica polaridad (+ refuerza, − reduce). El signo se usa <u>solo en la simulación</u>; en el análisis estructural (secciones 3–5) se usa el <b>valor absoluto</b> |W|, porque lo que importa ahí es la intensidad del vínculo, no su sentido.</p></div>
+    <div class="card method" id="m1-en"><h3>1 · General Strategic Framework</h3>
+      <p>Applies classical <b>structural cross-impact analysis</b> (MICMAC method, Michel Godet): the system is modeled as a set of <i>n</i> strategic variables interconnected via an impact matrix recording direct causal influences. From this matrix, the system derives driver (power), relay (conflict), dependent (result), and autonomous variables, simulating temporal shock propagation over time.</p>
+      <p>Operational workflow: <b>system variables → justified matrix → influence/dependence metrics → quadrant mapping → dynamic 4D convergent simulation</b>. All calculations run 100% in the browser client with state persisted in <code>localStorage</code>.</p></div>
 
-  <div class="card method" id="m3"><h3>3 · Influencia y dependencia directas</h3>
-    <p class="fm">Influencia bruta (i) = Σⱼ |W[i][j]|  &nbsp;·&nbsp;  Dependencia bruta (j) = Σᵢ |W[i][j]|</p>
-    <p>Son la suma de la fila y la suma de la columna (se muestran como «Σ infl.» y «Σ dep.» en la matriz). Para graficar se normalizan en porcentaje con una <b>escala común</b>:</p>
-    <p class="fm">Infl%ᵢ = 100 · Influenciaᵢ / M &nbsp;·&nbsp; Dep%ⱼ = 100 · Dependenciaⱼ / M &nbsp;, &nbsp; M = máx(todas las influencias y dependencias)</p>
-    <p>Usar el mismo divisor M en ambos ejes mantiene comparables las dos magnitudes y evita distorsionar la posición relativa de cada variable.</p></div>
+    <div class="card method" id="m2-en"><h3>2 · Direct Influence Matrix (W)</h3>
+      <p>W is an <i>n × n</i> matrix; <code>W[i][j]</code> denotes the direct impact of variable <i>i</i> (row) on variable <i>j</i> (column). The main diagonal is 0 (no self-loops in the static matrix).</p>
+      <table class="mt"><tr><th>Value</th><th>Qualitative Meaning</th></tr>
+      <tr><td>0</td><td>No plausible direct causal mechanism within the strategic horizon</td></tr><tr><td>±1</td><td>Weak: indirect, slow, or conditioned by intermediary variables</td></tr><tr><td>±2</td><td>Moderate: recognizable and repeatable with mitigating factors</td></tr><tr><td>±3</td><td>Strong: direct, rapid, and irreplaceable causal impact</td></tr></table>
+      <p>The <b>sign</b> denotes polarity (+ reinforces, − inhibits). Sign polarity is leveraged <u>in dynamic simulation and in the 4D signed resolvent</u>; in classical structural classification (Sections 3–5), the <b>absolute value</b> |W| is used to measure pure connectivity intensity.</p></div>
 
-  <div class="card method" id="m4"><h3>4 · Influencia indirecta (MICMAC)</h3>
-    <p>Una variable también influye a través de cadenas (A→B→C). Se define A = |W| / 3 (valores entre 0 y 1) y se acumulan los caminos de longitud 1 hasta <i>k</i> (profundidad ajustable de 2 a 6), atenuando los largos:</p>
-    <p class="fm">T = Σ<sub>p=1..k</sub> 0,6<sup>p−1</sup> · Aᵖ</p>
-    <p>Aᵖ es la potencia matricial: su elemento (i,j) acumula la intensidad de todos los caminos de <i>p</i> pasos de i a j. El factor 0,6<sup>p−1</sup> refleja que los efectos lejanos son más débiles e inciertos. Luego influencia = suma de filas de T, dependencia = suma de columnas de T, normalizadas por M como en la sección 3.</p>
-    <p><b>Cambio de rango:</b> en modo indirecto la tabla muestra Δ = (rango en influencia directa) − (rango en influencia indirecta). ▲ indica que la variable gana posición al considerar caminos indirectos: su importancia estaba subestimada. El atenuante 0,6 es una convención del modelo (no un valor estándar de la literatura) y puede cambiarse en <code>scores()</code>.</p></div>
+    <div class="card method" id="m3-en"><h3>3 · Direct Influence and Dependence</h3>
+      <p class="fm">Gross Influence (i) = Σⱼ |W[i][j]|  &nbsp;·&nbsp;  Gross Dependence (j) = Σᵢ |W[i][j]|</p>
+      <p>These correspond to row sums and column sums (displayed as «Σ infl.» and «Σ dep.» in the matrix). For quadrant plotting, they are normalized into percentages using a <b>common scale</b>:</p>
+      <p class="fm">Infl%ᵢ = 100 · Influenceᵢ / M &nbsp;·&nbsp; Dep%ⱼ = 100 · Dependenceⱼ / M &nbsp;, &nbsp; M = max(all influences and dependencies)</p>
+      <p>Using the identical divisor M across both axes preserves comparability and prevents graphical distortion of relative strategic positions.</p></div>
 
-  <div class="card method" id="m5"><h3>5 · Umbrales y cuadrantes</h3>
-    <p>Los umbrales dividen el plano en cuatro zonas. Opciones: <b>media</b> aritmética, <b>mediana</b> o <b>punto medio</b> del rango [mín+máx]/2, calculados sobre cada eje por separado. Regla de asignación (con ≥ en los umbrales):</p>
-    <table class="mt"><tr><th>Influencia</th><th>Dependencia</th><th>Cuadrante</th></tr>
-    <tr><td>Alta</td><td>Baja</td><td style="color:#34d399">Poder (motrices)</td></tr><tr><td>Alta</td><td>Alta</td><td style="color:#f59e0b">Conflicto (enlace)</td></tr>
-    <tr><td>Baja</td><td>Alta</td><td style="color:#a78bfa">Resultado (dependientes)</td></tr><tr><td>Baja</td><td>Baja</td><td style="color:#94a3b8">Autónoma</td></tr></table>
-    <p>La <b>media</b> es sensible a valores extremos; la <b>mediana</b> reparte las variables de forma más equilibrada (mitad sobre y mitad bajo el umbral); el <b>punto medio</b> es útil para comparar escenarios con una referencia fija. Una variable se marca «≈ frontera» si su distancia a un umbral es menor al 4 % del rango visible del eje: su clasificación es frágil y conviene analizarla con ambos umbrales.</p></div>
+    <div class="card method" id="m4-en"><h3>4 · Indirect Influence (MICMAC Power Algorithm)</h3>
+      <p>Variables also exert indirect influence through higher-order causal chains (A→B→C). Defining A = |W| / 3 (normalized values between 0 and 1), the system aggregates paths of length 1 up to <i>k</i> (depth configurable from 2 to 6), applying geometric attenuation to longer paths:</p>
+      <p class="fm">T = Σ<sub>p=1..k</sub> 0.6<sup>p−1</sup> · Aᵖ</p>
+      <p>Aᵖ is the matrix power: entry (i,j) sums the intensity of all <i>p</i>-step pathways from i to j. The factor 0.6<sup>p−1</sup> reflects information decay and uncertainty over extended indirect chains. Influence and dependence are then computed as row and column sums of T, normalized by common maximum M.</p>
+      <p><b>Rank Shift:</b> Under indirect mode, the table displays Δ = (Direct Rank) − (Indirect Rank). A positive ▲ indicates that the variable rises in strategic priority when considering multi-step systemic cascades.</p></div>
 
-  <div class="card method" id="m6"><h3>6 · Parámetros de visualización del plano</h3>
-    <ul><li><b>Ampliar diferencias:</b> en lugar de 0–100, cada eje se acota a [mín − p, máx + p] con p = máx(4, 14 % del rango), limitado a 0–105. Es solo un cambio de escala visual; no altera ningún valor ni la clasificación.</li>
-    <li><b>Tamaño de la burbuja:</b> r = 7 + 9·(Infl% + Dep%)/200, es decir, mayor tamaño = mayor conectividad total.</li>
-    <li><b>Vínculos fuertes:</b> se dibujan las flechas de los cruces con |W| = 3.</li>
-    <li><b>Etiquetas:</b> se separan con un algoritmo iterativo de repulsión (80 iteraciones) para evitar solapes; los puntos coincidentes se desplazan ligeramente.</li></ul></div>
+    <div class="card method" id="m5-en"><h3>5 · Strategic Thresholds and Quadrants</h3>
+      <p>Thresholds partition the plane into four strategic zones. Available criteria: <b>arithmetic mean</b>, <b>median</b>, or <b>range midpoint</b> [min+max]/2, calculated independently on each axis. Assignment rule (with ≥ at thresholds):</p>
+      <table class="mt"><tr><th>Influence</th><th>Dependence</th><th>Strategic Quadrant</th></tr>
+      <tr><td>High</td><td>Low</td><td style="color:#34d399">Power Zone (Drivers / Key Levers)</td></tr><tr><td>High</td><td>High</td><td style="color:#f59e0b">Conflict Zone (Relays / Instability)</td></tr>
+      <tr><td>Low</td><td>High</td><td style="color:#a78bfa">Results Zone (Dependents / Target KPIs)</td></tr><tr><td>Low</td><td>Low</td><td style="color:#94a3b8">Autonomous Zone (Excluded / Disconnected)</td></tr></table>
+      <p>The <b>mean</b> is sensitive to outliers; the <b>median</b> partitions variables evenly; the <b>midpoint</b> provides a fixed benchmark. Variables within 4% of a threshold line are flagged with «≈ border», indicating fragile classification requiring sensitivity analysis.</p></div>
 
-  <div class="card method" id="m7"><h3>7 · Simulación dinámica</h3>
-    <p>Cada variable tiene un valor inicial x⁰ᵢ (0–100) tomado como estado de equilibrio. Se modela la <b>desviación</b> Δxᵢ respecto a ese equilibrio, con la matriz con signo normalizada: wⱼᵢ = W[j][i] / 3 (entre −1 y 1).</p>
-    <p class="fm">Δxᵢ(t+1) = Δxᵢ(t) + β · Σⱼ wⱼᵢ · Δxⱼ(t) − λ · Δxᵢ(t) + uᵢ(t+1)</p>
-    <table class="mt"><tr><th>Término</th><th>Interpretación</th></tr>
-    <tr><td>β · Σ wⱼᵢ Δxⱼ</td><td>Propagación: cada variable recibe el efecto de las demás, ponderado por la intensidad y el signo del vínculo. β (acoplamiento, 0,02–0,4) fija la velocidad de transmisión.</td></tr>
-    <tr><td>− λ · Δxᵢ</td><td>Recuperación o amortiguación hacia el valor inicial (0–0,3). Con λ = 0 los cambios persisten.</td></tr>
-    <tr><td>uᵢ(t)</td><td>Influencia externa (intervención) sobre la variable.</td></tr></table>
-    <p><b>Intervenciones:</b> <i>pulso</i> → u = magnitud solo en el paso de inicio (puntos aplicados una vez). <i>sostenida</i> → u = magnitud en cada paso entre inicio e inicio+duración−1. Varias intervenciones sobre la misma variable se suman.</p>
-    <p><b>Acotamiento:</b> tras cada paso se impone 0 ≤ x ≤ 100 (saturación física del indicador), de modo que el sistema no diverge. Las actualizaciones son <b>síncronas</b> (todas las variables se calculan con el estado del paso anterior).</p>
-    <p><b>Indicadores de impacto:</b> Δ final = Δx en el último paso; <i>pico</i> = mayor |Δx| alcanzado y el paso en que ocurre. Sin intervenciones Δx permanece en 0: el modelo representa respuesta a perturbaciones, no pronóstico de tendencias.</p>
-    <p><b>Interpretación de β·ρ:</b> si el producto de β por el mayor autovalor de W/3 supera 1, las retroalimentaciones positivas tienden a amplificar el cambio hasta saturar en 0 o 100; los lazos negativos (p. ej. cultura → resistencia) estabilizan el sistema.</p></div>
+    <div class="card method" id="m6-en"><h3>6 · Plane Visualization Mechanics</h3>
+      <ul><li><b>Expanded Differences (Zoom):</b> Scales each axis to [min − p, max + p] with p = max(4, 14% of range), bounded to 0–105%. This enhances visual separation without altering underlying metrics.</li>
+      <li><b>Bubble Radius:</b> r = 7 + 9·(Infl% + Dep%)/200, representing total system connectivity.</li>
+      <li><b>Strong Link Overlays:</b> Vectors are drawn between nodes with maximum coupling intensity (|W| = 3).</li>
+      <li><b>Force-Directed Label Deconfliction:</b> An iterative repulsion algorithm (80 passes) automatically shifts labels to eliminate visual overlap.</li></ul></div>
 
-  <div class="card method" id="m8"><h3>8 · Justificación de valores</h3>
-    <p>Cada valor debe sustentarse con tres elementos: <b>(1) mecanismo conceptual</b> (por qué A afecta a B, apoyado en teoría), <b>(2) evidencia práctica</b> (caso o dato observable) e <b>(3) indicador</b> para contrastarlo con datos propios. Un vínculo no nulo se considera «justificado» si concepto y evidencia superan 10 caracteres; el contador de la pestaña 2 sigue esa regla.</p>
-    <p>Criterios para elegir la magnitud: <i>inmediatez</i> (efecto rápido o rezagado), <i>exclusividad</i> (existen o no sustitutos), <i>alcance</i> (efecto directo o mediado) y <i>consistencia</i> (se observa siempre o sólo condicionado). Si es posible, se recomienda que varios expertos califiquen de forma independiente y se promedie o se discuta cada divergencia (Delphi).</p></div>
+    <div class="card method" id="m7-en"><h3>7 · Dynamic Continuous Simulation</h3>
+      <p>Each variable is assigned an initial state x⁰ᵢ (0–100) treated as baseline equilibrium. The engine simulates <b>deviations</b> Δxᵢ with normalized signed weights: wⱼᵢ = W[j][i] / 3 (values in [−1, 1]).</p>
+      <p class="fm">Δxᵢ(t+1) = Δxᵢ(t) + β · Σⱼ wⱼᵢ · Δxⱼ(t) − λ · Δxᵢ(t) + uᵢ(t+1)</p>
+      <table class="mt"><tr><th>Parameter</th><th>Physical Interpretation</th></tr>
+      <tr><td>β · Σ wⱼᵢ Δxⱼ</td><td>Systemic propagation: cross-network transfer weighted by polarity and strength. β (coupling factor, 0.02–0.40) governs transmission speed.</td></tr>
+      <tr><td>− λ · Δxᵢ</td><td>Damping or homeostatic recovery toward baseline (0–0.30). At λ = 0, perturbations become permanent shifts.</td></tr>
+      <tr><td>uᵢ(t)</td><td>External policy intervention injected into variable <i>i</i>.</td></tr></table>
+      <p><b>Intervention Types:</b> <i>Pulse</i> → u = magnitude applied exclusively at start step. <i>Sustained</i> → u = magnitude applied continuously throughout duration window.</p>
+      <p><b>Boundary Clamping:</b> After each step, values are bounded to 0 ≤ x ≤ 100, preventing non-physical divergence. Updates are strictly synchronous.</p></div>
 
-  <div class="card method" id="m9"><h3>9 · Supuestos y limitaciones</h3>
-    <ul><li>La escala 0–3 es ordinal; sumar valores supone intervalos equivalentes, lo cual es una aproximación.</li>
-    <li>La simulación es lineal con saturación: no captura umbrales, retardos, efectos no lineales ni heterogeneidad entre actores.</li>
-    <li>Los parámetros β, λ y el atenuante 0,6 son de calibración: sirven para comparar escenarios (análisis relativo), no para predecir magnitudes absolutas sin calibrar con datos históricos.</li>
-    <li>El ejemplo cargado es ilustrativo: sus evidencias deben validarse con información de la institución real.</li>
-    <li>Los resultados dependen de la completitud del listado de variables: variables omitidas pueden modificar los cuadrantes.</li>
-    <li>Se recomienda un análisis de sensibilidad: cambiar el umbral, la profundidad k y ±1 en los vínculos más inciertos para ver si el cuadrante se mantiene.</li></ul></div>
+    <div class="card method" id="m8-en"><h3>8 · Scientific Justification Protocol</h3>
+      <p>Every non-zero crossover link requires three rigorous pillars: <b>(1) Conceptual mechanism</b> (theoretical foundation explaining why A causes B), <b>(2) Practical observable evidence</b> (concrete institutional case, audited metric, or empirical study), and <b>(3) Verification KPI</b>. Links are marked as fully verified when both concept and evidence exceed 10 characters.</p></div>
 
-  <div class="card method" id="m10"><h3>10 · Referencias conceptuales</h3>
-    <ul><li>Godet, M. — <i>From Anticipation to Action</i> y <i>La prospectiva estratégica</i> (método MICMAC y análisis estructural).</li>
-    <li>Forrester, J. W. — <i>Industrial Dynamics</i> / dinámica de sistemas (retroalimentación y simulación).</li>
-    <li>Kotter, J. — <i>Leading Change</i> (gestión de la resistencia).</li>
-    <li>Schein, E. — <i>Organizational Culture and Leadership</i>.</li>
-    <li>Tinto, V. — modelo de integración y permanencia estudiantil.</li>
-    <li>Linstone &amp; Turoff — técnica Delphi para calificación experta.</li></ul></div>
+    <div class="card method" id="m9-en"><h3>9 · Assumptions and Analytical Scope</h3>
+      <ul><li>Ordinal scale approximation: summation assumes equidistant intervals across intensity ratings (0–3).</li>
+      <li>Simulation is linear with saturation clamping; does not replace complex non-linear agent-based modeling.</li>
+      <li>Parameters β, λ, and indirect attenuation 0.6 serve comparative scenario analysis rather than absolute predictive forecasting.</li>
+      <li>All structural conclusions depend on variable exhaustiveness; sensitivity checks across thresholds are strongly recommended.</li></ul></div>
+
+    <div class="card method" id="m10-en"><h3>10 · Academic & Theoretical Foundations</h3>
+      <ul><li>Godet, M. — <i>From Anticipation to Action: A Handbook of Strategic Prospective</i> (MICMAC Structural Analysis).</li>
+      <li>Forrester, J. W. — <i>Industrial Dynamics</i> / System Dynamics (Feedback loops and simulation).</li>
+      <li>Kotter, J. — <i>Leading Change</i> (Managing organizational inertia and resistance).</li>
+      <li>Schein, E. — <i>Organizational Culture and Leadership</i>.</li>
+      <li>Tinto, V. — Student departure, institutional integration and retention models.</li>
+      <li>Katz, L. &amp; Bonacich, P. — Network status and centrality in directed graphs with attenuation.</li></ul></div>
+  </div>
 </section>
 </main>
 <div id="tip" class="tip"></div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="i18n.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>

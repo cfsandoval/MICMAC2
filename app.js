@@ -4,10 +4,9 @@ const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const key = (a, b) => a + '>' + b;
-let uid = 1;
-
-function defaults() {
-  const vars = DEFAULT_VARS.map(([code, name, desc, x0]) => ({ id: 'v' + uid++, code, name, desc, x0 }));
+let uid = 1;function defaults(lang = (typeof currentLang !== 'undefined' ? currentLang : 'es')) {
+  const sourceVars = (lang === 'en' && typeof DEFAULT_VARS_EN !== 'undefined') ? DEFAULT_VARS_EN : DEFAULT_VARS;
+  const vars = sourceVars.map(([code, name, desc, x0]) => ({ id: 'v' + uid++, code, name, desc, x0 }));
   const byCode = Object.fromEntries(vars.map(v => [v.code, v.id]));
   const links = {};
   DEFAULT_LINKS.forEach(([a, b, v, concept, evidence, src]) => {
@@ -27,20 +26,20 @@ const del = (a, b) => S.links[key(a, b)]?.t ?? ((typeof DEFAULT_DELAYS !== 'unde
 const ui = { sel: null, selVar: null, hidden: new Set(), view: 'abs', dynSel: null };
 
 /* ---------- Colores / cuadrantes ---------- */
-const QUAD = {
-  power: { name: 'Zona de poder · Motrices', color: '#34d399', short: 'Poder',
-    concept: 'Alta influencia y baja dependencia. Determinan el sistema y casi no son afectadas por él. Son las palancas de intervención: actuar sobre ellas produce efectos amplios y predecibles.',
-    action: 'Priorizar: son el punto de partida de la estrategia y de la gestión del cambio.' },
-  conflict: { name: 'Zona de conflicto · Enlace', color: '#f59e0b', short: 'Conflicto',
-    concept: 'Alta influencia y alta dependencia. Son inestables: toda acción sobre ellas se propaga y retorna amplificada o amortiguada (bucles de retroalimentación).',
-    action: 'Gestionar con cuidado: intervenir en conjunto y monitorear efectos de retorno.' },
-  result: { name: 'Zona de resultados · Dependientes', color: '#a78bfa', short: 'Resultado',
-    concept: 'Baja influencia y alta dependencia. Reflejan el estado del sistema: son los indicadores de éxito, no las palancas.',
-    action: 'Usar como tablero de control; no intervenir directamente, sino mediante las variables motrices.' },
-  auto: { name: 'Zona autónoma · Excluidas', color: '#64748b', short: 'Autónoma',
-    concept: 'Baja influencia y baja dependencia. Poco conectadas con el resto: evolucionan por su cuenta o son marginales para la dinámica estudiada.',
-    action: 'Seguimiento mínimo; revisar si realmente deben formar parte del análisis.' }
-};
+function getQuad() {
+  const _t = typeof t === 'function' ? t : (k => k);
+  return {
+    power: { name: _t('q_power_name'), color: '#34d399', short: _t('q_power_short'),
+      concept: _t('q_power_concept'), action: _t('q_power_action') },
+    conflict: { name: _t('q_conflict_name'), color: '#f59e0b', short: _t('q_conflict_short'),
+      concept: _t('q_conflict_concept'), action: _t('q_conflict_action') },
+    result: { name: _t('q_result_name'), color: '#a78bfa', short: _t('q_result_short'),
+      concept: _t('q_result_concept'), action: _t('q_result_action') },
+    auto: { name: _t('q_auto_name'), color: '#64748b', short: _t('q_auto_short'),
+      concept: _t('q_auto_concept'), action: _t('q_auto_action') }
+  };
+}
+const QUAD = new Proxy({}, { get: (target, prop) => getQuad()[prop] });
 const quadOf = (infl, dep, ty, tx) => infl >= ty ? (dep >= tx ? 'conflict' : 'power') : (dep >= tx ? 'result' : 'auto');
 const cellBg = v => v === 0 ? 'transparent' : (v > 0 ? `rgba(56,189,248,${.18 + .25 * v})` : `rgba(251,113,133,${.18 + .25 * -v})`);
 const pillBg = v => v === 0 ? '#475569' : v > 0 ? '#38bdf8' : '#fb7185';
@@ -59,12 +58,12 @@ $('#tabs').onclick = e => {
 
 /* ---------- 1. Variables ---------- */
 function renderVars() {
-  $('#vars-table').innerHTML = `<tr><th>Código</th><th>Nombre</th><th>Descripción</th><th>Valor inicial</th><th></th></tr>` +
+  $('#vars-table').innerHTML = `<tr><th>${t('th_code')}</th><th>${t('th_name')}</th><th>${t('th_desc')}</th><th>${t('th_x0')}</th><th></th></tr>` +
     V().map(v => `<tr><td><input class="code" data-id="${v.id}" data-f="code" value="${esc(v.code)}"></td>
     <td><input data-id="${v.id}" data-f="name" value="${esc(v.name)}"></td>
     <td><input data-id="${v.id}" data-f="desc" value="${esc(v.desc)}"></td>
     <td><input class="num" type="number" min="0" max="100" data-id="${v.id}" data-f="x0" value="${v.x0}"></td>
-    <td><button class="x" data-del="${v.id}" title="Eliminar">✕</button></td></tr>`).join('');
+    <td><button class="x" data-del="${v.id}" title="${currentLang === 'en' ? 'Delete' : 'Eliminar'}">✕</button></td></tr>`).join('');
 }
 $('#vars-table').oninput = e => {
   const { id, f } = e.target.dataset; if (!id) return;
@@ -72,12 +71,12 @@ $('#vars-table').oninput = e => {
 };
 $('#vars-table').onclick = e => {
   const id = e.target.dataset.del; if (!id) return;
-  if (V().length <= 2) return alert('Se requieren al menos 2 variables.');
+  if (V().length <= 2) return alert(t('alert_min_vars'));
   S.vars.splice(idx(id), 1);
   Object.keys(S.links).forEach(k => { if (k.split('>').includes(id)) delete S.links[k]; });
   S.ints = S.ints.filter(i => i.vid !== id); ui.sel = null; ui.selVar = null; save(); renderAll();
 };
-$('#add-var').onclick = () => { S.vars.push({ id: 'v' + uid++, code: 'V' + (V().length + 1), name: 'Nueva variable', desc: '', x0: 50 }); save(); renderVars(); };
+$('#add-var').onclick = () => { S.vars.push({ id: 'v' + uid++, code: 'V' + (V().length + 1), name: currentLang === 'en' ? 'New variable' : 'Nueva variable', desc: '', x0: 50 }); save(); renderVars(); };
 
 /* ---------- 2. Matriz ---------- */
 const hasJust = l => l && (l.concept || '').trim().length > 10 && (l.evidence || '').trim().length > 10;
@@ -88,7 +87,7 @@ function sums() {
 }
 function renderMatrix() {
   const { inf, dep } = sums();
-  let h = `<tr><th></th>${V().map(v => `<th title="${esc(v.name)}">${esc(v.code)}</th>`).join('')}<th>Σ infl.</th></tr>`;
+  let h = `<tr><th></th>${V().map(v => `<th title="${esc(v.name)}">${esc(v.code)}</th>`).join('')}<th>${t('th_sum_infl')}</th></tr>`;
   V().forEach((a, i) => {
     h += `<tr><th>${esc(a.code)}</th>`;
     V().forEach((b, j) => {
@@ -99,51 +98,57 @@ function renderMatrix() {
     });
     h += `<td class="tot">${inf[i]}</td></tr>`;
   });
-  h += `<tr><th>Σ dep.</th>${dep.map(d => `<td class="tot">${d}</td>`).join('')}<td></td></tr>`;
+  h += `<tr><th>${t('th_sum_dep')}</th>${dep.map(d => `<td class="tot">${d}</td>`).join('')}<td></td></tr>`;
   $('#matrix').innerHTML = h;
   const nz = Object.values(S.links).filter(l => l.v), ok = nz.filter(hasJust).length;
-  $('#completeness').textContent = `Justificados: ${ok}/${nz.length}`;
+  $('#completeness').textContent = `${t('completeness_prefix')} ${ok}/${nz.length}`;
   $('#completeness').style.color = ok === nz.length ? '#34d399' : '#fbbf24';
+  $('#matrix-legend').innerHTML = [-3, -2, -1, 0, 1, 2, 3].map(v => `<span><span class="sw" style="background:${v === 0 ? '#1c2540' : cellBg(v)}"></span>${sgn(v)}</span>`).join('') + `<span>${t('legend_note')}</span>`;
 }
-$('#matrix-legend').innerHTML = [-3, -2, -1, 0, 1, 2, 3].map(v => `<span><span class="sw" style="background:${v === 0 ? '#1c2540' : cellBg(v)}"></span>${sgn(v)}</span>`).join('') + '<span>· «!» = valor sin justificación completa</span>';
-$('#rubric').innerHTML = `
-<div><b>0 · Sin influencia</b>No existe un mecanismo causal plausible entre ambas variables en el horizonte analizado.</div>
-<div><b>±1 · Débil</b>Efecto indirecto, lento o condicionado a terceras variables. Puede ser omitido sin cambiar la dinámica general.</div>
-<div><b>±2 · Moderada</b>Efecto reconocible y repetible, pero con atenuantes, sustitutos o dependencia de otro factor.</div>
-<div><b>±3 · Fuerte</b>Efecto directo, rápido y difícil de sustituir. Verificado con evidencia observable.</div>
-<div><b>Signo</b>+ : al subir la causa sube el efecto. − : al subir la causa baja el efecto (p. ej. reduce resistencia).</div>
-<div><b>Cómo justificar</b>(1) Mecanismo conceptual: por qué ocurre. (2) Evidencia práctica: caso/dato observable. (3) Indicador para verificarlo con datos propios.</div>`;
+function renderRubric() {
+  const r = $('#rubric');
+  if (!r) return;
+  r.innerHTML = `
+    <div><b>${t('r_0_title')}</b>${t('r_0_desc')}</div>
+    <div><b>${t('r_1_title')}</b>${t('r_1_desc')}</div>
+    <div><b>${t('r_2_title')}</b>${t('r_2_desc')}</div>
+    <div><b>${t('r_3_title')}</b>${t('r_3_desc')}</div>
+    <div><b>${t('r_sign_title')}</b>${t('r_sign_desc')}</div>
+    <div><b>${t('r_how_title')}</b>${t('r_how_desc')}</div>
+  `;
+}
+renderRubric();
 $('#matrix').onclick = e => { const c = e.target.closest('.cell'); if (c) { ui.sel = [c.dataset.a, c.dataset.b]; renderMatrix(); renderEditor(); } };
 $('#matrix').onmousemove = e => {
   const c = e.target.closest('.cell'); if (!c) return tip(null);
   const l = L(c.dataset.a, c.dataset.b);
-  tip(e, `<b>${esc(code(c.dataset.a))} → ${esc(code(c.dataset.b))}</b> (${sgn(l?.v || 0)})<br>${l?.concept ? esc(l.concept.slice(0, 160)) + '…' : 'Sin influencia directa registrada.'}`);
+  tip(e, `<b>${esc(code(c.dataset.a))} → ${esc(code(c.dataset.b))}</b> (${sgn(l?.v || 0)})<br>${l?.concept ? esc(l.concept.slice(0, 160)) + '…' : t('tip_matrix_no_dir')}`);
 };
 $('#matrix').onmouseleave = () => tip(null);
 function tip(e, html) {
-  const t = $('#tip'); if (!e) { t.style.opacity = 0; return; }
-  t.innerHTML = html; t.style.opacity = 1;
-  t.style.left = Math.min(e.clientX + 14, innerWidth - 360) + 'px'; t.style.top = (e.clientY + 14) + 'px';
+  const tEl = $('#tip'); if (!e) { tEl.style.opacity = 0; return; }
+  tEl.innerHTML = html; tEl.style.opacity = 1;
+  tEl.style.left = Math.min(e.clientX + 14, innerWidth - 360) + 'px'; tEl.style.top = (e.clientY + 14) + 'px';
 }
 function autoZero(a, b) {
-  return `Sin influencia directa: no se identifica un mecanismo causal por el cual «${name(a)}» modifique de forma directa a «${name(b)}» en el horizonte de análisis. Cualquier efecto pasa por otras variables y se captura como influencia indirecta (MICMAC). Si existe evidencia en contrario, asigne un valor y documéntela.`;
+  return t('ed_auto_zero');
 }
 function renderEditor() {
   const box = $('#cell-editor');
-  if (!ui.sel) { box.innerHTML = '<h2>Detalle del cruce</h2><p class="muted">Seleccione una celda de la matriz para ver el valor, su justificación conceptual y la evidencia práctica.</p>'; return; }
+  if (!ui.sel) { box.innerHTML = `<h2>${t('ed_title')}</h2><p class="muted">${t('ed_empty')}</p>`; return; }
   const [a, b] = ui.sel, l = L(a, b) || { v: 0, concept: '', evidence: '', src: '' };
-  box.innerHTML = `<div class="ed"><h2>Detalle del cruce</h2>
+  box.innerHTML = `<div class="ed"><h2>${t('ed_title')}</h2>
   <div class="link-title">${esc(name(a))} <span style="color:var(--acc2)">→</span> ${esc(name(b))}</div>
-  <label>Valor de influencia</label>
+  <label>${t('ed_val_lbl')}</label>
   <div class="scale">${[-3, -2, -1, 0, 1, 2, 3].map(v => `<button data-v="${v}" class="${l.v === v ? 'on' : ''}" style="${l.v === v ? 'background:' + pillBg(v) : ''}">${sgn(v)}</button>`).join('')}</div>
   ${l.v === 0 ? `<p class="muted" style="margin-top:12px">${esc(autoZero(a, b))}</p>` : ''}
-  <label>Justificación conceptual (mecanismo causal)</label><textarea data-f="concept" placeholder="¿Por qué A influye en B? Teoría o lógica causal...">${esc(l.concept)}</textarea>
-  <label>Evidencia práctica (caso o dato observable)</label><textarea data-f="evidence" placeholder="Caso real, dato, observación que respalda el valor...">${esc(l.evidence)}</textarea>
+  <label>${t('ed_concept_lbl')}</label><textarea data-f="concept" placeholder="${t('ed_concept_ph')}">${esc(l.concept)}</textarea>
+  <label>${t('ed_evidence_lbl')}</label><textarea data-f="evidence" placeholder="${t('ed_evidence_ph')}">${esc(l.evidence)}</textarea>
   <div style="display:grid;grid-template-columns:120px 1fr;gap:10px;margin-top:8px">
-    <div><label style="margin:6px 0 2px">Retardo T (años)</label><input type="number" min="0" max="20" step="0.5" data-f="t" value="${esc(del(a, b))}"></div>
-    <div><label style="margin:6px 0 2px">Indicador / fuente</label><input data-f="src" value="${esc(l.src || '')}" placeholder="Indicador o fuente"></div>
+    <div><label style="margin:6px 0 2px">${t('ed_delay_lbl')}</label><input type="number" min="0" max="20" step="0.5" data-f="t" value="${esc(del(a, b))}"></div>
+    <div><label style="margin:6px 0 2px">${t('ed_source_lbl')}</label><input data-f="src" value="${esc(l.src || '')}" placeholder="${t('ed_source_ph')}"></div>
   </div>
-  ${l.v !== 0 && !hasJust(l) ? '<div class="warn">⚠ Falta justificación completa (concepto y evidencia).</div>' : ''}</div>`;
+  ${l.v !== 0 && !hasJust(l) ? `<div class="warn">${t('ed_warn_missing')}</div>` : ''}</div>`;
 }
 $('#cell-editor').onclick = e => {
   const v = e.target.dataset.v; if (v === undefined || !ui.sel) return;
@@ -161,8 +166,8 @@ function renderLog() {
   const rows = Object.entries(S.links).filter(([k, l]) => l.v && idx(k.split('>')[0]) >= 0 && idx(k.split('>')[1]) >= 0)
     .filter(([k, l]) => f === 'all' || (f === 'missing' && !hasJust(l)) || (f === 'neg' && l.v < 0) || (['1', '2', '3'].includes(f) && Math.abs(l.v) === +f))
     .sort((x, y) => Math.abs(y[1].v) - Math.abs(x[1].v));
-  $('#log').innerHTML = `<tr><th>Cruce</th><th>Valor</th><th>Concepto</th><th>Evidencia práctica</th><th>Indicador</th></tr>` +
-    (rows.map(([k, l]) => { const [a, b] = k.split('>'); return `<tr class="clickable" data-a="${a}" data-b="${b}"><td><b>${esc(code(a))} → ${esc(code(b))}</b></td><td><span class="pill" style="background:${pillBg(l.v)}">${sgn(l.v)}</span></td><td>${esc(l.concept) || '<i class="muted">—</i>'}</td><td>${esc(l.evidence) || '<i class="muted">—</i>'}</td><td>${esc(l.src)}</td></tr>`; }).join('') || '<tr><td colspan="5" class="muted">Sin resultados.</td></tr>');
+  $('#log').innerHTML = `<tr><th>${t('th_origin')} → ${t('th_dest')}</th><th>${t('th_val')}</th><th>${t('th_concept')}</th><th>${t('th_evidence')}</th><th>${t('th_source')}</th></tr>` +
+    (rows.map(([k, l]) => { const [a, b] = k.split('>'); return `<tr class="clickable" data-a="${a}" data-b="${b}"><td><b>${esc(code(a))} → ${esc(code(b))}</b></td><td><span class="pill" style="background:${pillBg(l.v)}">${sgn(l.v)}</span></td><td>${esc(l.concept) || '<i class="muted">—</i>'}</td><td>${esc(l.evidence) || '<i class="muted">—</i>'}</td><td>${esc(l.src)}</td></tr>`; }).join('') || `<tr><td colspan="5" class="muted">${currentLang === 'en' ? 'No results.' : 'Sin resultados.'}</td></tr>`);
 }
 $('#log-filter').onchange = renderLog;
 $('#log').onclick = e => { const r = e.target.closest('tr.clickable'); if (r) { ui.sel = [r.dataset.a, r.dataset.b]; renderMatrix(); renderEditor(); scrollTo({ top: 0, behavior: 'smooth' }); } };
@@ -211,8 +216,8 @@ function renderPlane() {
     <text x="${X(vx)}" y="${m.t + ph + 18}" text-anchor="middle" fill="#93a0c4" font-size="11">${vx.toFixed(0)}</text><text x="${m.l - 8}" y="${Y(vy) + 4}" text-anchor="end" fill="#93a0c4" font-size="11">${vy.toFixed(0)}</text>`;
   }
   s += `<line x1="${X(tx)}" x2="${X(tx)}" y1="${m.t}" y2="${m.t + ph}" stroke="#fff" stroke-width="1.6" stroke-dasharray="6 4" opacity=".75"/><line y1="${Y(ty)}" y2="${Y(ty)}" x1="${m.l}" x2="${m.l + pw}" stroke="#fff" stroke-width="1.6" stroke-dasharray="6 4" opacity=".75"/>
-  <text x="${X(tx) + 5}" y="${m.t + ph - 6}" fill="#fff" font-size="10" opacity=".7">umbral dep. ${tx.toFixed(1)}</text><text x="${m.l + 6}" y="${Y(ty) - 5}" fill="#fff" font-size="10" opacity=".7">umbral infl. ${ty.toFixed(1)}</text>
-  <text x="${m.l + pw / 2}" y="${H - 12}" text-anchor="middle" fill="#e8ecf8" font-size="13" font-weight="600">DEPENDENCIA (%) →</text><text transform="translate(16 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle" fill="#e8ecf8" font-size="13" font-weight="600">INFLUENCIA (%) →</text>`;
+  <text x="${X(tx) + 5}" y="${m.t + ph - 6}" fill="#fff" font-size="10" opacity=".7">${t('tip_threshold_dep')} ${tx.toFixed(1)}</text><text x="${m.l + 6}" y="${Y(ty) - 5}" fill="#fff" font-size="10" opacity=".7">${t('tip_threshold_mot')} ${ty.toFixed(1)}</text>
+  <text x="${m.l + pw / 2}" y="${H - 12}" text-anchor="middle" fill="#e8ecf8" font-size="13" font-weight="600">${t('axis_dep_pct')}</text><text transform="translate(16 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle" fill="#e8ecf8" font-size="13" font-weight="600">${t('axis_infl_pct')}</text>`;
   /* posiciones con desplazamiento de duplicados */
   const pts = V().map((v, i) => ({ i, x: X(sc.dep[i]), y: Y(sc.inf[i]), r: 7 + (sc.inf[i] + sc.dep[i]) / 200 * 9 }));
   const seen = {}; pts.forEach(p => { const k = p.x.toFixed(0) + '_' + p.y.toFixed(0); seen[k] = (seen[k] || 0) + 1; if (seen[k] > 1) { const a = seen[k] * 2.4; p.x += Math.cos(a) * 9; p.y += Math.sin(a) * 9; } });
@@ -239,17 +244,18 @@ function renderPlane() {
   $('#plane-wrap').innerHTML = s + '</svg>';
   /* tabla de posiciones */
   const order = [...V().keys()].sort((a, b) => sc.inf[b] - sc.inf[a]);
-  $('#rank').innerHTML = `<tr><th>Var.</th><th>Infl.</th><th>Dep.</th><th>Cuadrante</th>${PD.mode === 'indirect' ? '<th>Rango Δ</th>' : ''}</tr>` + order.map(i => {
+  $('#rank').innerHTML = `<tr><th>Var.</th><th>${t('th_infl')}</th><th>${t('th_dep')}</th><th>${t('th_quad')}</th>${PD.mode === 'indirect' ? `<th>${currentLang === 'en' ? 'Rank Δ' : 'Rango Δ'}</th>` : ''}</tr>` + order.map(i => {
     const border = Math.abs(sc.inf[i] - ty) < (y1 - y0) * .04 || Math.abs(sc.dep[i] - tx) < (x1 - x0) * .04;
     const dr = PD.rkD[i] - PD.rkI[i];
-    return `<tr class="clickable ${ui.selVar === V()[i].id ? 'sel' : ''}" data-id="${V()[i].id}"><td><b>${esc(V()[i].code)}</b></td><td>${sc.inf[i].toFixed(1)}</td><td>${sc.dep[i].toFixed(1)}</td><td><span class="badge" style="background:${QUAD[q[i]].color}">${QUAD[q[i]].short}</span>${border ? ' <span title="Cerca del umbral" style="color:#fbbf24">≈</span>' : ''}</td>${PD.mode === 'indirect' ? `<td>${dr === 0 ? '=' : (dr > 0 ? '▲' + dr : '▼' + -dr)}</td>` : ''}</tr>`;
+    return `<tr class="clickable ${ui.selVar === V()[i].id ? 'sel' : ''}" data-id="${V()[i].id}"><td><b>${esc(V()[i].code)}</b></td><td>${sc.inf[i].toFixed(1)}</td><td>${sc.dep[i].toFixed(1)}</td><td><span class="badge" style="background:${QUAD[q[i]].color}">${QUAD[q[i]].short}</span>${border ? ` <span title="${currentLang === 'en' ? 'Near threshold' : 'Cerca del umbral'}" style="color:#fbbf24">≈</span>` : ''}</td>${PD.mode === 'indirect' ? `<td>${dr === 0 ? '=' : (dr > 0 ? '▲' + dr : '▼' + -dr)}</td>` : ''}</tr>`;
   }).join('');
   renderDetail();
+  renderQuadCards();
 }
 $('#plane-wrap').onclick = e => { const id = e.target.dataset?.id; if (id) { ui.selVar = id; renderPlane(); } };
 $('#plane-wrap').onmousemove = e => {
   const id = e.target.dataset?.id; if (!id || !PD) return tip(null);
-  const i = idx(id); tip(e, `<b>${esc(V()[i].name)}</b><br>Influencia ${PD.sc.inf[i].toFixed(1)}% · Dependencia ${PD.sc.dep[i].toFixed(1)}%<br>${QUAD[PD.q[i]].name}`);
+  const i = idx(id); tip(e, `<b>${esc(V()[i].name)}</b><br>${t('th_infl')} ${PD.sc.inf[i].toFixed(1)}% · ${t('th_dep')} ${PD.sc.dep[i].toFixed(1)}%<br>${QUAD[PD.q[i]].name}`);
 };
 $('#plane-wrap').onmouseleave = () => tip(null);
 $('#rank').onclick = e => { const r = e.target.closest('tr.clickable'); if (r) { ui.selVar = r.dataset.id; renderPlane(); } };
@@ -257,19 +263,25 @@ $('#rank').onclick = e => { const r = e.target.closest('tr.clickable'); if (r) {
 
 function renderDetail() {
   const box = $('#var-detail');
-  if (!ui.selVar || idx(ui.selVar) < 0) { box.innerHTML = '<h2>Justificación de la posición</h2><p class="muted">Seleccione una variable en el gráfico o en la tabla para ver por qué cae en su cuadrante: qué cruces suman su influencia y su dependencia, con su concepto y evidencia.</p>'; return; }
+  if (!ui.selVar || idx(ui.selVar) < 0) {
+    box.innerHTML = `<h2>${currentLang === 'en' ? 'Position Justification' : 'Justificación de la posición'}</h2><p class="muted">${currentLang === 'en' ? 'Select a variable on the chart or table to inspect why it falls in its quadrant: which crossover linkages build its influence and dependence.' : 'Seleccione una variable en el gráfico o en la tabla para ver por qué cae en su cuadrante: qué cruces suman su influencia y su dependencia, con su concepto y evidencia.'}</p>`;
+    return;
+  }
   const i = idx(ui.selVar), v = V()[i], q = PD.q[i], Q = QUAD[q], id = v.id;
   const outs = V().filter(b => b.id !== id && val(id, b.id)).map(b => ({ b, l: L(id, b.id) })).sort((a, b) => Math.abs(b.l.v) - Math.abs(a.l.v));
   const ins = V().filter(b => b.id !== id && val(b.id, id)).map(b => ({ b, l: L(b.id, id) })).sort((a, b) => Math.abs(b.l.v) - Math.abs(a.l.v));
-  const list = (arr, out) => arr.length ? arr.map(({ b, l }) => `<div class="lk" style="border-color:${pillBg(l.v)}"><b>${out ? esc(v.code) + ' → ' + esc(b.code) : esc(b.code) + ' → ' + esc(v.code)}</b> <span class="pill" style="background:${pillBg(l.v)}">${sgn(l.v)}</span><br>${esc(l.concept) || '<i>sin concepto</i>'}<small>Evidencia: ${esc(l.evidence) || '—'}</small></div>`).join('') : '<p class="muted">Ningún vínculo directo registrado.</p>';
+  const list = (arr, out) => arr.length ? arr.map(({ b, l }) => `<div class="lk" style="border-color:${pillBg(l.v)}"><b>${out ? esc(v.code) + ' → ' + esc(b.code) : esc(b.code) + ' → ' + esc(v.code)}</b> <span class="pill" style="background:${pillBg(l.v)}">${sgn(l.v)}</span><br>${esc(l.concept) || `<i>${currentLang === 'en' ? 'no concept' : 'sin concepto'}</i>`}<small>${currentLang === 'en' ? 'Evidence:' : 'Evidencia:'} ${esc(l.evidence) || '—'}</small></div>`).join('') : `<p class="muted">${currentLang === 'en' ? 'No direct linkages registered.' : 'Ningún vínculo directo registrado.'}</p>`;
   const rI = PD.sc.rawI[i], rD = PD.sc.rawD[i], inf = PD.sc.inf[i], dep = PD.sc.dep[i];
   const sumO = outs.reduce((s, o) => s + Math.abs(o.l.v), 0), sumI = ins.reduce((s, o) => s + Math.abs(o.l.v), 0);
   box.innerHTML = `<div class="card-head"><h2>${esc(v.code)} · ${esc(v.name)}</h2><span class="badge" style="background:${Q.color}">${Q.name}</span></div>
-  <p class="muted"><b style="color:var(--txt)">Lectura del resultado:</b> influencia <b>${inf.toFixed(1)}%</b> ${inf >= PD.ty ? '≥' : '<'} umbral ${PD.ty.toFixed(1)}% y dependencia <b>${dep.toFixed(1)}%</b> ${dep >= PD.tx ? '≥' : '<'} umbral ${PD.tx.toFixed(1)}%. ${PD.mode === 'direct' ? `Influencia = suma de la fila = ${sumO} (de ${3 * (V().length - 1)} posibles); dependencia = suma de la columna = ${sumI}.` : `Valores indirectos: caminos de hasta ${PD.K} pasos con atenuación 0,6 por paso adicional (influencia bruta ${rI.toFixed(2)}, dependencia bruta ${rD.toFixed(2)}).`}</p>
-  <p class="muted"><b style="color:var(--txt)">Concepto:</b> ${Q.concept}<br><b style="color:var(--txt)">Implicación práctica:</b> ${Q.action}</p>
-  <div class="detail-grid"><div><h3>Influye en (suma ${sumO})</h3>${list(outs, true)}</div><div><h3>Depende de (suma ${sumI})</h3>${list(ins, false)}</div></div>`;
+  <p class="muted"><b style="color:var(--txt)">${currentLang === 'en' ? 'Result interpretation:' : 'Lectura del resultado:'}</b> ${t('th_infl')} <b>${inf.toFixed(1)}%</b> ${inf >= PD.ty ? '≥' : '<'} ${currentLang === 'en' ? 'threshold' : 'umbral'} ${PD.ty.toFixed(1)}% ${currentLang === 'en' ? 'and' : 'y'} ${t('th_dep')} <b>${dep.toFixed(1)}%</b> ${dep >= PD.tx ? '≥' : '<'} ${currentLang === 'en' ? 'threshold' : 'umbral'} ${PD.tx.toFixed(1)}%. ${PD.mode === 'direct' ? (currentLang === 'en' ? `Influence = row sum = ${sumO} (of ${3 * (V().length - 1)} max); dependence = col sum = ${sumI}.` : `Influencia = suma de la fila = ${sumO} (de ${3 * (V().length - 1)} posibles); dependencia = suma de la columna = ${sumI}.`) : (currentLang === 'en' ? `Indirect values: paths up to ${PD.K} steps with 0.6 attenuation (gross infl ${rI.toFixed(2)}, gross dep ${rD.toFixed(2)}).` : `Valores indirectos: caminos de hasta ${PD.K} pasos con atenuación 0,6 por paso adicional (influencia bruta ${rI.toFixed(2)}, dependencia bruta ${rD.toFixed(2)}).`)}</p>
+  <p class="muted"><b style="color:var(--txt)">${currentLang === 'en' ? 'Concept:' : 'Concepto:'}</b> ${Q.concept}<br><b style="color:var(--txt)">${currentLang === 'en' ? 'Practical implication:' : 'Implicación práctica:'}</b> ${Q.action}</p>
+  <div class="detail-grid"><div><h3>${currentLang === 'en' ? 'Influences (sum ' + sumO + ')' : 'Influye en (suma ' + sumO + ')'}</h3>${list(outs, true)}</div><div><h3>${currentLang === 'en' ? 'Depends on (sum ' + sumI + ')' : 'Depende de (suma ' + sumI + ')'}</h3>${list(ins, false)}</div></div>`;
 }
-$('#quad-cards').innerHTML = Object.entries(QUAD).map(([k, q]) => `<div class="qc" style="background:${q.color}18"><h4><span class="dot" style="background:${q.color}"></span>${q.name}</h4>${q.concept}<br><b style="color:var(--txt)">→ ${q.action}</b></div>`).join('');
+function renderQuadCards() {
+  $('#quad-cards').innerHTML = Object.entries(QUAD).map(([k, q]) => `<div class="qc" style="background:${q.color}18"><h4><span class="dot" style="background:${q.color}"></span>${q.name}</h4>${q.concept}<br><b style="color:var(--txt)">→ ${q.action}</b></div>`).join('');
+}
+renderQuadCards();
 
 /* ---------- 4. Simulación ---------- */
 function simulate() {
@@ -286,14 +298,14 @@ function simulate() {
   return { x, dl };
 }
 function renderInts() {
-  const hdr = `<div class="int int-h"><span>Tipo</span><span>Magnitud</span><span>Inicio t</span><span>Duración</span><span></span></div>`;
+  const hdr = `<div class="int int-h"><span>${currentLang === 'en' ? 'Type' : 'Tipo'}</span><span>${currentLang === 'en' ? 'Magnitude' : 'Magnitud'}</span><span>${currentLang === 'en' ? 'Start t' : 'Inicio t'}</span><span>${currentLang === 'en' ? 'Duration' : 'Duración'}</span><span></span></div>`;
   $('#interventions').innerHTML = V().map((v, i) => {
     const mine = S.ints.map((it, k) => [it, k]).filter(([it]) => it.vid === v.id);
-    return `<div class="vblock"><div class="vhead"><span class="dot" style="background:${varColor(i)}"></span><b>${esc(v.code)}</b><span class="muted">${esc(v.name)}</span><span class="cnt">${mine.length ? mine.length + (mine.length > 1 ? ' influencias' : ' influencia') : 'sin influencia'}</span><button class="btn ghost sm" data-add="${v.id}">+ Influencia</button></div>` +
-      (mine.length ? hdr + mine.map(([it, k]) => `<div class="int"><select data-k="${k}" data-f="type"><option value="pulse" ${it.type === 'pulse' ? 'selected' : ''}>Pulso (único)</option><option value="sust" ${it.type === 'sust' ? 'selected' : ''}>Sostenida (por paso)</option></select>
+    return `<div class="vblock"><div class="vhead"><span class="dot" style="background:${varColor(i)}"></span><b>${esc(v.code)}</b><span class="muted">${esc(v.name)}</span><span class="cnt">${mine.length ? mine.length + ' ' + (mine.length > 1 ? t('int_unit_multi') : t('int_unit_single')) : t('int_unit_none')}</span><button class="btn ghost sm" data-add="${v.id}">${t('int_add_btn')}</button></div>` +
+      (mine.length ? hdr + mine.map(([it, k]) => `<div class="int"><select data-k="${k}" data-f="type"><option value="pulse" ${it.type === 'pulse' ? 'selected' : ''}>${t('int_pulse_opt')}</option><option value="sust" ${it.type === 'sust' ? 'selected' : ''}>${t('int_sust_opt')}</option></select>
       <input type="number" step="0.5" data-k="${k}" data-f="mag" value="${it.mag}"><input type="number" min="1" data-k="${k}" data-f="start" value="${it.start}">
       <input type="number" min="1" data-k="${k}" data-f="dur" value="${it.dur}" ${it.type === 'pulse' ? 'disabled' : ''}><button class="x" data-del="${k}">✕</button></div>`).join('') : '') + '</div>';
-  }).join('') + '<p class="muted" style="margin:4px 0 0">Magnitud en puntos (0–100): pulso = puntos aplicados una vez; sostenida = puntos por paso. Negativo = presión a la baja.</p>';
+  }).join('') + `<p class="muted" style="margin:4px 0 0">${t('int_help_text')}</p>`;
   $('#quick').innerHTML = V().map(v => `<span class="chip" data-q="${v.id}">${esc(v.code)}</span>`).join('');
   [['beta', 'p-beta', 'o-beta'], ['lambda', 'p-lambda', 'o-lambda'], ['steps', 'p-steps', 'o-steps']].forEach(([k, i, o]) => { $('#' + i).value = S.params[k]; $('#' + o).textContent = S.params[k]; });
 }
@@ -323,7 +335,7 @@ function renderChart() {
   let s = `<svg viewBox="0 0 ${W} ${H}" id="chart-svg">`;
   for (let k = 0; k <= 5; k++) { const v = lo + (hi - lo) * k / 5; s += `<line x1="${m.l}" x2="${m.l + pw}" y1="${Y(v)}" y2="${Y(v)}" stroke="#94a3ff" opacity=".1"/><text x="${m.l - 8}" y="${Y(v) + 4}" fill="#93a0c4" font-size="11" text-anchor="end">${v.toFixed(0)}</text>`; }
   for (let k = 0; k <= 10; k++) { const t = Math.round(T * k / 10); s += `<text x="${X(t)}" y="${H - 14}" fill="#93a0c4" font-size="11" text-anchor="middle">${t}</text>`; }
-  s += `<text x="${m.l + pw / 2}" y="${H - 1}" fill="#93a0c4" font-size="11" text-anchor="middle">pasos de tiempo</text>`;
+  s += `<text x="${m.l + pw / 2}" y="${H - 1}" fill="#93a0c4" font-size="11" text-anchor="middle">${t('th_time_steps')}</text>`;
   if (ui.view === 'delta') s += `<line x1="${m.l}" x2="${m.l + pw}" y1="${Y(0)}" y2="${Y(0)}" stroke="#fff" opacity=".4"/>`;
   S.ints.forEach(it => { const a = +it.start, b = it.type === 'pulse' ? a : +it.start + +it.dur; if (a <= T) s += it.type === 'pulse' ? `<line x1="${X(a)}" x2="${X(a)}" y1="${m.t}" y2="${m.t + ph}" stroke="#fbbf24" stroke-dasharray="3 4" opacity=".5"/>` : `<rect x="${X(a)}" y="${m.t}" width="${Math.max(X(Math.min(b, T)) - X(a), 1)}" height="${ph}" fill="#fbbf24" opacity=".06"/>`; });
   vis.forEach(i => {
@@ -336,16 +348,16 @@ function renderChart() {
   $('#chart-wrap').innerHTML = s;
   const r = $('#hv-r'), hv = $('#hv');
   r.onmousemove = e => {
-    const bb = r.getBoundingClientRect(), t = clamp(Math.round((e.clientX - bb.left) / bb.width * T), 0, T);
-    hv.setAttribute('x1', X(t)); hv.setAttribute('x2', X(t)); hv.setAttribute('opacity', .6);
-    $('#hover-read').innerHTML = `<b style="color:var(--txt)">t = ${t}</b> · ` + [...vis].sort((a, b) => data[t][b] - data[t][a]).map(i => `<span style="color:${varColor(i)}">${esc(V()[i].code)} ${data[t][i].toFixed(1)}</span>`).join(' · ');
+    const bb = r.getBoundingClientRect(), tVal = clamp(Math.round((e.clientX - bb.left) / bb.width * T), 0, T);
+    hv.setAttribute('x1', X(tVal)); hv.setAttribute('x2', X(tVal)); hv.setAttribute('opacity', .6);
+    $('#hover-read').innerHTML = `<b style="color:var(--txt)">t = ${tVal}</b> · ` + [...vis].sort((a, b) => data[tVal][b] - data[tVal][a]).map(i => `<span style="color:${varColor(i)}">${esc(V()[i].code)} ${data[tVal][i].toFixed(1)}</span>`).join(' · ');
   };
   r.onmouseleave = () => hv.setAttribute('opacity', 0);
-  if (!$('#hover-read').innerHTML) $('#hover-read').textContent = 'Pase el cursor sobre el gráfico para leer los valores por paso. Banda amarilla = periodo de intervención.';
+  if (!$('#hover-read').innerHTML) $('#hover-read').textContent = t('hover_read_default');
   /* impacto */
   const rows = V().map((v, i) => { let pk = 0, pt = 0; SIM.dl.forEach((r, t) => { if (Math.abs(r[i]) > Math.abs(pk)) { pk = r[i]; pt = t; } }); return { v, i, base: v.x0, fin: SIM.x[T][i], df: SIM.dl[T][i], pk, pt }; }).sort((a, b) => Math.abs(b.pk) - Math.abs(a.pk));
   const mxp = Math.max(...rows.map(r => Math.abs(r.pk)), 1e-9);
-  $('#impact').innerHTML = `<tr><th>Variable</th><th>Inicial</th><th>Final</th><th>Δ final</th><th>Pico Δ (paso)</th><th style="width:30%">Magnitud</th></tr>` + rows.map(r => `<tr><td><span class="dot" style="background:${varColor(r.i)}"></span><b>${esc(r.v.code)}</b> ${esc(r.v.name)}</td><td>${r.base.toFixed(0)}</td><td>${r.fin.toFixed(1)}</td><td style="color:${r.df >= 0 ? '#38bdf8' : '#fb7185'}">${sgn(+r.df.toFixed(1))}</td><td>${sgn(+r.pk.toFixed(1))} (t=${r.pt})</td><td><div class="bar" style="width:${Math.abs(r.pk) / mxp * 100}%;background:${r.pk >= 0 ? '' : '#fb7185'}"></div></td></tr>`).join('');
+  $('#impact').innerHTML = `<tr><th>Variable</th><th>${t('th_initial')}</th><th>${t('th_final')}</th><th>${t('th_dfinal')}</th><th>${t('th_peak')}</th><th style="width:30%">${t('th_mag')}</th></tr>` + rows.map(r => `<tr><td><span class="dot" style="background:${varColor(r.i)}"></span><b>${esc(r.v.code)}</b> ${esc(r.v.name)}</td><td>${r.base.toFixed(0)}</td><td>${r.fin.toFixed(1)}</td><td style="color:${r.df >= 0 ? '#38bdf8' : '#fb7185'}">${sgn(+r.df.toFixed(1))}</td><td>${sgn(+r.pk.toFixed(1))} (t=${r.pt})</td><td><div class="bar" style="width:${Math.abs(r.pk) / mxp * 100}%;background:${r.pk >= 0 ? '' : '#fb7185'}"></div></td></tr>`).join('');
 }
 
 /* ---------- 5. Dynamic Signed-MICMAC (Katz-Bonacich / Leontief) ---------- */
@@ -520,24 +532,24 @@ function renderDynamic() {
     const rC = rClasMap[i], rN = rNetMap[i], dR = rC - rN;
     
     // Cuadrante
-    let quadKey = 'auto', quadName = 'Autónoma';
+    let quadKey = 'auto', quadName = QUAD.auto.name;
     if (mn >= uMot) {
-      if (dn >= uDep) { quadKey = 'conflict'; quadName = 'Enlace / Reto'; }
-      else { quadKey = 'power'; quadName = 'Motriz / Entrada'; }
+      if (dn >= uDep) { quadKey = 'conflict'; quadName = QUAD.conflict.name; }
+      else { quadKey = 'power'; quadName = QUAD.power.name; }
     } else {
-      if (dn >= uDep) { quadKey = 'result'; quadName = 'Dependiente / Resultado'; }
-      else { quadKey = 'auto'; quadName = 'Autónoma'; }
+      if (dn >= uDep) { quadKey = 'result'; quadName = QUAD.result.name; }
+      else { quadKey = 'auto'; quadName = QUAD.auto.name; }
     }
 
     const esTrampa = (res.M_clas[i] >= medClas) && (om_i > omegaTrampa);
     if (esTrampa) numTrampas++;
 
     const tags = [];
-    if (mn >= medMn && om_i <= medOm) { tags.push('Palanca maestra consistente'); numPalancas++; }
-    if (mb >= medMb && om_i >= q3Om) tags.push('Falsa variable clave (espejismo)');
-    if (f_i < 0 && f_i <= q1F) tags.push('Estabilizador homeostático');
-    if (f_i > 0 && f_i >= q3F) tags.push('Nodo de efecto bola de nieve');
-    const rol = tags.length ? tags.join(' · ') : 'Evolución regular';
+    if (mn >= medMn && om_i <= medOm) { tags.push(t('role_palanca')); numPalancas++; }
+    if (mb >= medMb && om_i >= q3Om) tags.push(t('role_espejismo'));
+    if (f_i < 0 && f_i <= q1F) tags.push(t('role_bucle_neg'));
+    if (f_i > 0 && f_i >= q3F) tags.push(t('role_bucle_pos'));
+    const rol = tags.length ? tags.join(' · ') : t('role_regular');
 
     return { v, i, mc: res.M_clas[i], dc: res.D_clas[i], mb, mn, dn, f_i, om_i, rC, rN, dR, quadKey, quadName, esTrampa, rol };
   });
@@ -566,8 +578,8 @@ function renderDynamic() {
   // Threshold lines
   s += `<line x1="${xMid}" x2="${xMid}" y1="${m.t}" y2="${m.t + ph}" stroke="#94a3ff" stroke-dasharray="4 4" opacity=".4"/>`;
   s += `<line x1="${m.l}" x2="${m.l + pw}" y1="${yMid}" y2="${yMid}" stroke="#94a3ff" stroke-dasharray="4 4" opacity=".4"/>`;
-  s += `<text x="${xMid + 6}" y="${m.t + 16}" fill="#93a0c4" font-size="11">Umbral Dep (${uDep.toFixed(1)})</text>`;
-  s += `<text x="${m.l + 6}" y="${yMid - 6}" fill="#93a0c4" font-size="11">Umbral Mot (${uMot.toFixed(1)})</text>`;
+  s += `<text x="${xMid + 6}" y="${m.t + 16}" fill="#93a0c4" font-size="11">${t('tip_threshold_dep')} (${uDep.toFixed(1)})</text>`;
+  s += `<text x="${m.l + 6}" y="${yMid - 6}" fill="#93a0c4" font-size="11">${t('tip_threshold_mot')} (${uMot.toFixed(1)})</text>`;
 
   // Axes ticks
   for (let k = 0; k <= 5; k++) {
@@ -576,8 +588,8 @@ function renderDynamic() {
     s += `<text x="${m.l - 8}" y="${Y(vm) + 4}" fill="#93a0c4" font-size="10" text-anchor="end">${vm.toFixed(0)}</text>`;
     s += `<text x="${X(vd)}" y="${H - 24}" fill="#93a0c4" font-size="10" text-anchor="middle">${vd.toFixed(0)}</text>`;
   }
-  s += `<text x="${m.l + pw / 2}" y="${H - 6}" fill="#93a0c4" font-size="11" text-anchor="middle">Dependencia Neta Efectiva (Dⁿᵉᵗᵃ)</text>`;
-  s += `<text x="16" y="${m.t + ph / 2}" fill="#93a0c4" font-size="11" text-anchor="middle" transform="rotate(-90 16 ${m.t + ph / 2})">Motricidad Neta Efectiva (Mⁿᵉᵗᵃ)</text>`;
+  s += `<text x="${m.l + pw / 2}" y="${H - 6}" fill="#93a0c4" font-size="11" text-anchor="middle">${t('dyn_axis_x')}</text>`;
+  s += `<text x="16" y="${m.t + ph / 2}" fill="#93a0c4" font-size="11" text-anchor="middle" transform="rotate(-90 16 ${m.t + ph / 2})">${t('dyn_axis_y')}</text>`;
 
   // Draw points
   rows.forEach(r => {
@@ -602,20 +614,20 @@ function renderDynamic() {
     if (!r) return;
     el.onmousemove = e => {
       tip(e, `<b>${esc(r.v.code)} · ${esc(r.v.name)}</b><br>` +
-             `Cuadrante: <b>${esc(r.quadName)}</b><br>` +
-             `Motricidad neta: <b>${r.mn.toFixed(2)}</b> (Clásica: ${r.mc})<br>` +
-             `Dependencia neta: <b>${r.dn.toFixed(2)}</b> (Clásica: ${r.dc})<br>` +
-             `Bucle propio (F): <b style="color:${r.f_i >= 0 ? '#34d399' : '#fb7185'}">${r.f_i >= 0 ? '+' : ''}${r.f_i.toFixed(3)}</b> (${r.f_i >= 0 ? 'Amplificador' : 'Regulador'})<br>` +
-             `Ambigüedad Ω: <b>${r.om_i.toFixed(1)} %</b><br>` +
-             `Cambio rango: <b>${r.dR >= 0 ? '+' : ''}${r.dR}</b><br>` +
-             (r.esTrampa ? `<span style="color:#fb7185">⚠ TRAMPA DE POLÍTICA (alta motricidad contradicha en la red)</span><br>` : '') +
-             `Rol: <i>${esc(r.rol)}</i>`);
+             `${t('tip_quad')} <b>${esc(QUAD[r.quadKey]?.name || r.quadName)}</b><br>` +
+             `${t('tip_mot_neta')} <b>${r.mn.toFixed(2)}</b> (${t('tip_clasica')} ${r.mc})<br>` +
+             `${t('tip_dep_neta')} <b>${r.dn.toFixed(2)}</b> (${t('tip_clasica')} ${r.dc})<br>` +
+             `${t('tip_bucle')} <b style="color:${r.f_i >= 0 ? '#34d399' : '#fb7185'}">${r.f_i >= 0 ? '+' : ''}${r.f_i.toFixed(3)}</b> (${r.f_i >= 0 ? t('tip_amp') : t('tip_reg')})<br>` +
+             `${t('tip_omega')} <b>${r.om_i.toFixed(1)} %</b><br>` +
+             `${t('tip_dr')} <b>${r.dR >= 0 ? '+' : ''}${r.dR}</b><br>` +
+             (r.esTrampa ? `<span style="color:#fb7185">${t('tip_trap_warn')}</span><br>` : '') +
+             `${t('tip_role')} <i>${esc(r.rol)}</i>`);
     };
     el.onmouseleave = () => tip(null);
   });
 
   // Render diagnostic side table
-  $('#dyn-diag-table').innerHTML = `<tr><th>Variable</th><th>Cuadrante</th><th>Bucle F</th><th>Ω</th></tr>` +
+  $('#dyn-diag-table').innerHTML = `<tr><th>Variable</th><th>${t('th_dyn_quad')}</th><th>${t('th_dyn_f')}</th><th>Ω</th></tr>` +
     rows.map(r => `<tr>
       <td><b>${esc(r.v.code)}</b> ${esc(r.v.name)}</td>
       <td><span class="tag-badge" style="background:${QUAD[r.quadKey]?.color || '#94a3b8'};color:#06101c">${esc(QUAD[r.quadKey]?.short || r.quadName)}</span></td>
@@ -625,14 +637,14 @@ function renderDynamic() {
 
   // Render full comparative table
   $('#dyn-full-table').innerHTML = `<tr>
-    <th>Código</th><th>Variable</th><th>Mot. Clásica</th><th>Mot. Neta</th><th>R. Clásico</th><th>R. Dinámico</th><th>Δ Rango</th>
-    <th>Dep. Neta</th><th>Bucle Propio (F)</th><th>Ambigüedad Ω</th><th>Cuadrante</th><th>Trampa</th><th>Rol Estratégico</th>
+    <th>${t('th_code')}</th><th>Variable</th><th>${t('th_dyn_mc')}</th><th>${t('th_dyn_mn')}</th><th>${t('th_dyn_rc')}</th><th>${t('th_dyn_rn')}</th><th>${t('th_dyn_dr')}</th>
+    <th>${t('th_dyn_dn')}</th><th>${t('th_dyn_f')}</th><th>${t('th_dyn_om')}</th><th>${t('th_dyn_quad')}</th><th>${t('th_dyn_trap')}</th><th>${t('th_dyn_role')}</th>
   </tr>` + rows.map(r => {
     let rolBadgeClass = 'role-badge';
-    if (r.rol.includes('Palanca')) rolBadgeClass += ' role-palanca';
-    else if (r.rol.includes('espejismo')) rolBadgeClass += ' role-espejismo';
-    else if (r.rol.includes('bola de nieve')) rolBadgeClass += ' role-bucle-pos';
-    else if (r.rol.includes('homeostático')) rolBadgeClass += ' role-bucle-neg';
+    if (r.rol.includes('Palanca') || r.rol.includes('Lever')) rolBadgeClass += ' role-palanca';
+    else if (r.rol.includes('espejismo') || r.rol.includes('Mirage')) rolBadgeClass += ' role-espejismo';
+    else if (r.rol.includes('nieve') || r.rol.includes('Snowball')) rolBadgeClass += ' role-bucle-pos';
+    else if (r.rol.includes('homeostático') || r.rol.includes('Stabilizer')) rolBadgeClass += ' role-bucle-neg';
 
     return `<tr>
       <td><b>${esc(r.v.code)}</b></td>
@@ -645,8 +657,8 @@ function renderDynamic() {
       <td>${r.dn.toFixed(2)}</td>
       <td style="color:${r.f_i >= 0 ? '#34d399' : '#fb7185'}"><b>${sgn(+r.f_i.toFixed(3))}</b></td>
       <td style="color:${r.om_i > 25 ? '#fbbf24' : 'inherit'}">${r.om_i.toFixed(1)}%</td>
-      <td><span class="tag-badge" style="background:${QUAD[r.quadKey]?.color || '#94a3b8'};color:#06101c">${esc(r.quadName)}</span></td>
-      <td>${r.esTrampa ? '<span style="color:#fb7185;font-weight:700">⚠ SÍ</span>' : '<span style="opacity:.5">No</span>'}</td>
+      <td><span class="tag-badge" style="background:${QUAD[r.quadKey]?.color || '#94a3b8'};color:#06101c">${esc(QUAD[r.quadKey]?.name || r.quadName)}</span></td>
+      <td>${r.esTrampa ? `<span style="color:#fb7185;font-weight:700">⚠ ${currentLang === 'en' ? 'YES' : 'SÍ'}</span>` : '<span style="opacity:.5">No</span>'}</td>
       <td><span class="${rolBadgeClass}">${esc(r.rol)}</span></td>
     </tr>`;
   }).join('');
@@ -655,22 +667,21 @@ function renderDynamic() {
   renderDynMatrixView(res);
 
   // Render Executive Prospective Report
-  const palancasStr = rows.filter(r => r.rol.includes('Palanca')).map(r => `<b>${esc(r.v.code)} (${esc(r.v.name)})</b>`).join(', ') || 'Ninguna identificada';
-  const espejismosStr = rows.filter(r => r.rol.includes('espejismo')).map(r => `<b>${esc(r.v.code)} (${esc(r.v.name)})</b>`).join(', ') || 'Ninguna';
-  const bolasStr = rows.filter(r => r.rol.includes('bola de nieve')).map(r => `<b>${esc(r.v.code)} (${esc(r.v.name)})</b>`).join(', ') || 'Ninguna';
+  const palancasStr = rows.filter(r => r.rol.includes('Palanca') || r.rol.includes('Lever')).map(r => `<b>${esc(r.v.code)} (${esc(r.v.name)})</b>`).join(', ') || t('rep_palancas_none');
+  const espejismosStr = rows.filter(r => r.rol.includes('espejismo') || r.rol.includes('Mirage')).map(r => `<b>${esc(r.v.code)} (${esc(r.v.name)})</b>`).join(', ') || t('rep_trampas_none');
+  const bolasStr = rows.filter(r => r.rol.includes('nieve') || r.rol.includes('Snowball')).map(r => `<b>${esc(r.v.code)} (${esc(r.v.name)})</b>`).join(', ') || t('rep_bucles_none');
 
   $('#dyn-report').innerHTML = `
-    <p><b>1. Síntesis Estructural:</b> El sistema analizado presenta un radio espectral descontado de <b>ρ(|W|) = ${res.rho.toFixed(3)}</b>, con factor de propagación convergente <b>α = ${res.alpha.toFixed(3)}</b>. La ambigüedad causal media del sistema es de <b>${meanOmega.toFixed(1)} %</b>, evidenciando la presencia activa de bucles inhibitorios cruzados que el método MICMAC tradicional omite.</p>
-    <p><b>2. Palancas Maestras Consistentes:</b> Se identificaron como palancas auténticas a: ${palancasStr}. Estas variables poseen alta motricidad neta efectiva y baja contradicción sistémica (Ω reducido), garantizando que las iniciativas sobre ellas se trasladen limpiamente a los resultados sin autodestruirse en la red.</p>
-    <p><b>3. Trampas de Política y Espejismos Causalmente Neutros:</b> Las variables ${espejismosStr} exhiben alta motricidad bruta pero sufren una severa pérdida por fricción y cancelación de bucles opuestos (elevado Ω). Intervenir aisladamente en ellas sin antes destrabar la cultura y la resistencia generará sobrecostos con impacto neto marginal.</p>
-    <p><b>4. Nodos de Retroalimentación Expansiva:</b> Se observa refuerzo dinámico positivo (F > 0) en: ${bolasStr}. Al inyectar recursos en estos nodos, la energía retorna al punto de partida amplificada a través de las cadenas de mediación docente y experiencia.</p>
+    <p><b>${t('rep_synthesis_title')}</b> ${t('rep_synthesis_body', { rho: res.rho.toFixed(3), alpha: res.alpha.toFixed(3), omega: meanOmega.toFixed(1) })}</p>
+    <p><b>${t('rep_palancas_title')}</b> ${t('rep_palancas_body', { vars: palancasStr })}</p>
+    <p><b>${t('rep_trampas_title')}</b> ${t('rep_trampas_body', { vars: espejismosStr })}</p>
+    <p><b>${t('rep_bucles_title')}</b> ${t('rep_bucles_body', { vars: bolasStr })}</p>
   `;
 }
 
 function renderDynMatrixView(res) {
   const box = $('#dyn-matrix-view');
   if (!box) return;
-  const n = res.vars.length;
   let M = res.W;
   if (dynMatrixView === 'sbruta') M = res.S_bruta;
   else if (dynMatrixView === 'sneta') M = res.S_neta;
@@ -724,11 +735,81 @@ $('#btn-export').onclick = async () => {
     const a = document.createElement('a'); a.href = url; a.download = fname; a.style.display = 'none';
     document.body.appendChild(a); a.click();
     setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1500);
-  } catch (e) { alert('No se pudo exportar: ' + e.message); }
+  } catch (e) { alert(t('alert_export_error') + ' ' + e.message); }
 };
-$('#file-import').onchange = e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { const o = JSON.parse(t); if (!o.vars || !o.links) throw 0; S = o; uid = 1000; ui.sel = ui.selVar = null; save(); renderAll(); } catch { alert('Archivo inválido'); } }); };
-$('#btn-reset').onclick = () => { if (confirm('¿Restablecer la base existente? Se sincronizarán todos los valores y retardos originales.')) { uid = 1; S = defaults(); ui.sel = ui.selVar = null; ui.hidden.clear(); save(); renderAll(); } };
+$('#file-import').onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  f.text().then(tText => {
+    try {
+      const o = JSON.parse(tText);
+      if (!o.vars || !o.links) throw 0;
+      S = o; uid = 1000; ui.sel = ui.selVar = null; save(); renderAll();
+    } catch {
+      alert(t('alert_invalid_file'));
+    }
+  });
+};
+$('#btn-reset').onclick = () => {
+  if (confirm(t('confirm_reset'))) {
+    uid = 1; S = defaults(currentLang); ui.sel = ui.selVar = null; ui.hidden.clear(); save(); renderAll();
+  }
+};
 
-function renderAll() { renderVars(); renderMatrix(); renderEditor(); renderLog(); renderPlane(); renderInts(); renderChart(); renderDynamic(); }
-renderAll();
+/* ---------- Sistema de Idiomas / i18n Switcher ---------- */
+function applyLanguage(lang) {
+  if (typeof setLanguage === 'function') setLanguage(lang);
+  
+  // Translate static data-i18n elements
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.dataset.i18n;
+    if (k) el.textContent = t(k);
+  });
+
+  // Toggle methodology blocks
+  const mEs = $('#method-es'), mEn = $('#method-en');
+  if (mEs) mEs.style.display = lang === 'es' ? 'block' : 'none';
+  if (mEn) mEn.style.display = lang === 'en' ? 'block' : 'none';
+
+  // Sincronizar nombres de variables base si coinciden con los predeterminados
+  if (typeof DEFAULT_VARS !== 'undefined' && typeof DEFAULT_VARS_EN !== 'undefined') {
+    const fromList = lang === 'en' ? DEFAULT_VARS : DEFAULT_VARS_EN;
+    const toList = lang === 'en' ? DEFAULT_VARS_EN : DEFAULT_VARS;
+    S.vars.forEach(v => {
+      const matchIdx = fromList.findIndex(item => item[0] === v.code && (item[1] === v.name || toList.some(tl => tl[0] === v.code && tl[1] === v.name)));
+      if (matchIdx >= 0) {
+        v.name = toList[matchIdx][1];
+        v.desc = toList[matchIdx][2];
+      }
+    });
+    save();
+  }
+
+  // Re-render components
+  renderRubric();
+  renderAll();
+}
+
+const langMenu = $('#lang-menu');
+if (langMenu) {
+  langMenu.onclick = e => {
+    const btn = e.target.closest('.lang-btn');
+    if (!btn || !btn.dataset.lang) return;
+    applyLanguage(btn.dataset.lang);
+  };
+}
+
+function renderAll() {
+  renderVars();
+  renderMatrix();
+  renderEditor();
+  renderLog();
+  renderPlane();
+  renderInts();
+  renderChart();
+  renderDynamic();
+}
+
+// Inicialización de idioma y componentes
+applyLanguage(currentLang);
 
