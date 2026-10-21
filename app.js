@@ -821,6 +821,73 @@ const bEs = $('#lang-btn-es'), bEn = $('#lang-btn-en');
 if (bEs) bEs.onclick = () => applyLanguage('es');
 if (bEn) bEn.onclick = () => applyLanguage('en');
 
+// Modal de Definiciones y Glosario de Métricas Dinámicas
+function openMetricsModal(target = 'all') {
+  const modal = $('#metrics-modal');
+  if (!modal) return;
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  filterModalSection(target);
+}
+
+function closeMetricsModal() {
+  const modal = $('#metrics-modal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleModalBackdropClick(e) {
+  if (e.target && e.target.id === 'metrics-modal') {
+    closeMetricsModal();
+  }
+}
+
+function filterModalSection(target = 'all') {
+  const chips = document.querySelectorAll('.modal-chip');
+  chips.forEach(c => {
+    c.classList.toggle('active', c.dataset.target === target);
+  });
+
+  const cards = document.querySelectorAll('.metric-def-card');
+  const modalBody = $('#modal-metrics-body');
+
+  if (target === 'all') {
+    cards.forEach(card => {
+      card.style.display = 'block';
+      card.classList.remove('highlight');
+    });
+    if (modalBody) modalBody.scrollTop = 0;
+  } else {
+    cards.forEach(card => {
+      if (card.id === `def-${target}`) {
+        card.style.display = 'block';
+        card.classList.add('highlight');
+        if (modalBody) {
+          setTimeout(() => {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 40);
+        }
+      } else {
+        card.style.display = 'none';
+        card.classList.remove('highlight');
+      }
+    });
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeMetricsModal();
+  }
+});
+
+// Exponer funciones del modal globalmente
+window.openMetricsModal = openMetricsModal;
+window.closeMetricsModal = closeMetricsModal;
+window.filterModalSection = filterModalSection;
+window.handleModalBackdropClick = handleModalBackdropClick;
+
 function renderAll() {
   renderVars();
   renderMatrix();

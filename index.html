@@ -144,33 +144,53 @@
         <h2 data-i18n="dyn_title">Micmac extendido · Modelo Dinámico Convergente 4D</h2>
         <p class="muted" data-i18n="dyn_subtitle">Supera las tres limitaciones del MICMAC clásico (Godet): convergencia por operador de Katz-Bonacich / Leontief (reemplaza potencias de Perron-Frobenius), polaridad/signos [-3, 3] y fricción temporal exp(-λt).</p>
       </div>
-      <a class="btn primary" href="analisis_micmac_convergente.xlsx" download="analisis_micmac_convergente.xlsx" style="text-decoration:none;white-space:nowrap" data-i18n="btn_excel">⬇ Descargar Excel Multi-Hoja</a>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button type="button" class="btn ghost" id="btn-open-metrics-glossary" onclick="openMetricsModal('all')">
+          <span data-i18n="btn_metrics_glossary">📖 Glosario & Definiciones Dinámicas</span>
+        </button>
+        <a class="btn primary" href="analisis_micmac_convergente.xlsx" download="analisis_micmac_convergente.xlsx" style="text-decoration:none;white-space:nowrap" data-i18n="btn_excel">⬇ Descargar Excel Multi-Hoja</a>
+      </div>
     </div>
 
     <div class="kpi-row" id="dyn-kpis">
-      <div class="kpi-card"><b id="kpi-rho">—</b><span data-i18n="kpi_rho">Radio espectral ρ(|W|)</span></div>
-      <div class="kpi-card"><b id="kpi-alpha">—</b><span data-i18n="kpi_alpha">Factor convergente α</span></div>
-      <div class="kpi-card"><b id="kpi-omega">—</b><span data-i18n="kpi_omega">Ambigüedad media Ω</span></div>
-      <div class="kpi-card"><b id="kpi-palancas">—</b><span data-i18n="kpi_palancas">Palancas maestras consistentes</span></div>
-      <div class="kpi-card"><b id="kpi-trampas" style="color:#fb7185">—</b><span data-i18n="kpi_trampas">Trampas de política</span></div>
+      <div class="kpi-card clickable" onclick="openMetricsModal('alpha')" title="Ver definición del Radio Espectral y Convergencia"><b id="kpi-rho">—</b><span data-i18n="kpi_rho">Radio espectral ρ(|W|)</span> <small class="info-pill">ⓘ</small></div>
+      <div class="kpi-card clickable" onclick="openMetricsModal('alpha')" title="Ver definición del Factor de Convergencia α"><b id="kpi-alpha">—</b><span data-i18n="kpi_alpha">Factor convergente α</span> <small class="info-pill">ⓘ</small></div>
+      <div class="kpi-card clickable" onclick="openMetricsModal('omega')" title="Ver definición de la Ambigüedad Media Ω"><b id="kpi-omega">—</b><span data-i18n="kpi_omega">Ambigüedad media Ω</span> <small class="info-pill">ⓘ</small></div>
+      <div class="kpi-card clickable" onclick="openMetricsModal('palancas')" title="Ver definición de Palancas Maestras Consistentes"><b id="kpi-palancas">—</b><span data-i18n="kpi_palancas">Palancas maestras consistentes</span> <small class="info-pill">ⓘ</small></div>
+      <div class="kpi-card clickable" onclick="openMetricsModal('trampas')" title="Ver definición de Trampas de Política y Espejismos"><b id="kpi-trampas" style="color:#fb7185">—</b><span data-i18n="kpi_trampas">Trampas de política</span> <small class="info-pill">ⓘ</small></div>
     </div>
 
     <div class="controls" style="margin-bottom:14px">
-      <label><span data-i18n="dyn_lbl_lambda">Tasa de fricción temporal λ</span>
+      <label>
+        <span style="display:flex;align-items:center;justify-content:space-between">
+          <span data-i18n="dyn_lbl_lambda">Tasa de fricción temporal λ</span>
+          <button type="button" class="info-icon-btn" onclick="openMetricsModal('lambda')" title="Definición de fricción temporal">ⓘ</button>
+        </span>
         <input type="range" id="dyn-lambda" min="0.01" max="0.50" step="0.01" value="0.10">
         <output id="dyn-lambda-out">0.10</output>
       </label>
-      <label><span data-i18n="dyn_lbl_alpha">Ratio espectral (α·ρ)</span>
+      <label>
+        <span style="display:flex;align-items:center;justify-content:space-between">
+          <span data-i18n="dyn_lbl_alpha">Ratio espectral (α·ρ)</span>
+          <button type="button" class="info-icon-btn" onclick="openMetricsModal('alpha')" title="Definición de ratio de convergencia">ⓘ</button>
+        </span>
         <input type="range" id="dyn-alpha-ratio" min="0.05" max="0.99" step="0.01" value="0.80">
         <output id="dyn-alpha-out">0.80</output>
       </label>
-      <label><span data-i18n="dyn_lbl_crit">Criterio de umbrales</span>
+      <label>
+        <span style="display:flex;align-items:center;justify-content:space-between">
+          <span data-i18n="dyn_lbl_crit">Criterio de umbrales</span>
+        </span>
         <select id="dyn-criterio">
           <option value="media">Media aritmética</option>
           <option value="mediana">Mediana</option>
         </select>
       </label>
-      <label><span data-i18n="dyn_lbl_omega">Umbral trampa Ω (%)</span>
+      <label>
+        <span style="display:flex;align-items:center;justify-content:space-between">
+          <span data-i18n="dyn_lbl_omega">Umbral trampa Ω (%)</span>
+          <button type="button" class="info-icon-btn" onclick="openMetricsModal('trampas')" title="Definición de umbral de trampa de política">ⓘ</button>
+        </span>
         <input type="range" id="dyn-omega-trampa" min="5" max="80" step="5" value="30">
         <output id="dyn-omega-out">30 %</output>
       </label>
@@ -369,10 +389,183 @@
   </div>
 </section>
 </main>
+
+<!-- MODAL POPUP: Definición de la Zona de Fricción Temporal, Convergencia, Ambigüedad, Palancas y Trampas -->
+<div id="metrics-modal" class="modal-backdrop" onclick="handleModalBackdropClick(event)" role="dialog" aria-modal="true" aria-labelledby="modal-metrics-title">
+  <div class="modal-window">
+    <div class="modal-header">
+      <div class="modal-header-text">
+        <div class="modal-icon-badge">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        </div>
+        <div>
+          <h3 id="modal-metrics-title" data-i18n="modal_title">Fundamentos y Definiciones del Modelo Dinámico 4D</h3>
+          <p class="modal-subtitle" data-i18n="modal_subtitle">Guía conceptual, formulación matemática e interpretación estratégica de las métricas clave</p>
+        </div>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeMetricsModal()" title="Cerrar modal (Esc)">&times;</button>
+    </div>
+
+    <!-- Navegación por Chips / Filtros -->
+    <div class="modal-chips-nav">
+      <button type="button" class="modal-chip active" data-target="all" onclick="filterModalSection('all')"><span data-i18n="modal_chip_all">Ver Todo</span></button>
+      <button type="button" class="modal-chip" data-target="lambda" onclick="filterModalSection('lambda')"><span data-i18n="modal_chip_lambda">1. Fricción Temporal (λ)</span></button>
+      <button type="button" class="modal-chip" data-target="alpha" onclick="filterModalSection('alpha')"><span data-i18n="modal_chip_alpha">2. Factor Convergencia (α)</span></button>
+      <button type="button" class="modal-chip" data-target="omega" onclick="filterModalSection('omega')"><span data-i18n="modal_chip_omega">3. Ambigüedad Media (Ω)</span></button>
+      <button type="button" class="modal-chip" data-target="palancas" onclick="filterModalSection('palancas')"><span data-i18n="modal_chip_palancas">4. Palancas Consistentes</span></button>
+      <button type="button" class="modal-chip" data-target="trampas" onclick="filterModalSection('trampas')"><span data-i18n="modal_chip_trampas">5. Trampas de Política</span></button>
+    </div>
+
+    <div class="modal-body" id="modal-metrics-body">
+      <!-- 1. Tasa de Fricción Temporal (λ) -->
+      <article class="metric-def-card" id="def-lambda">
+        <header class="def-header">
+          <span class="def-badge def-badge-cyan">1 · Horizonte Temporal</span>
+          <h4 data-i18n="def_lambda_title">Zona de la Tasa de Fricción Temporal (λ) y Retardos</h4>
+        </header>
+        <div class="def-content">
+          <p data-i18n="def_lambda_p1">Modela cómo el paso del tiempo y los desfases de implementación amortiguan o desgastan la fuerza de una relación causal directa. En la realidad estratégica, una acción que tarda 3 o 5 años en manifestarse sufre mayor fricción e incertidumbre que una de impacto inmediato.</p>
+          <div class="def-formula-box">
+            <code>W_ij = A_ij · exp(-λ · t_ij)</code>
+            <span class="formula-caption" data-i18n="def_lambda_formula_desc">Donde A_ij es la influencia nominal [-3, 3], t_ij es el retardo temporal en años o periodos, y λ es la tasa de fricción continua.</span>
+          </div>
+          <div class="def-practical-grid">
+            <div class="def-box">
+              <strong data-i18n="def_lambda_box1_title">Interpretación de Valores de λ:</strong>
+              <ul>
+                <li data-i18n="def_lambda_box1_li1"><b>λ = 0.00:</b> Sin fricción temporal. Las cadenas lejanas conservan el 100% de su intensidad original.</li>
+                <li data-i18n="def_lambda_box1_li2"><b>λ = 0.10 (Calibración estándar):</b> Descuento moderado realista (una influencia a 3 años retiene ~74% de impacto; a 7 años retiene ~50%).</li>
+                <li data-i18n="def_lambda_box1_li3"><b>λ ≥ 0.30:</b> Alta fricción; prioriza casi exclusivamente impactos de corto plazo e inmediatos.</li>
+              </ul>
+            </div>
+            <div class="def-box">
+              <strong data-i18n="def_lambda_box2_title">Implicancia en la Toma de Decisiones:</strong>
+              <p data-i18n="def_lambda_box2_p">Permite ajustar la prospectiva al horizonte institucional. Si la institución necesita resultados rápidos o enfrenta alta volatilidad, un λ mayor muestra qué variables siguen empujando con fuerza a pesar de los retrasos.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 2. Factor de Convergencia (α) -->
+      <article class="metric-def-card" id="def-alpha">
+        <header class="def-header">
+          <span class="def-badge def-badge-indigo">2 · Operador Resolvente</span>
+          <h4 data-i18n="def_alpha_title">Factor de Convergencia Espectral (α) y Ratio (α · ρ)</h4>
+        </header>
+        <div class="def-content">
+          <p data-i18n="def_alpha_p1">Reemplaza la clásica elevación a potencias W^k de Godet (la cual colapsa matemáticamente por el Teorema de Perron-Frobenius hacia un autovector dominante idéntico para todas las variables) por el <b>operador resolvente de Katz-Bonacich / Inversa de Leontief</b>.</p>
+          <div class="def-formula-box">
+            <code>S = (I - α·W)⁻¹ · W = Σ_{k=1}^∞ α^{k-1} · W^k</code>
+            <span class="formula-caption" data-i18n="def_alpha_formula_desc">Suma geométrica infinita de todos los caminos indirectos directos, secundarios, terciarios y de orden superior debidamente ponderados.</span>
+          </div>
+          <div class="def-practical-grid">
+            <div class="def-box">
+              <strong data-i18n="def_alpha_box1_title">Condición de Convergencia Espectral:</strong>
+              <p data-i18n="def_alpha_box1_p">Para garantizar que la serie de Neumann converja a una solución matemática finita y estable, se requiere estrictamente que: <code>α · ρ(|W|) &lt; 1</code>, donde ρ(|W|) es el radio espectral (autovalor máximo de la matriz).</p>
+            </div>
+            <div class="def-box">
+              <strong data-i18n="def_alpha_box2_title">Ratio de Calibración (por defecto 0.80):</strong>
+              <p data-i18n="def_alpha_box2_p">Fija <code>α = 0.80 / ρ(|W|)</code>. Esto otorga peso significativo a las cadenas causales de orden 2, 3 y 4 sin permitir que el sistema diverja, manteniendo la discriminación de cada variable intacta.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 3. Ambigüedad Media (Ω) -->
+      <article class="metric-def-card" id="def-omega">
+        <header class="def-header">
+          <span class="def-badge def-badge-amber">3 · Fricción Sistémica</span>
+          <h4 data-i18n="def_omega_title">Ambigüedad Media del Sistema (Ω̄) y Disipación Causal</h4>
+        </header>
+        <div class="def-content">
+          <p data-i18n="def_omega_p1">Mide el porcentaje exacto de fuerza motriz que se «pierde» o neutraliza debido al conflicto de polaridades: cuando una variable impulsa a otra positivamente a través de un camino directo, pero la frena o desgasta a través de bucles negativos indirectos.</p>
+          <div class="def-formula-box">
+            <code>Ω_i = [1 - (Motricidad Neta_i / Motricidad Bruta_i)] × 100 %</code>
+            <span class="formula-caption" data-i18n="def_omega_formula_desc">Ω_i varía entre 0 % (coherencia absoluta, cero contradicción) y 100 % (neutralización total, impacto neto nulo). La Ambigüedad Media Ω̄ es el promedio de todas las variables.</span>
+          </div>
+          <div class="def-practical-grid">
+            <div class="def-box">
+              <strong data-i18n="def_omega_box1_title">Interpretación del Nivel de Ambigüedad:</strong>
+              <ul>
+                <li data-i18n="def_omega_box1_li1"><b>Ω̄ &lt; 15 % (Baja):</b> Red altamente sinérgica. Las intenciones estratégicas se transmiten casi íntegras.</li>
+                <li data-i18n="def_omega_box1_li2"><b>15 % ≤ Ω̄ ≤ 30 % (Moderada):</b> Presencia normal de tensiones institucionales y bucles balanceadores.</li>
+                <li data-i18n="def_omega_box1_li3"><b>Ω̄ &gt; 30 % (Alta):</b> El sistema padece severa contradicción interna. Gran parte de la inversión de gestión se disipa en frenos colaterales.</li>
+              </ul>
+            </div>
+            <div class="def-box">
+              <strong data-i18n="def_omega_box2_title">Utilidad en el Diagnóstico:</strong>
+              <p data-i18n="def_omega_box2_p">Revela por qué reformas aparentemente lógicas no surten efecto: los bucles de retroalimentación opuestos están cancelando la fuerza motriz antes de que llegue a las variables de resultado.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 4. Palancas Consistentes -->
+      <article class="metric-def-card" id="def-palancas">
+        <header class="def-header">
+          <span class="def-badge def-badge-emerald">4 · Eficiencia Estratégica</span>
+          <h4 data-i18n="def_palancas_title">Palancas Maestras Consistentes</h4>
+        </header>
+        <div class="def-content">
+          <p data-i18n="def_palancas_p1">Son las variables más nobles, fiables y de mayor retorno para la toma de decisiones. Tienen gran capacidad de arrastre sobre todo el sistema y, a la vez, una ruta causal limpia sin oposición interna destructiva.</p>
+          <div class="def-formula-box">
+            <code>Motricidad Neta ≥ Mediana(M_neta)   ∧   Ambigüedad Ω_i ≤ Mediana(Ω)</code>
+            <span class="formula-caption" data-i18n="def_palancas_formula_desc">Criterio cuantitativo: Alta fuerza neta real combinada con baja tasa de dispersión por bucles contradictorios.</span>
+          </div>
+          <div class="def-practical-grid">
+            <div class="def-box">
+              <strong data-i18n="def_palancas_box1_title">Características Clave:</strong>
+              <ul>
+                <li data-i18n="def_palancas_box1_li1">Generan efectos acumulativos en la dirección deseada.</li>
+                <li data-i18n="def_palancas_box1_li2">No provocan reacciones secundarias adversas que anulen el objetivo.</li>
+                <li data-i18n="def_palancas_box1_li3">Optimizan el uso del presupuesto y capital político.</li>
+              </ul>
+            </div>
+            <div class="def-box">
+              <strong data-i18n="def_palancas_box2_title">Recomendación de Política:</strong>
+              <p data-i18n="def_palancas_box2_p">Deben ser el <b>núcleo ejecutor del plan estratégico</b>. Invertir prioritariamente en estas variables produce los resultados más sostenibles y predecibles.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 5. Trampas de Política -->
+      <article class="metric-def-card" id="def-trampas">
+        <header class="def-header">
+          <span class="def-badge def-badge-rose">5 · Alerta Prospectiva</span>
+          <h4 data-i18n="def_trampas_title">Trampas de Política (Espejismos Causales)</h4>
+        </header>
+        <div class="def-content">
+          <p data-i18n="def_trampas_p1">Variables que en el método MICMAC tradicional parecen los motores más atractivos por su elevada motricidad bruta, pero que al considerar los signos y la dinámica sistémica demuestran ser un <b>espejismo de gestión</b>.</p>
+          <div class="def-formula-box">
+            <code>Motricidad Clásica ≥ Mediana(M_clas)   ∧   Ambigüedad Ω_i &gt; Umbral Trampa (ej. &gt; 30 %)</code>
+            <span class="formula-caption" data-i18n="def_trampas_formula_desc">Identificación: Aparente alto poder de arrastre, pero neutralizado por una severa tasa de disipación interna.</span>
+          </div>
+          <div class="def-practical-grid">
+            <div class="def-box">
+              <strong data-i18n="def_trampas_box1_title">Peligro Típico de Gestión:</strong>
+              <p data-i18n="def_trampas_box1_p">Inyectar recursos masivos en estas variables de forma aislada produce sobrecostos y frustración directiva: el empuje generado despierta bucles de freno o resistencia cultural que devoran el impacto.</p>
+            </div>
+            <div class="def-box">
+              <strong data-i18n="def_trampas_box2_title">Estrategia Correcta de Abordaje:</strong>
+              <p data-i18n="def_trampas_box2_p"><b>No actuar de forma frontal ni aislada</b>. Antes de intervenir en una trampa de política, se deben desactivar previamente los bucles estabilizadores negativos (por ejemplo, gestionando la resistencia al cambio, fortaleciendo la cultura o rediseñando incentivos).</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="modal-footer">
+      <span class="modal-footer-hint" data-i18n="modal_footer_hint">Tip: Haz clic en cualquier tarjeta de KPI o control para abrir directamente su explicación.</span>
+      <button type="button" class="btn primary" onclick="closeMetricsModal()" data-i18n="modal_btn_close">Entendido / Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div id="tip" class="tip"></div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="i18n.js?v=2"></script>
-<script src="data.js?v=2"></script>
-<script src="app.js?v=2"></script>
+<script src="i18n.js?v=3"></script>
+<script src="data.js?v=3"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
