@@ -760,10 +760,26 @@ $('#btn-reset').onclick = () => {
 function applyLanguage(lang) {
   if (typeof setLanguage === 'function') setLanguage(lang);
   
-  // Translate static data-i18n elements
+  // Translate static data-i18n elements (support HTML formatted text)
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const k = el.dataset.i18n;
-    if (k) el.textContent = t(k);
+    if (k) {
+      const val = t(k);
+      if (val.includes('<') || val.includes('&')) {
+        el.innerHTML = val;
+      } else {
+        el.textContent = val;
+      }
+    }
+  });
+
+  // Update language label text
+  const lblTxt = $('#lang-label-txt');
+  if (lblTxt) lblTxt.textContent = lang === 'en' ? 'Language' : 'Idioma';
+
+  // Toggle active button state
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === lang);
   });
 
   // Toggle methodology blocks
@@ -790,6 +806,9 @@ function applyLanguage(lang) {
   renderAll();
 }
 
+// Expose globally for inline onclick
+window.applyLanguage = applyLanguage;
+
 const langMenu = $('#lang-menu');
 if (langMenu) {
   langMenu.onclick = e => {
@@ -798,6 +817,9 @@ if (langMenu) {
     applyLanguage(btn.dataset.lang);
   };
 }
+const bEs = $('#lang-btn-es'), bEn = $('#lang-btn-en');
+if (bEs) bEs.onclick = () => applyLanguage('es');
+if (bEn) bEn.onclick = () => applyLanguage('en');
 
 function renderAll() {
   renderVars();
