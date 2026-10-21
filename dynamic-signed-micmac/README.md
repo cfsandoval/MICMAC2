@@ -1,4 +1,4 @@
-# Dynamic Signed-MICMAC Studio 🧭
+# Micmac extendido 🧭
 
 Aplicación modular interactiva en Python (`Streamlit`, `NumPy`, `Pandas`, `SciPy`, `Plotly`, `NetworkX`) para el **análisis estructural prospectivo avanzado**.
 

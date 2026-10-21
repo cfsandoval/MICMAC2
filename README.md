@@ -1,6 +1,6 @@
-# Análisis Estructural MICMAC
+# Micmac extendido
 
-Aplicación web estática (HTML + CSS + JavaScript, sin dependencias ni build) para:
+Aplicación para análisis estructural prospectivo (Godet) y modelo dinámico convergente 4D (Katz-Bonacich / Leontief):
 
 - Definir variables y una **matriz de influencias justificada** (concepto, evidencia e indicador por cruce).
 - Visualizar el **plano influencia–dependencia** por cuadrantes (directo e indirecto).

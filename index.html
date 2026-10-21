@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Análisis Estructural MICMAC · Influencias, Dependencias y Dinámica</title>
-<meta name="description" content="Matriz de influencias justificada, plano influencia–dependencia por cuadrantes y simulación temporal de intervenciones sobre variables del sistema.">
+<title>Micmac extendido</title>
+<meta name="description" content="Micmac extendido: matriz de influencias justificada, plano dinámico 4D, propagación convergente Katz-Bonacich y simulación temporal.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="logo">◈</span><div><h1>Análisis Estructural</h1><p>Influencias · Dependencias · Dinámica del sistema</p></div></div>
+  <div class="brand"><span class="logo">◈</span><div><h1>Micmac extendido</h1><p>Influencias · Dependencias · Dinámica del sistema</p></div></div>
   <nav class="tabs" id="tabs">
     <button data-tab="vars" class="active" id="tab-btn-vars">1 · Variables</button>
     <button data-tab="matrix" id="tab-btn-matrix">2 · Matriz justificada</button>
@@ -114,7 +114,7 @@
   <div class="card">
     <div class="card-head">
       <div>
-        <h2>Dynamic Signed-MICMAC Studio · Modelo Convergente 4D</h2>
+        <h2>Micmac extendido · Modelo Dinámico Convergente 4D</h2>
         <p class="muted">Supera las tres limitaciones del MICMAC clásico (Godet): convergencia por operador de Katz-Bonacich / Leontief (reemplaza potencias de Perron-Frobenius), polaridad/signos [-3, 3] y fricción temporal exp(-λt).</p>
       </div>
       <a class="btn primary" href="analisis_micmac_convergente.xlsx" download="analisis_micmac_convergente.xlsx" style="text-decoration:none;white-space:nowrap">⬇ Descargar Excel Multi-Hoja</a>

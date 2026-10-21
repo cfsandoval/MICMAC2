@@ -18,7 +18,7 @@ import streamlit as st
 
 import micmac_engine as me
 
-st.set_page_config(page_title="Dynamic Signed-MICMAC Studio", page_icon="🧭", layout="wide")
+st.set_page_config(page_title="Micmac extendido", page_icon="🧭", layout="wide")
 
 st.markdown(
     """
@@ -52,7 +52,7 @@ def init_estado() -> None:
 
 
 def sidebar() -> Tuple[float, float, str, float, float, bool]:
-    st.sidebar.title("🧭 Signed-MICMAC")
+    st.sidebar.title("🧭 Micmac extendido")
     st.sidebar.caption("Parámetros del modelo dinámico")
     lam = st.sidebar.slider("Tasa de descuento temporal λ", me.LAMBDA_MIN, me.LAMBDA_MAX, 0.10, 0.01,
                             help="Decaimiento exponencial del impacto con el retardo: w = a·e^(−λt).")
@@ -228,7 +228,7 @@ def resumen_ejecutivo(c: pd.DataFrame, res: me.Resultado, omega_trampa: float) -
 init_estado()
 lam, alpha_ratio, criterio, omega_trampa, umbral_red, _ = sidebar()
 
-st.title("🧭 Dynamic Signed-MICMAC Studio")
+st.title("🧭 Micmac extendido")
 st.caption("Análisis estructural prospectivo con **polaridad**, **fricción temporal** y **propagación convergente** (Katz-Bonacich / inversa de Leontief).")
 
 t_datos, t_plano, t_comp, t_red, t_diag, t_met = st.tabs(
