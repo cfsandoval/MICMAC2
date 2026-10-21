@@ -159,6 +159,10 @@ const I18N = {
     btn_mat_sneta: "S^neta (Signada)",
     btn_mat_z: "Flujos Indirectos (S^neta - W)",
 
+    // Botones de Informe Word
+    btn_word: "Informe Word (.docx)",
+    btn_word_tab: "📄 Informe Word Detallado (.docx)",
+
     // Modal & Glosario de Métricas Dinámicas
     btn_metrics_glossary: "📖 Glosario & Definiciones Dinámicas",
     modal_title: "Fundamentos y Definiciones del Modelo Dinámico 4D",
@@ -441,6 +445,10 @@ const I18N = {
     btn_mat_sbruta: "S_gross (Leontief)",
     btn_mat_sneta: "S_net (Signed)",
     btn_mat_z: "Indirect Flows (S_net - W)",
+
+    // Word Report Buttons
+    btn_word: "Word Report (.docx)",
+    btn_word_tab: "📄 Detailed Word Report (.docx)",
 
     // Modal & Dynamic Metrics Glossary
     btn_metrics_glossary: "📖 Dynamic Metrics & Glossary",
