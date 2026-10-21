@@ -1,6 +1,9 @@
-"""Verificación rápida del motor: propiedades matemáticas y casos borde.
-Ejecutar:  python test_engine.py
-"""
+import sys
+import io
+
+if sys.stdout.encoding != "utf-8":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+
 import numpy as np
 import pandas as pd
 

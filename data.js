@@ -43,3 +43,16 @@ const DEFAULT_LINKS = [
   ['NOR','INV',1,'Las exigencias de acreditación justifican partidas específicas, pero rara vez las determinan por sí solas.','Aparecen rubros “de cumplimiento” en el presupuesto previo a visitas de pares.','Rubros presupuestarios por cumplimiento'],
   ['NOR','CUL',1,'La normativa propone prácticas de calidad que con el tiempo pueden internalizarse.','Rutinas de autoevaluación se mantienen aun fuera de ciclos de acreditación en algunas unidades.','Unidades con autoevaluación continua']
 ];
+
+/* Retardos temporales estimados en años (t_ij) para fricción temporal */
+const DEFAULT_DELAYS = {
+  'LID>INV': 1.0, 'LID>CUL': 2.0, 'LID>RES': 1.5, 'LID>COM': 2.0,
+  'INV>INF': 1.0, 'INV>COM': 2.0, 'INV>EXP': 1.5,
+  'INF>EXP': 0.5, 'INF>COM': 1.5, 'INF>RET': 2.0, 'INF>CUL': 2.5,
+  'COM>EXP': 1.0, 'COM>CUL': 2.0, 'COM>RES': 1.5,
+  'CUL>COM': 2.0, 'CUL>RES': 2.0, 'CUL>EXP': 1.5,
+  'EXP>RET': 1.0, 'EXP>LID': 3.0,
+  'RET>INV': 1.5, 'RET>LID': 2.0,
+  'RES>COM': 1.0, 'RES>CUL': 1.5, 'RES>INF': 1.0,
+  'NOR>LID': 3.0, 'NOR>INV': 2.0, 'NOR>CUL': 3.0
+};

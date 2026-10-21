@@ -10,7 +10,11 @@ function defaults() {
   const vars = DEFAULT_VARS.map(([code, name, desc, x0]) => ({ id: 'v' + uid++, code, name, desc, x0 }));
   const byCode = Object.fromEntries(vars.map(v => [v.code, v.id]));
   const links = {};
-  DEFAULT_LINKS.forEach(([a, b, v, concept, evidence, src]) => links[key(byCode[a], byCode[b])] = { v, concept, evidence, src });
+  DEFAULT_LINKS.forEach(([a, b, v, concept, evidence, src]) => {
+    const k = key(byCode[a], byCode[b]);
+    const t = (typeof DEFAULT_DELAYS !== 'undefined' ? DEFAULT_DELAYS[a + '>' + b] : 1.5) ?? (v ? 1.5 : 0);
+    links[k] = { v, t, concept, evidence, src };
+  });
   return { vars, links, ints: [{ vid: byCode.INV, type: 'sust', mag: 2, start: 3, dur: 18 }], params: { beta: .15, lambda: .05, steps: 50 } };
 }
 let S = (() => { try { const s = JSON.parse(localStorage.getItem(LS)); if (s && s.vars) { uid = 1000; return s; } } catch (e) { } return defaults(); })();
@@ -19,7 +23,8 @@ const V = () => S.vars;
 const idx = id => V().findIndex(v => v.id === id);
 const L = (a, b) => S.links[key(a, b)];
 const val = (a, b) => (L(a, b)?.v) || 0;
-const ui = { sel: null, selVar: null, hidden: new Set(), view: 'abs' };
+const del = (a, b) => S.links[key(a, b)]?.t ?? ((typeof DEFAULT_DELAYS !== 'undefined' ? DEFAULT_DELAYS[code(a) + '>' + code(b)] : 1.5) ?? (val(a, b) ? 1.5 : 0));
+const ui = { sel: null, selVar: null, hidden: new Set(), view: 'abs', dynSel: null };
 
 /* ---------- Colores / cuadrantes ---------- */
 const QUAD = {
@@ -134,18 +139,22 @@ function renderEditor() {
   ${l.v === 0 ? `<p class="muted" style="margin-top:12px">${esc(autoZero(a, b))}</p>` : ''}
   <label>Justificación conceptual (mecanismo causal)</label><textarea data-f="concept" placeholder="¿Por qué A influye en B? Teoría o lógica causal...">${esc(l.concept)}</textarea>
   <label>Evidencia práctica (caso o dato observable)</label><textarea data-f="evidence" placeholder="Caso real, dato, observación que respalda el valor...">${esc(l.evidence)}</textarea>
-  <label>Indicador / fuente para verificar</label><input data-f="src" value="${esc(l.src || '')}" placeholder="Indicador, documento o fuente">
+  <div style="display:grid;grid-template-columns:120px 1fr;gap:10px;margin-top:8px">
+    <div><label style="margin:6px 0 2px">Retardo T (años)</label><input type="number" min="0" max="20" step="0.5" data-f="t" value="${esc(del(a, b))}"></div>
+    <div><label style="margin:6px 0 2px">Indicador / fuente</label><input data-f="src" value="${esc(l.src || '')}" placeholder="Indicador o fuente"></div>
+  </div>
   ${l.v !== 0 && !hasJust(l) ? '<div class="warn">⚠ Falta justificación completa (concepto y evidencia).</div>' : ''}</div>`;
 }
 $('#cell-editor').onclick = e => {
   const v = e.target.dataset.v; if (v === undefined || !ui.sel) return;
-  const k = key(...ui.sel); S.links[k] = S.links[k] || { v: 0, concept: '', evidence: '', src: '' };
-  S.links[k].v = +v; save(); renderMatrix(); renderEditor(); renderLog();
+  const k = key(...ui.sel); S.links[k] = S.links[k] || { v: 0, t: del(...ui.sel), concept: '', evidence: '', src: '' };
+  S.links[k].v = +v; save(); renderMatrix(); renderEditor(); renderLog(); renderDynamic();
 };
 $('#cell-editor').oninput = e => {
   const f = e.target.dataset.f; if (!f || !ui.sel) return;
-  const k = key(...ui.sel); S.links[k] = S.links[k] || { v: 0, concept: '', evidence: '', src: '' };
-  S.links[k][f] = e.target.value; save(); renderMatrix(); renderLog();
+  const k = key(...ui.sel); S.links[k] = S.links[k] || { v: 0, t: del(...ui.sel), concept: '', evidence: '', src: '' };
+  if (f === 't') S.links[k].t = Math.max(0, +e.target.value || 0); else S.links[k][f] = e.target.value;
+  save(); renderMatrix(); renderLog(); renderDynamic();
 };
 function renderLog() {
   const f = $('#log-filter').value;
@@ -339,6 +348,368 @@ function renderChart() {
   $('#impact').innerHTML = `<tr><th>Variable</th><th>Inicial</th><th>Final</th><th>Δ final</th><th>Pico Δ (paso)</th><th style="width:30%">Magnitud</th></tr>` + rows.map(r => `<tr><td><span class="dot" style="background:${varColor(r.i)}"></span><b>${esc(r.v.code)}</b> ${esc(r.v.name)}</td><td>${r.base.toFixed(0)}</td><td>${r.fin.toFixed(1)}</td><td style="color:${r.df >= 0 ? '#38bdf8' : '#fb7185'}">${sgn(+r.df.toFixed(1))}</td><td>${sgn(+r.pk.toFixed(1))} (t=${r.pt})</td><td><div class="bar" style="width:${Math.abs(r.pk) / mxp * 100}%;background:${r.pk >= 0 ? '' : '#fb7185'}"></div></td></tr>`).join('');
 }
 
+/* ---------- 5. Dynamic Signed-MICMAC (Katz-Bonacich / Leontief) ---------- */
+let dynMatrixView = 'w';
+
+function solveLinearSystem(A, B) {
+  const n = A.length, m = B[0].length;
+  const M = Array.from({ length: n }, (_, i) => [...A[i], ...B[i]]);
+  for (let i = 0; i < n; i++) {
+    let maxRow = i;
+    for (let k = i + 1; k < n; k++) {
+      if (Math.abs(M[k][i]) > Math.abs(M[maxRow][i])) maxRow = k;
+    }
+    if (Math.abs(M[maxRow][i]) < 1e-12) throw new Error("Matriz casi singular");
+    [M[i], M[maxRow]] = [M[maxRow], M[i]];
+    const piv = M[i][i];
+    for (let j = i; j < n + m; j++) M[i][j] /= piv;
+    for (let k = 0; k < n; k++) {
+      if (k !== i) {
+        const factor = M[k][i];
+        for (let j = i; j < n + m; j++) M[k][j] -= factor * M[i][j];
+      }
+    }
+  }
+  return Array.from({ length: n }, (_, i) => M[i].slice(n));
+}
+
+function spectralRadius(M) {
+  const n = M.length;
+  const shift = 2.0;
+  const S = M.map((r, i) => r.map((v, j) => (i === j ? v + shift : v)));
+  let x = Array(n).fill(1 / Math.sqrt(n));
+  let rhoS = 0;
+  for (let iter = 0; iter < 120; iter++) {
+    const y = Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) y[i] += S[i][j] * x[j];
+    }
+    const norm = Math.hypot(...y);
+    if (norm < 1e-12) return 0;
+    x = y.map(v => v / norm);
+    let num = 0, den = 0;
+    for (let i = 0; i < n; i++) {
+      let rowDot = 0;
+      for (let j = 0; j < n; j++) rowDot += S[i][j] * x[j];
+      num += x[i] * rowDot;
+      den += x[i] * x[i];
+    }
+    rhoS = num / den;
+  }
+  return Math.max(0, rhoS - shift);
+}
+
+function computeDynamicMicmac(lam = 0.10, alphaRatio = 0.80) {
+  const vars = V();
+  const n = vars.length;
+  const A = Array.from({ length: n }, () => Array(n).fill(0));
+  const T = Array.from({ length: n }, () => Array(n).fill(0));
+  const W = Array.from({ length: n }, () => Array(n).fill(0));
+  const absW = Array.from({ length: n }, () => Array(n).fill(0));
+
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (i !== j) {
+        const a_ij = val(vars[i].id, vars[j].id);
+        const t_ij = del(vars[i].id, vars[j].id);
+        A[i][j] = a_ij;
+        T[i][j] = t_ij;
+        const w_ij = a_ij * Math.exp(-lam * t_ij);
+        W[i][j] = w_ij;
+        absW[i][j] = Math.abs(w_ij);
+      }
+    }
+  }
+
+  const rho = spectralRadius(absW);
+  const alpha = rho > 1e-12 ? alphaRatio / rho : 1.0;
+
+  const I = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
+  const Mb = I.map((row, i) => row.map((v, j) => v - alpha * absW[i][j]));
+  const Mn = I.map((row, i) => row.map((v, j) => v - alpha * W[i][j]));
+
+  let S_bruta, S_neta;
+  try {
+    S_bruta = solveLinearSystem(Mb, absW);
+    S_neta = solveLinearSystem(Mn, W);
+  } catch (e) {
+    S_bruta = absW;
+    S_neta = W;
+  }
+
+  const M_clas = Array(n).fill(0);
+  const D_clas = Array(n).fill(0);
+  const M_bruta_sum = Array(n).fill(0);
+  const D_bruta_sum = Array(n).fill(0);
+  const M_neta_sum = Array(n).fill(0);
+  const D_neta_sum = Array(n).fill(0);
+  const F = Array(n).fill(0);
+  const Omega = Array(n).fill(0);
+
+  for (let i = 0; i < n; i++) {
+    F[i] = S_neta[i][i];
+    for (let j = 0; j < n; j++) {
+      M_clas[i] += Math.abs(A[i][j]);
+      D_clas[j] += Math.abs(A[i][j]);
+      M_bruta_sum[i] += S_bruta[i][j];
+      D_bruta_sum[j] += S_bruta[i][j];
+      if (i !== j) {
+        M_neta_sum[i] += Math.abs(S_neta[i][j]);
+        D_neta_sum[j] += Math.abs(S_neta[i][j]);
+      }
+    }
+    Omega[i] = M_bruta_sum[i] > 1e-9 ? Math.max(0, Math.min(100, (1 - M_neta_sum[i] / M_bruta_sum[i]) * 100)) : 0;
+  }
+
+  return { vars, A, T, W, absW, rho, alpha, S_bruta, S_neta, M_clas, D_clas, M_bruta_sum, D_bruta_sum, M_neta_sum, D_neta_sum, F, Omega };
+}
+
+function quantile(arr, q) {
+  const sorted = [...arr].sort((a, b) => a - b);
+  const pos = (sorted.length - 1) * q;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  return sorted[base + 1] !== undefined ? sorted[base] + rest * (sorted[base + 1] - sorted[base]) : sorted[base];
+}
+
+function renderDynamic() {
+  const lamEl = $('#dyn-lambda');
+  if (!lamEl) return;
+  const lam = +lamEl.value || 0.10;
+  const alphaRatio = +$('#dyn-alpha-ratio').value || 0.80;
+  const crit = $('#dyn-criterio').value || 'media';
+  const omegaTrampa = +$('#dyn-omega-trampa').value || 30;
+
+  $('#dyn-lambda-out').textContent = lam.toFixed(2);
+  $('#dyn-alpha-out').textContent = alphaRatio.toFixed(2);
+  $('#dyn-omega-out').textContent = omegaTrampa + ' %';
+
+  const res = computeDynamicMicmac(lam, alphaRatio);
+  const n = res.vars.length;
+
+  $('#kpi-rho').textContent = res.rho.toFixed(3);
+  $('#kpi-alpha').textContent = res.alpha.toFixed(3);
+  const meanOmega = res.Omega.reduce((a, b) => a + b, 0) / n;
+  $('#kpi-omega').textContent = meanOmega.toFixed(1) + ' %';
+
+  // Ranks
+  const rankClas = res.M_clas.map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v);
+  const rClasMap = {};
+  rankClas.forEach((item, r) => rClasMap[item.i] = r + 1);
+
+  const rankNet = res.M_neta_sum.map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v);
+  const rNetMap = {};
+  rankNet.forEach((item, r) => rNetMap[item.i] = r + 1);
+
+  // Umbrales
+  const uDep = crit === 'media' ? res.D_neta_sum.reduce((a, b) => a + b, 0) / n : quantile(res.D_neta_sum, 0.5);
+  const uMot = crit === 'media' ? res.M_neta_sum.reduce((a, b) => a + b, 0) / n : quantile(res.M_neta_sum, 0.5);
+
+  const medClas = quantile(res.M_clas, 0.5);
+  const medMn = quantile(res.M_neta_sum, 0.5);
+  const medMb = quantile(res.M_bruta_sum, 0.5);
+  const medOm = quantile(res.Omega, 0.5);
+  const q3Om = quantile(res.Omega, 0.75);
+  const q1F = quantile(res.F, 0.25);
+  const q3F = quantile(res.F, 0.75);
+
+  let numPalancas = 0, numTrampas = 0;
+  const rows = res.vars.map((v, i) => {
+    const mn = res.M_neta_sum[i], dn = res.D_neta_sum[i], mb = res.M_bruta_sum[i];
+    const f_i = res.F[i], om_i = res.Omega[i];
+    const rC = rClasMap[i], rN = rNetMap[i], dR = rC - rN;
+    
+    // Cuadrante
+    let quadKey = 'auto', quadName = 'Autónoma';
+    if (mn >= uMot) {
+      if (dn >= uDep) { quadKey = 'conflict'; quadName = 'Enlace / Reto'; }
+      else { quadKey = 'power'; quadName = 'Motriz / Entrada'; }
+    } else {
+      if (dn >= uDep) { quadKey = 'result'; quadName = 'Dependiente / Resultado'; }
+      else { quadKey = 'auto'; quadName = 'Autónoma'; }
+    }
+
+    const esTrampa = (res.M_clas[i] >= medClas) && (om_i > omegaTrampa);
+    if (esTrampa) numTrampas++;
+
+    const tags = [];
+    if (mn >= medMn && om_i <= medOm) { tags.push('Palanca maestra consistente'); numPalancas++; }
+    if (mb >= medMb && om_i >= q3Om) tags.push('Falsa variable clave (espejismo)');
+    if (f_i < 0 && f_i <= q1F) tags.push('Estabilizador homeostático');
+    if (f_i > 0 && f_i >= q3F) tags.push('Nodo de efecto bola de nieve');
+    const rol = tags.length ? tags.join(' · ') : 'Evolución regular';
+
+    return { v, i, mc: res.M_clas[i], dc: res.D_clas[i], mb, mn, dn, f_i, om_i, rC, rN, dR, quadKey, quadName, esTrampa, rol };
+  });
+
+  $('#kpi-palancas').textContent = numPalancas;
+  $('#kpi-trampas').textContent = numTrampas;
+
+  // Render SVG 4D Plane
+  const W = 880, H = 500, m = { l: 60, r: 24, t: 30, b: 50 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const maxD = Math.max(...rows.map(r => r.dn), uDep * 1.25, 5);
+  const maxM = Math.max(...rows.map(r => r.mn), uMot * 1.25, 5);
+  const maxMb = Math.max(...rows.map(r => r.mb), 1);
+
+  const X = d => m.l + (d / maxD) * pw;
+  const Y = mo => m.t + ph - (mo / maxM) * ph;
+
+  let s = `<svg viewBox="0 0 ${W} ${H}" id="dyn-svg">`;
+  // Quadrant backgrounds
+  const xMid = X(uDep), yMid = Y(uMot);
+  s += `<rect x="${m.l}" y="${m.t}" width="${xMid - m.l}" height="${yMid - m.t}" fill="rgba(52,211,153,.04)"/>`;
+  s += `<rect x="${xMid}" y="${m.t}" width="${m.l + pw - xMid}" height="${yMid - m.t}" fill="rgba(245,158,11,.04)"/>`;
+  s += `<rect x="${xMid}" y="${yMid}" width="${m.l + pw - xMid}" height="${m.t + ph - yMid}" fill="rgba(167,139,250,.04)"/>`;
+  s += `<rect x="${m.l}" y="${yMid}" width="${xMid - m.l}" height="${m.t + ph - yMid}" fill="rgba(100,116,139,.04)"/>`;
+
+  // Threshold lines
+  s += `<line x1="${xMid}" x2="${xMid}" y1="${m.t}" y2="${m.t + ph}" stroke="#94a3ff" stroke-dasharray="4 4" opacity=".4"/>`;
+  s += `<line x1="${m.l}" x2="${m.l + pw}" y1="${yMid}" y2="${yMid}" stroke="#94a3ff" stroke-dasharray="4 4" opacity=".4"/>`;
+  s += `<text x="${xMid + 6}" y="${m.t + 16}" fill="#93a0c4" font-size="11">Umbral Dep (${uDep.toFixed(1)})</text>`;
+  s += `<text x="${m.l + 6}" y="${yMid - 6}" fill="#93a0c4" font-size="11">Umbral Mot (${uMot.toFixed(1)})</text>`;
+
+  // Axes ticks
+  for (let k = 0; k <= 5; k++) {
+    const vd = (maxD * k) / 5, vm = (maxM * k) / 5;
+    s += `<line x1="${m.l}" x2="${m.l + pw}" y1="${Y(vm)}" y2="${Y(vm)}" stroke="#94a3ff" opacity=".08"/>`;
+    s += `<text x="${m.l - 8}" y="${Y(vm) + 4}" fill="#93a0c4" font-size="10" text-anchor="end">${vm.toFixed(0)}</text>`;
+    s += `<text x="${X(vd)}" y="${H - 24}" fill="#93a0c4" font-size="10" text-anchor="middle">${vd.toFixed(0)}</text>`;
+  }
+  s += `<text x="${m.l + pw / 2}" y="${H - 6}" fill="#93a0c4" font-size="11" text-anchor="middle">Dependencia Neta Efectiva (Dⁿᵉᵗᵃ)</text>`;
+  s += `<text x="16" y="${m.t + ph / 2}" fill="#93a0c4" font-size="11" text-anchor="middle" transform="rotate(-90 16 ${m.t + ph / 2})">Motricidad Neta Efectiva (Mⁿᵉᵗᵃ)</text>`;
+
+  // Draw points
+  rows.forEach(r => {
+    const cx = X(r.dn), cy = Y(r.mn);
+    const radius = 9 + 14 * (r.mb / maxMb);
+    const fillCol = r.f_i >= 0 ? 'rgba(52,211,153,.8)' : 'rgba(251,113,133,.8)';
+    const strokeCol = r.esTrampa ? '#fb7185' : (r.om_i > 25 ? '#fbbf24' : '#fff');
+    const strokeW = 1.5 + 3.0 * (r.om_i / 100);
+
+    s += `<g class="dyn-bubble" data-id="${r.v.id}" style="cursor:pointer">`;
+    s += `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${fillCol}" stroke="${strokeCol}" stroke-width="${strokeW.toFixed(1)}"/>`;
+    s += `<text x="${cx}" y="${cy + 4}" fill="#06101c" font-size="11" font-weight="700" text-anchor="middle">${esc(r.v.code)}</text>`;
+    s += `<text x="${cx}" y="${cy - radius - 5}" fill="#e8ecf8" font-size="11" font-weight="600" text-anchor="middle">${esc(r.v.name.slice(0, 16))}</text>`;
+    s += `</g>`;
+  });
+  s += `</svg>`;
+  $('#dyn-plane-wrap').innerHTML = s;
+
+  // Tooltip on dynamic SVG
+  document.querySelectorAll('.dyn-bubble').forEach(el => {
+    const r = rows.find(x => x.v.id === el.dataset.id);
+    if (!r) return;
+    el.onmousemove = e => {
+      tip(e, `<b>${esc(r.v.code)} · ${esc(r.v.name)}</b><br>` +
+             `Cuadrante: <b>${esc(r.quadName)}</b><br>` +
+             `Motricidad neta: <b>${r.mn.toFixed(2)}</b> (Clásica: ${r.mc})<br>` +
+             `Dependencia neta: <b>${r.dn.toFixed(2)}</b> (Clásica: ${r.dc})<br>` +
+             `Bucle propio (F): <b style="color:${r.f_i >= 0 ? '#34d399' : '#fb7185'}">${r.f_i >= 0 ? '+' : ''}${r.f_i.toFixed(3)}</b> (${r.f_i >= 0 ? 'Amplificador' : 'Regulador'})<br>` +
+             `Ambigüedad Ω: <b>${r.om_i.toFixed(1)} %</b><br>` +
+             `Cambio rango: <b>${r.dR >= 0 ? '+' : ''}${r.dR}</b><br>` +
+             (r.esTrampa ? `<span style="color:#fb7185">⚠ TRAMPA DE POLÍTICA (alta motricidad contradicha en la red)</span><br>` : '') +
+             `Rol: <i>${esc(r.rol)}</i>`);
+    };
+    el.onmouseleave = () => tip(null);
+  });
+
+  // Render diagnostic side table
+  $('#dyn-diag-table').innerHTML = `<tr><th>Variable</th><th>Cuadrante</th><th>Bucle F</th><th>Ω</th></tr>` +
+    rows.map(r => `<tr>
+      <td><b>${esc(r.v.code)}</b> ${esc(r.v.name)}</td>
+      <td><span class="tag-badge" style="background:${QUAD[r.quadKey]?.color || '#94a3b8'};color:#06101c">${esc(QUAD[r.quadKey]?.short || r.quadName)}</span></td>
+      <td style="color:${r.f_i >= 0 ? '#34d399' : '#fb7185'}">${sgn(+r.f_i.toFixed(2))}</td>
+      <td style="color:${r.om_i > 25 ? '#fbbf24' : 'inherit'}">${r.om_i.toFixed(0)}%</td>
+    </tr>`).join('');
+
+  // Render full comparative table
+  $('#dyn-full-table').innerHTML = `<tr>
+    <th>Código</th><th>Variable</th><th>Mot. Clásica</th><th>Mot. Neta</th><th>R. Clásico</th><th>R. Dinámico</th><th>Δ Rango</th>
+    <th>Dep. Neta</th><th>Bucle Propio (F)</th><th>Ambigüedad Ω</th><th>Cuadrante</th><th>Trampa</th><th>Rol Estratégico</th>
+  </tr>` + rows.map(r => {
+    let rolBadgeClass = 'role-badge';
+    if (r.rol.includes('Palanca')) rolBadgeClass += ' role-palanca';
+    else if (r.rol.includes('espejismo')) rolBadgeClass += ' role-espejismo';
+    else if (r.rol.includes('bola de nieve')) rolBadgeClass += ' role-bucle-pos';
+    else if (r.rol.includes('homeostático')) rolBadgeClass += ' role-bucle-neg';
+
+    return `<tr>
+      <td><b>${esc(r.v.code)}</b></td>
+      <td>${esc(r.v.name)}</td>
+      <td>${r.mc.toFixed(0)}</td>
+      <td><b>${r.mn.toFixed(2)}</b></td>
+      <td>${r.rC}</td>
+      <td><b>${r.rN}</b></td>
+      <td style="color:${r.dR > 0 ? '#34d399' : (r.dR < 0 ? '#fb7185' : 'inherit')}"><b>${r.dR > 0 ? '▲ +' + r.dR : (r.dR < 0 ? '▼ ' + r.dR : '=')}</b></td>
+      <td>${r.dn.toFixed(2)}</td>
+      <td style="color:${r.f_i >= 0 ? '#34d399' : '#fb7185'}"><b>${sgn(+r.f_i.toFixed(3))}</b></td>
+      <td style="color:${r.om_i > 25 ? '#fbbf24' : 'inherit'}">${r.om_i.toFixed(1)}%</td>
+      <td><span class="tag-badge" style="background:${QUAD[r.quadKey]?.color || '#94a3b8'};color:#06101c">${esc(r.quadName)}</span></td>
+      <td>${r.esTrampa ? '<span style="color:#fb7185;font-weight:700">⚠ SÍ</span>' : '<span style="opacity:.5">No</span>'}</td>
+      <td><span class="${rolBadgeClass}">${esc(r.rol)}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Render switchable matrix view
+  renderDynMatrixView(res);
+
+  // Render Executive Prospective Report
+  const palancasStr = rows.filter(r => r.rol.includes('Palanca')).map(r => `<b>${esc(r.v.code)} (${esc(r.v.name)})</b>`).join(', ') || 'Ninguna identificada';
+  const espejismosStr = rows.filter(r => r.rol.includes('espejismo')).map(r => `<b>${esc(r.v.code)} (${esc(r.v.name)})</b>`).join(', ') || 'Ninguna';
+  const bolasStr = rows.filter(r => r.rol.includes('bola de nieve')).map(r => `<b>${esc(r.v.code)} (${esc(r.v.name)})</b>`).join(', ') || 'Ninguna';
+
+  $('#dyn-report').innerHTML = `
+    <p><b>1. Síntesis Estructural:</b> El sistema analizado presenta un radio espectral descontado de <b>ρ(|W|) = ${res.rho.toFixed(3)}</b>, con factor de propagación convergente <b>α = ${res.alpha.toFixed(3)}</b>. La ambigüedad causal media del sistema es de <b>${meanOmega.toFixed(1)} %</b>, evidenciando la presencia activa de bucles inhibitorios cruzados que el método MICMAC tradicional omite.</p>
+    <p><b>2. Palancas Maestras Consistentes:</b> Se identificaron como palancas auténticas a: ${palancasStr}. Estas variables poseen alta motricidad neta efectiva y baja contradicción sistémica (Ω reducido), garantizando que las iniciativas sobre ellas se trasladen limpiamente a los resultados sin autodestruirse en la red.</p>
+    <p><b>3. Trampas de Política y Espejismos Causalmente Neutros:</b> Las variables ${espejismosStr} exhiben alta motricidad bruta pero sufren una severa pérdida por fricción y cancelación de bucles opuestos (elevado Ω). Intervenir aisladamente en ellas sin antes destrabar la cultura y la resistencia generará sobrecostos con impacto neto marginal.</p>
+    <p><b>4. Nodos de Retroalimentación Expansiva:</b> Se observa refuerzo dinámico positivo (F > 0) en: ${bolasStr}. Al inyectar recursos en estos nodos, la energía retorna al punto de partida amplificada a través de las cadenas de mediación docente y experiencia.</p>
+  `;
+}
+
+function renderDynMatrixView(res) {
+  const box = $('#dyn-matrix-view');
+  if (!box) return;
+  const n = res.vars.length;
+  let M = res.W;
+  if (dynMatrixView === 'sbruta') M = res.S_bruta;
+  else if (dynMatrixView === 'sneta') M = res.S_neta;
+  else if (dynMatrixView === 'z') {
+    M = res.S_neta.map((row, i) => row.map((v, j) => (i === j ? 0 : v - res.W[i][j])));
+  }
+
+  let h = `<tr><th>Fila \\ Col</th>${res.vars.map(v => `<th title="${esc(v.name)}">${esc(v.code)}</th>`).join('')}</tr>`;
+  res.vars.forEach((a, i) => {
+    h += `<tr><th>${esc(a.code)}</th>`;
+    res.vars.forEach((b, j) => {
+      const val = M[i][j];
+      if (i === j && dynMatrixView !== 'sneta') {
+        h += `<td class="diag" style="text-align:center">—</td>`;
+      } else {
+        const valStr = val.toFixed(2);
+        const col = val > 0.05 ? '#38bdf8' : (val < -0.05 ? '#fb7185' : 'inherit');
+        h += `<td style="text-align:right;color:${col};font-family:'JetBrains Mono'">${valStr}</td>`;
+      }
+    });
+    h += `</tr>`;
+  });
+  box.innerHTML = h;
+}
+
+$('#dyn-matrix-switch').onclick = e => {
+  const m = e.target.dataset.m;
+  if (!m) return;
+  dynMatrixView = m;
+  document.querySelectorAll('#dyn-matrix-switch button').forEach(b => b.classList.toggle('active', b === e.target));
+  const res = computeDynamicMicmac(+$('#dyn-lambda').value, +$('#dyn-alpha-ratio').value);
+  renderDynMatrixView(res);
+};
+
+['#dyn-lambda', '#dyn-alpha-ratio', '#dyn-criterio', '#dyn-omega-trampa'].forEach(sel => {
+  const el = $(sel);
+  if (el) el.oninput = renderDynamic;
+});
+
 /* ---------- Exportar / importar / reset ---------- */
 $('#btn-export').onclick = async () => {
   const text = JSON.stringify(S, null, 2), fname = 'analisis-estructural.json';
@@ -356,7 +727,8 @@ $('#btn-export').onclick = async () => {
   } catch (e) { alert('No se pudo exportar: ' + e.message); }
 };
 $('#file-import').onchange = e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { const o = JSON.parse(t); if (!o.vars || !o.links) throw 0; S = o; uid = 1000; ui.sel = ui.selVar = null; save(); renderAll(); } catch { alert('Archivo inválido'); } }); };
-$('#btn-reset').onclick = () => { if (confirm('¿Restablecer al ejemplo original? Se perderán sus cambios.')) { uid = 1; S = defaults(); ui.sel = ui.selVar = null; ui.hidden.clear(); save(); renderAll(); } };
+$('#btn-reset').onclick = () => { if (confirm('¿Restablecer la base existente? Se sincronizarán todos los valores y retardos originales.')) { uid = 1; S = defaults(); ui.sel = ui.selVar = null; ui.hidden.clear(); save(); renderAll(); } };
 
-function renderAll() { renderVars(); renderMatrix(); renderEditor(); renderLog(); renderPlane(); renderInts(); renderChart(); }
+function renderAll() { renderVars(); renderMatrix(); renderEditor(); renderLog(); renderPlane(); renderInts(); renderChart(); renderDynamic(); }
 renderAll();
+

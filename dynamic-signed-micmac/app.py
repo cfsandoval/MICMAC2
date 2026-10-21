@@ -48,7 +48,7 @@ def init_estado() -> None:
     if "A" not in st.session_state:
         A, T = me.demo_matrices()
         st.session_state.A, st.session_state.T = A, T
-        st.session_state.origen = "Demostración territorial (8 variables)"
+        st.session_state.origen = "Base existente (Transformación Digital Educativa · 9 variables)"
 
 
 def sidebar() -> Tuple[float, float, str, float, float, bool]:
@@ -66,10 +66,10 @@ def sidebar() -> Tuple[float, float, str, float, float, bool]:
     st.sidebar.divider()
     st.sidebar.subheader("Datos")
     st.sidebar.caption(f"Origen actual: **{st.session_state.origen}**")
-    if st.sidebar.button("↺ Restaurar dataset de demostración", use_container_width=True):
+    if st.sidebar.button("↺ Restaurar base existente", use_container_width=True):
         A, T = me.demo_matrices()
         st.session_state.A, st.session_state.T = A, T
-        st.session_state.origen = "Demostración territorial (8 variables)"
+        st.session_state.origen = "Base existente (Transformación Digital Educativa · 9 variables)"
         st.session_state.pop("ed_A", None); st.session_state.pop("ed_T", None)
         st.rerun()
     up = st.sidebar.file_uploader("Cargar Excel (hojas Matriz_A y Matriz_T)", type=["xlsx"])
@@ -248,9 +248,9 @@ with t_datos:
         T_ed = st.data_editor(st.session_state.T, key="ed_T", use_container_width=True, height=36 * (n + 1) + 6,
                               column_config={c: st.column_config.NumberColumn(c, min_value=0.0, step=0.5, format="%.1f") for c in st.session_state.T.columns})
     st.session_state.A, st.session_state.T = A_ed, T_ed
-    st.caption("Dataset de demostración: sistema territorial/ambiental con 27 impactos (positivos y negativos) y retardos de 1 a 10 años. "
-               "Las evidencias deben calibrarse con datos reales del territorio.")
-    with st.expander("Descripción de las variables de demostración"):
+    st.caption("Base existente del sistema: 9 variables de transformación digital educativa con 27 impactos causales "
+               "justificados conceptualmente y contrastados con evidencia práctica observable.")
+    with st.expander("Definición conceptual y evidencia de las variables de la base"):
         for k, v in me.DEMO_DESCRIPCIONES.items():
             st.markdown(f"- **{k}**: {v}")
 
@@ -263,8 +263,11 @@ except me.MicmacError as exc:
 c = me.clasificar(res.indicadores, criterio, omega_trampa)
 A_out = pd.DataFrame(res.A, index=res.variables, columns=res.variables)
 T_out = pd.DataFrame(res.T, index=res.variables, columns=res.variables)
-st.sidebar.download_button("⬇ Descargar Excel (A, T e indicadores)", me.a_excel_bytes(A_out, T_out, c),
-                           file_name="signed_micmac.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+st.sidebar.download_button("⬇ Descargar Excel Multi-Hoja (Base + Nuevos Análisis)",
+                           me.a_excel_bytes(A_out, T_out, c, lam=lam, alpha_ratio=alpha_ratio),
+                           file_name="analisis_micmac_convergente.xlsx",
+                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                           use_container_width=True)
 
 with t_plano:
     k = st.columns(4)

@@ -17,12 +17,14 @@
     <button data-tab="matrix" id="tab-btn-matrix">2 · Matriz justificada</button>
     <button data-tab="plane" id="tab-btn-plane">3 · Plano de cuadrantes</button>
     <button data-tab="sim" id="tab-btn-sim">4 · Simulación temporal</button>
-    <button data-tab="method" id="tab-btn-method">5 · Metodología</button>
+    <button data-tab="dynamic" id="tab-btn-dynamic">5 · Signed-MICMAC Dinámico 4D</button>
+    <button data-tab="method" id="tab-btn-method">6 · Metodología</button>
   </nav>
   <div class="actions">
-    <button class="btn ghost" id="btn-export">Exportar</button>
-    <label class="btn ghost" for="file-import">Importar</label><input type="file" id="file-import" accept=".json" hidden>
-    <button class="btn danger" id="btn-reset">Restablecer ejemplo</button>
+    <a class="btn primary" href="analisis_micmac_convergente.xlsx" download="analisis_micmac_convergente.xlsx" id="btn-export-excel" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><span>⬇</span><b>Excel Multi-Hoja (.xlsx)</b></a>
+    <button class="btn ghost" id="btn-export">Exportar JSON</button>
+    <label class="btn ghost" for="file-import">Importar JSON</label><input type="file" id="file-import" accept=".json" hidden>
+    <button class="btn danger" id="btn-reset">Restablecer base</button>
   </div>
 </header>
 
@@ -106,7 +108,91 @@
   </div>
   <div class="card"><div class="card-head"><h2>Impacto por variable</h2></div><div class="table-wrap"><table id="impact"></table></div></div>
 </section>
-<!-- 5 METODOLOGÍA -->
+
+<!-- 5 DYNAMIC SIGNED-MICMAC -->
+<section id="tab-dynamic" class="panel">
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h2>Dynamic Signed-MICMAC Studio · Modelo Convergente 4D</h2>
+        <p class="muted">Supera las tres limitaciones del MICMAC clásico (Godet): convergencia por operador de Katz-Bonacich / Leontief (reemplaza potencias de Perron-Frobenius), polaridad/signos [-3, 3] y fricción temporal exp(-λt).</p>
+      </div>
+      <a class="btn primary" href="analisis_micmac_convergente.xlsx" download="analisis_micmac_convergente.xlsx" style="text-decoration:none;white-space:nowrap">⬇ Descargar Excel Multi-Hoja</a>
+    </div>
+
+    <div class="kpi-row" id="dyn-kpis">
+      <div class="kpi-card"><b id="kpi-rho">—</b><span>Radio espectral ρ(|W|)</span></div>
+      <div class="kpi-card"><b id="kpi-alpha">—</b><span>Factor convergente α</span></div>
+      <div class="kpi-card"><b id="kpi-omega">—</b><span>Ambigüedad media Ω</span></div>
+      <div class="kpi-card"><b id="kpi-palancas">—</b><span>Palancas maestras consistentes</span></div>
+      <div class="kpi-card"><b id="kpi-trampas" style="color:#fb7185">—</b><span>Trampas de política</span></div>
+    </div>
+
+    <div class="controls" style="margin-bottom:14px">
+      <label>Tasa de fricción temporal λ
+        <input type="range" id="dyn-lambda" min="0.01" max="0.50" step="0.01" value="0.10">
+        <output id="dyn-lambda-out">0.10</output>
+      </label>
+      <label>Ratio espectral (α·ρ)
+        <input type="range" id="dyn-alpha-ratio" min="0.05" max="0.99" step="0.01" value="0.80">
+        <output id="dyn-alpha-out">0.80</output>
+      </label>
+      <label>Criterio de umbrales
+        <select id="dyn-criterio">
+          <option value="media">Media aritmética</option>
+          <option value="mediana">Mediana</option>
+        </select>
+      </label>
+      <label>Umbral trampa Ω (%)
+        <input type="range" id="dyn-omega-trampa" min="5" max="80" step="5" value="30">
+        <output id="dyn-omega-out">30 %</output>
+      </label>
+    </div>
+  </div>
+
+  <div class="grid-plane">
+    <div class="card">
+      <div class="card-head">
+        <h2>Plano Estructural Dinámico 4D (Motricidad Neta vs. Dependencia Neta)</h2>
+      </div>
+      <p class="muted">Eje Y: Motricidad Neta | Eje X: Dependencia Neta | Color: Bucle propio Fᵢ (verde = amplificador, rosa = estabilizador) | Anillo exterior: Ambigüedad Ωᵢ | Tamaño: Motricidad Bruta Sᵦᵣᵤₜₐ.</p>
+      <div id="dyn-plane-wrap"></div>
+    </div>
+    <div class="side">
+      <div class="card">
+        <div class="card-head"><h2>Diagnóstico y Cuadrantes</h2></div>
+        <div class="table-wrap"><table id="dyn-diag-table"></table></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Tablero Comparativo Completo · Clásico Godet vs. Dinámico Katz-Bonacich</h2>
+    </div>
+    <div class="table-wrap"><table id="dyn-full-table"></table></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Visualización de Matrices del Modelo</h2>
+      <div class="seg" id="dyn-matrix-switch">
+        <button class="active" data-m="w">Matriz W (descontada)</button>
+        <button data-m="sbruta">S^bruta (Leontief)</button>
+        <button data-m="sneta">S^neta (Signada)</button>
+        <button data-m="z">Flujos Indirectos (S^neta - W)</button>
+      </div>
+    </div>
+    <div class="table-wrap"><table id="dyn-matrix-view"></table></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Informe Ejecutivo Automatizado para la Toma de Decisiones</h2></div>
+    <div id="dyn-report" class="muted" style="line-height:1.7;color:var(--txt)"></div>
+  </div>
+</section>
+
+<!-- 6 METODOLOGÍA -->
 <section id="tab-method" class="panel">
   <div class="card method">
     <h2>Metodología de cálculo</h2>
