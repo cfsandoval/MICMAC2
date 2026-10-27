@@ -561,8 +561,8 @@ async function generateWordReportBlob() {
 
   // Tabla comparativa completa
   const dynHeaders = isEn
-    ? ["Code", "Variable Name", "Classic Mot", "Net Mot", "Ambiguity Ω", "Self-Loop F", "Dynamic Quadrant", "Strategic Diagnosis"]
-    : ["Cód", "Nombre Variable", "Mot. Clásica", "Mot. Neta", "Ambigüedad Ω", "Bucle F", "Cuadrante Dinámico", "Diagnóstico Estratégico"];
+    ? ["No.", "Code", "Variable Name", "Classic Mot", "Net Mot", "Ambiguity Ω", "Self-Loop F", "Dynamic Quadrant", "Strategic Diagnosis"]
+    : ["N°", "Cód", "Nombre Variable", "Mot. Clásica", "Mot. Neta", "Ambigüedad Ω", "Bucle F", "Cuadrante Dinámico", "Diagnóstico Estratégico"];
 
   children.push(
     new Table({
@@ -579,6 +579,7 @@ async function generateWordReportBlob() {
         }),
         ...dynamicRows.map((r, idx) => new TableRow({
           children: [
+            (idx + 1).toString(),
             r.v.code,
             r.v.name,
             r.mc.toFixed(1),
@@ -591,10 +592,11 @@ async function generateWordReportBlob() {
             shading: { fill: idx % 2 === 0 ? "F8FAFC" : "FFFFFF" },
             margins: { top: 60, bottom: 60, left: 100, right: 100 },
             children: [new Paragraph({
+              alignment: cIdx === 0 ? AlignmentType.CENTER : AlignmentType.LEFT,
               children: [new TextRun({
                 text: cText,
-                bold: cIdx === 0 || cIdx === 7,
-                color: cIdx === 7 && cText.includes("★") ? "059669" : (cIdx === 7 && cText.includes("⚠") ? "E11D48" : "1F2937"),
+                bold: cIdx === 0 || cIdx === 1 || cIdx === 8,
+                color: cIdx === 8 && cText.includes("★") ? "059669" : (cIdx === 8 && cText.includes("⚠") ? "E11D48" : "1F2937"),
                 size: 16
               })]
             })]

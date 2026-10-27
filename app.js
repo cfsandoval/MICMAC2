@@ -58,8 +58,9 @@ $('#tabs').onclick = e => {
 
 /* ---------- 1. Variables ---------- */
 function renderVars() {
-  $('#vars-table').innerHTML = `<tr><th>${t('th_code')}</th><th>${t('th_name')}</th><th>${t('th_desc')}</th><th>${t('th_x0')}</th><th></th></tr>` +
-    V().map(v => `<tr><td><input class="code" data-id="${v.id}" data-f="code" value="${esc(v.code)}"></td>
+  $('#vars-table').innerHTML = `<tr><th style="width:42px;text-align:center">${t('th_num')}</th><th>${t('th_code')}</th><th>${t('th_name')}</th><th>${t('th_desc')}</th><th>${t('th_x0')}</th><th></th></tr>` +
+    V().map((v, i) => `<tr><td style="text-align:center"><span class="var-idx">${i + 1}</span></td>
+    <td><input class="code" data-id="${v.id}" data-f="code" value="${esc(v.code)}"></td>
     <td><input data-id="${v.id}" data-f="name" value="${esc(v.name)}"></td>
     <td><input data-id="${v.id}" data-f="desc" value="${esc(v.desc)}"></td>
     <td><input class="num" type="number" min="0" max="100" data-id="${v.id}" data-f="x0" value="${v.x0}"></td>
@@ -87,9 +88,9 @@ function sums() {
 }
 function renderMatrix() {
   const { inf, dep } = sums();
-  let h = `<tr><th></th>${V().map(v => `<th class="th-var col-hdr" data-vid="${v.id}" title="${esc(v.name)}">${esc(v.code)}</th>`).join('')}<th>${t('th_sum_infl')}</th></tr>`;
+  let h = `<tr><th></th>${V().map((v, i) => `<th class="th-var col-hdr" data-vid="${v.id}" title="${esc(v.name)}"><div class="col-hdr-box"><span class="hdr-num">${i + 1}</span><span class="hdr-code">${esc(v.code)}</span></div></th>`).join('')}<th>${t('th_sum_infl')}</th></tr>`;
   V().forEach((a, i) => {
-    h += `<tr><th class="th-var row-hdr" data-vid="${a.id}" title="${esc(a.name)}">${esc(a.code)}</th>`;
+    h += `<tr><th class="th-var row-hdr" data-vid="${a.id}" title="${esc(a.name)}"><span class="hdr-num">${i + 1}</span> <span class="hdr-code">${esc(a.code)}</span></th>`;
     V().forEach((b, j) => {
       if (i === j) { h += `<td class="diag"></td>`; return; }
       const l = L(a.id, b.id), v = l?.v || 0, miss = v !== 0 && !hasJust(l);
@@ -123,16 +124,18 @@ $('#matrix').onmousemove = e => {
   const th = e.target.closest('.th-var');
   if (th && th.dataset.vid) {
     const v = V()[idx(th.dataset.vid)];
+    const vIdx = idx(th.dataset.vid);
     if (v) {
-      return tip(e, `<div style="min-width:190px"><span class="badge" style="background:#38bdf8;color:#0b0f1a;font-weight:700;margin-right:6px">${esc(v.code)}</span><b style="color:#fff;font-size:13.5px">${esc(v.name)}</b>${v.desc ? `<div style="color:#94a3c8;font-size:12px;margin-top:6px;line-height:1.4">${esc(v.desc)}</div>` : ''}<div style="color:#64748b;font-size:11px;margin-top:5px">${currentLang === 'en' ? 'Baseline state x₀:' : 'Estado base x₀:'} <b style="color:#e2e8f0">${v.x0}</b></div></div>`);
+      return tip(e, `<div style="min-width:190px"><span class="badge" style="background:#38bdf8;color:#0b0f1a;font-weight:700;margin-right:6px">N° ${vIdx + 1} · ${esc(v.code)}</span><b style="color:#fff;font-size:13.5px">${esc(v.name)}</b>${v.desc ? `<div style="color:#94a3c8;font-size:12px;margin-top:6px;line-height:1.4">${esc(v.desc)}</div>` : ''}<div style="color:#64748b;font-size:11px;margin-top:5px">${currentLang === 'en' ? 'Baseline state x₀:' : 'Estado base x₀:'} <b style="color:#e2e8f0">${v.x0}</b></div></div>`);
     }
   }
   const c = e.target.closest('.cell');
   if (c) {
     const l = L(c.dataset.a, c.dataset.b);
-    const va = V()[idx(c.dataset.a)], vb = V()[idx(c.dataset.b)];
+    const ia = idx(c.dataset.a), ib = idx(c.dataset.b);
+    const va = V()[ia], vb = V()[ib];
     const valColor = (l?.v || 0) > 0 ? '#38bdf8' : (l?.v || 0) < 0 ? '#fb7185' : '#94a3b8';
-    return tip(e, `<div style="min-width:230px"><b style="color:var(--acc2)">${esc(va?.code || '?')}</b> <span style="color:#cbd5e1">(${esc(va?.name || '')})</span> <span style="color:#94a3ff">→</span> <b style="color:var(--acc2)">${esc(vb?.code || '?')}</b> <span style="color:#cbd5e1">(${esc(vb?.name || '')})</span> <b style="color:${valColor}">[${sgn(l?.v || 0)}]</b><div style="margin-top:6px;color:#c3cbe6;line-height:1.4">${l?.concept ? esc(l.concept.slice(0, 180)) + (l.concept.length > 180 ? '…' : '') : t('tip_matrix_no_dir')}</div></div>`);
+    return tip(e, `<div style="min-width:240px"><span class="hdr-num">(N° ${ia + 1})</span> <b style="color:var(--acc2)">${esc(va?.code || '?')}</b> <span style="color:#cbd5e1">(${esc(va?.name || '')})</span> <span style="color:#94a3ff">→</span> <span class="hdr-num">(N° ${ib + 1})</span> <b style="color:var(--acc2)">${esc(vb?.code || '?')}</b> <span style="color:#cbd5e1">(${esc(vb?.name || '')})</span> <b style="color:${valColor}">[${sgn(l?.v || 0)}]</b><div style="margin-top:6px;color:#c3cbe6;line-height:1.4">${l?.concept ? esc(l.concept.slice(0, 180)) + (l.concept.length > 180 ? '…' : '') : t('tip_matrix_no_dir')}</div></div>`);
   }
   tip(null);
 };
@@ -256,10 +259,10 @@ function renderPlane() {
   $('#plane-wrap').innerHTML = s + '</svg>';
   /* tabla de posiciones */
   const order = [...V().keys()].sort((a, b) => sc.inf[b] - sc.inf[a]);
-  $('#rank').innerHTML = `<tr><th>Var.</th><th>${t('th_infl')}</th><th>${t('th_dep')}</th><th>${t('th_quad')}</th>${PD.mode === 'indirect' ? `<th>${currentLang === 'en' ? 'Rank Δ' : 'Rango Δ'}</th>` : ''}</tr>` + order.map(i => {
+  $('#rank').innerHTML = `<tr><th style="width:38px;text-align:center">${t('th_num')}</th><th>Var.</th><th>${t('th_infl')}</th><th>${t('th_dep')}</th><th>${t('th_quad')}</th>${PD.mode === 'indirect' ? `<th>${currentLang === 'en' ? 'Rank Δ' : 'Rango Δ'}</th>` : ''}</tr>` + order.map(i => {
     const border = Math.abs(sc.inf[i] - ty) < (y1 - y0) * .04 || Math.abs(sc.dep[i] - tx) < (x1 - x0) * .04;
     const dr = PD.rkD[i] - PD.rkI[i];
-    return `<tr class="clickable ${ui.selVar === V()[i].id ? 'sel' : ''}" data-id="${V()[i].id}"><td><b>${esc(V()[i].code)}</b></td><td>${sc.inf[i].toFixed(1)}</td><td>${sc.dep[i].toFixed(1)}</td><td><span class="badge" style="background:${QUAD[q[i]].color}">${QUAD[q[i]].short}</span>${border ? ` <span title="${currentLang === 'en' ? 'Near threshold' : 'Cerca del umbral'}" style="color:#fbbf24">≈</span>` : ''}</td>${PD.mode === 'indirect' ? `<td>${dr === 0 ? '=' : (dr > 0 ? '▲' + dr : '▼' + -dr)}</td>` : ''}</tr>`;
+    return `<tr class="clickable ${ui.selVar === V()[i].id ? 'sel' : ''}" data-id="${V()[i].id}"><td style="text-align:center"><span class="var-idx sm">${i + 1}</span></td><td><b>${esc(V()[i].code)}</b></td><td>${sc.inf[i].toFixed(1)}</td><td>${sc.dep[i].toFixed(1)}</td><td><span class="badge" style="background:${QUAD[q[i]].color}">${QUAD[q[i]].short}</span>${border ? ` <span title="${currentLang === 'en' ? 'Near threshold' : 'Cerca del umbral'}" style="color:#fbbf24">≈</span>` : ''}</td>${PD.mode === 'indirect' ? `<td>${dr === 0 ? '=' : (dr > 0 ? '▲' + dr : '▼' + -dr)}</td>` : ''}</tr>`;
   }).join('');
   renderDetail();
   renderQuadCards();
@@ -267,7 +270,7 @@ function renderPlane() {
 $('#plane-wrap').onclick = e => { const id = e.target.dataset?.id; if (id) { ui.selVar = id; renderPlane(); } };
 $('#plane-wrap').onmousemove = e => {
   const id = e.target.dataset?.id; if (!id || !PD) return tip(null);
-  const i = idx(id); tip(e, `<b>${esc(V()[i].name)}</b><br>${t('th_infl')} ${PD.sc.inf[i].toFixed(1)}% · ${t('th_dep')} ${PD.sc.dep[i].toFixed(1)}%<br>${QUAD[PD.q[i]].name}`);
+  const i = idx(id); tip(e, `<b>N° ${i + 1} · ${esc(V()[i].code)}: ${esc(V()[i].name)}</b><br>${t('th_infl')} ${PD.sc.inf[i].toFixed(1)}% · ${t('th_dep')} ${PD.sc.dep[i].toFixed(1)}%<br>${QUAD[PD.q[i]].name}`);
 };
 $('#plane-wrap').onmouseleave = () => tip(null);
 $('#rank').onclick = e => { const r = e.target.closest('tr.clickable'); if (r) { ui.selVar = r.dataset.id; renderPlane(); } };
@@ -285,7 +288,7 @@ function renderDetail() {
   const list = (arr, out) => arr.length ? arr.map(({ b, l }) => `<div class="lk" style="border-color:${pillBg(l.v)}"><b>${out ? esc(v.code) + ' → ' + esc(b.code) : esc(b.code) + ' → ' + esc(v.code)}</b> <span class="pill" style="background:${pillBg(l.v)}">${sgn(l.v)}</span><br>${esc(l.concept) || `<i>${currentLang === 'en' ? 'no concept' : 'sin concepto'}</i>`}<small>${currentLang === 'en' ? 'Evidence:' : 'Evidencia:'} ${esc(l.evidence) || '—'}</small></div>`).join('') : `<p class="muted">${currentLang === 'en' ? 'No direct linkages registered.' : 'Ningún vínculo directo registrado.'}</p>`;
   const rI = PD.sc.rawI[i], rD = PD.sc.rawD[i], inf = PD.sc.inf[i], dep = PD.sc.dep[i];
   const sumO = outs.reduce((s, o) => s + Math.abs(o.l.v), 0), sumI = ins.reduce((s, o) => s + Math.abs(o.l.v), 0);
-  box.innerHTML = `<div class="card-head"><h2>${esc(v.code)} · ${esc(v.name)}</h2><span class="badge" style="background:${Q.color}">${Q.name}</span></div>
+  box.innerHTML = `<div class="card-head"><h2><span class="var-idx sm" style="font-size:13px;vertical-align:middle;margin-right:8px">${i + 1}</span>${esc(v.code)} · ${esc(v.name)}</h2><span class="badge" style="background:${Q.color}">${Q.name}</span></div>
   <p class="muted"><b style="color:var(--txt)">${currentLang === 'en' ? 'Result interpretation:' : 'Lectura del resultado:'}</b> ${t('th_infl')} <b>${inf.toFixed(1)}%</b> ${inf >= PD.ty ? '≥' : '<'} ${currentLang === 'en' ? 'threshold' : 'umbral'} ${PD.ty.toFixed(1)}% ${currentLang === 'en' ? 'and' : 'y'} ${t('th_dep')} <b>${dep.toFixed(1)}%</b> ${dep >= PD.tx ? '≥' : '<'} ${currentLang === 'en' ? 'threshold' : 'umbral'} ${PD.tx.toFixed(1)}%. ${PD.mode === 'direct' ? (currentLang === 'en' ? `Influence = row sum = ${sumO} (of ${3 * (V().length - 1)} max); dependence = col sum = ${sumI}.` : `Influencia = suma de la fila = ${sumO} (de ${3 * (V().length - 1)} posibles); dependencia = suma de la columna = ${sumI}.`) : (currentLang === 'en' ? `Indirect values: paths up to ${PD.K} steps with 0.6 attenuation (gross infl ${rI.toFixed(2)}, gross dep ${rD.toFixed(2)}).` : `Valores indirectos: caminos de hasta ${PD.K} pasos con atenuación 0,6 por paso adicional (influencia bruta ${rI.toFixed(2)}, dependencia bruta ${rD.toFixed(2)}).`)}</p>
   <p class="muted"><b style="color:var(--txt)">${currentLang === 'en' ? 'Concept:' : 'Concepto:'}</b> ${Q.concept}<br><b style="color:var(--txt)">${currentLang === 'en' ? 'Practical implication:' : 'Implicación práctica:'}</b> ${Q.action}</p>
   <div class="detail-grid"><div><h3>${currentLang === 'en' ? 'Influences (sum ' + sumO + ')' : 'Influye en (suma ' + sumO + ')'}</h3>${list(outs, true)}</div><div><h3>${currentLang === 'en' ? 'Depends on (sum ' + sumI + ')' : 'Depende de (suma ' + sumI + ')'}</h3>${list(ins, false)}</div></div>`;
@@ -313,12 +316,12 @@ function renderInts() {
   const hdr = `<div class="int int-h"><span>${currentLang === 'en' ? 'Type' : 'Tipo'}</span><span>${currentLang === 'en' ? 'Magnitude' : 'Magnitud'}</span><span>${currentLang === 'en' ? 'Start t' : 'Inicio t'}</span><span>${currentLang === 'en' ? 'Duration' : 'Duración'}</span><span></span></div>`;
   $('#interventions').innerHTML = V().map((v, i) => {
     const mine = S.ints.map((it, k) => [it, k]).filter(([it]) => it.vid === v.id);
-    return `<div class="vblock"><div class="vhead"><span class="dot" style="background:${varColor(i)}"></span><b>${esc(v.code)}</b><span class="muted">${esc(v.name)}</span><span class="cnt">${mine.length ? mine.length + ' ' + (mine.length > 1 ? t('int_unit_multi') : t('int_unit_single')) : t('int_unit_none')}</span><button class="btn ghost sm" data-add="${v.id}">${t('int_add_btn')}</button></div>` +
+    return `<div class="vblock"><div class="vhead"><span class="var-idx sm">${i + 1}</span><span class="dot" style="background:${varColor(i)}"></span><b>${esc(v.code)}</b><span class="muted">${esc(v.name)}</span><span class="cnt">${mine.length ? mine.length + ' ' + (mine.length > 1 ? t('int_unit_multi') : t('int_unit_single')) : t('int_unit_none')}</span><button class="btn ghost sm" data-add="${v.id}">${t('int_add_btn')}</button></div>` +
       (mine.length ? hdr + mine.map(([it, k]) => `<div class="int"><select data-k="${k}" data-f="type"><option value="pulse" ${it.type === 'pulse' ? 'selected' : ''}>${t('int_pulse_opt')}</option><option value="sust" ${it.type === 'sust' ? 'selected' : ''}>${t('int_sust_opt')}</option></select>
       <input type="number" step="0.5" data-k="${k}" data-f="mag" value="${it.mag}"><input type="number" min="1" data-k="${k}" data-f="start" value="${it.start}">
       <input type="number" min="1" data-k="${k}" data-f="dur" value="${it.dur}" ${it.type === 'pulse' ? 'disabled' : ''}><button class="x" data-del="${k}">✕</button></div>`).join('') : '') + '</div>';
   }).join('') + `<p class="muted" style="margin:4px 0 0">${t('int_help_text')}</p>`;
-  $('#quick').innerHTML = V().map(v => `<span class="chip" data-q="${v.id}">${esc(v.code)}</span>`).join('');
+  $('#quick').innerHTML = V().map((v, i) => `<span class="chip" data-q="${v.id}"><span class="hdr-num">${i + 1}.</span> ${esc(v.code)}</span>`).join('');
   [['beta', 'p-beta', 'o-beta'], ['lambda', 'p-lambda', 'o-lambda'], ['steps', 'p-steps', 'o-steps']].forEach(([k, i, o]) => { $('#' + i).value = S.params[k]; $('#' + o).textContent = S.params[k]; });
 }
 const intHandler = e => {
@@ -369,7 +372,7 @@ function renderChart() {
   /* impacto */
   const rows = V().map((v, i) => { let pk = 0, pt = 0; SIM.dl.forEach((r, t) => { if (Math.abs(r[i]) > Math.abs(pk)) { pk = r[i]; pt = t; } }); return { v, i, base: v.x0, fin: SIM.x[T][i], df: SIM.dl[T][i], pk, pt }; }).sort((a, b) => Math.abs(b.pk) - Math.abs(a.pk));
   const mxp = Math.max(...rows.map(r => Math.abs(r.pk)), 1e-9);
-  $('#impact').innerHTML = `<tr><th>Variable</th><th>${t('th_initial')}</th><th>${t('th_final')}</th><th>${t('th_dfinal')}</th><th>${t('th_peak')}</th><th style="width:30%">${t('th_mag')}</th></tr>` + rows.map(r => `<tr><td><span class="dot" style="background:${varColor(r.i)}"></span><b>${esc(r.v.code)}</b> ${esc(r.v.name)}</td><td>${r.base.toFixed(0)}</td><td>${r.fin.toFixed(1)}</td><td style="color:${r.df >= 0 ? '#38bdf8' : '#fb7185'}">${sgn(+r.df.toFixed(1))}</td><td>${sgn(+r.pk.toFixed(1))} (t=${r.pt})</td><td><div class="bar" style="width:${Math.abs(r.pk) / mxp * 100}%;background:${r.pk >= 0 ? '' : '#fb7185'}"></div></td></tr>`).join('');
+  $('#impact').innerHTML = `<tr><th style="width:38px;text-align:center">${t('th_num')}</th><th>Variable</th><th>${t('th_initial')}</th><th>${t('th_final')}</th><th>${t('th_dfinal')}</th><th>${t('th_peak')}</th><th style="width:30%">${t('th_mag')}</th></tr>` + rows.map(r => `<tr><td style="text-align:center"><span class="var-idx sm">${r.i + 1}</span></td><td><span class="dot" style="background:${varColor(r.i)}"></span><b>${esc(r.v.code)}</b> ${esc(r.v.name)}</td><td>${r.base.toFixed(0)}</td><td>${r.fin.toFixed(1)}</td><td style="color:${r.df >= 0 ? '#38bdf8' : '#fb7185'}">${sgn(+r.df.toFixed(1))}</td><td>${sgn(+r.pk.toFixed(1))} (t=${r.pt})</td><td><div class="bar" style="width:${Math.abs(r.pk) / mxp * 100}%;background:${r.pk >= 0 ? '' : '#fb7185'}"></div></td></tr>`).join('');
 }
 
 /* ---------- 5. Dynamic Signed-MICMAC (Katz-Bonacich / Leontief) ---------- */
@@ -639,8 +642,9 @@ function renderDynamic() {
   });
 
   // Render diagnostic side table
-  $('#dyn-diag-table').innerHTML = `<tr><th>Variable</th><th>${t('th_dyn_quad')}</th><th>${t('th_dyn_f')}</th><th>Ω</th></tr>` +
+  $('#dyn-diag-table').innerHTML = `<tr><th style="width:38px;text-align:center">${t('th_num')}</th><th>Variable</th><th>${t('th_dyn_quad')}</th><th>${t('th_dyn_f')}</th><th>Ω</th></tr>` +
     rows.map(r => `<tr>
+      <td style="text-align:center"><span class="var-idx sm">${r.i + 1}</span></td>
       <td><b>${esc(r.v.code)}</b> ${esc(r.v.name)}</td>
       <td><span class="tag-badge" style="background:${QUAD[r.quadKey]?.color || '#94a3b8'};color:#06101c">${esc(QUAD[r.quadKey]?.short || r.quadName)}</span></td>
       <td style="color:${r.f_i >= 0 ? '#34d399' : '#fb7185'}">${sgn(+r.f_i.toFixed(2))}</td>
@@ -649,7 +653,7 @@ function renderDynamic() {
 
   // Render full comparative table
   $('#dyn-full-table').innerHTML = `<tr>
-    <th>${t('th_code')}</th><th>Variable</th><th>${t('th_dyn_mc')}</th><th>${t('th_dyn_mn')}</th><th>${t('th_dyn_rc')}</th><th>${t('th_dyn_rn')}</th><th>${t('th_dyn_dr')}</th>
+    <th style="width:38px;text-align:center">${t('th_num')}</th><th>${t('th_code')}</th><th>Variable</th><th>${t('th_dyn_mc')}</th><th>${t('th_dyn_mn')}</th><th>${t('th_dyn_rc')}</th><th>${t('th_dyn_rn')}</th><th>${t('th_dyn_dr')}</th>
     <th>${t('th_dyn_dn')}</th><th>${t('th_dyn_f')}</th><th>${t('th_dyn_om')}</th><th>${t('th_dyn_quad')}</th><th>${t('th_dyn_trap')}</th><th>${t('th_dyn_role')}</th>
   </tr>` + rows.map(r => {
     let rolBadgeClass = 'role-badge';
@@ -659,6 +663,7 @@ function renderDynamic() {
     else if (r.rol.includes('homeostático') || r.rol.includes('Stabilizer')) rolBadgeClass += ' role-bucle-neg';
 
     return `<tr>
+      <td style="text-align:center"><span class="var-idx sm">${r.i + 1}</span></td>
       <td><b>${esc(r.v.code)}</b></td>
       <td>${esc(r.v.name)}</td>
       <td>${r.mc.toFixed(0)}</td>
@@ -701,9 +706,9 @@ function renderDynMatrixView(res) {
     M = res.S_neta.map((row, i) => row.map((v, j) => (i === j ? 0 : v - res.W[i][j])));
   }
 
-  let h = `<tr><th>Fila \\ Col</th>${res.vars.map(v => `<th title="${esc(v.name)}">${esc(v.code)}</th>`).join('')}</tr>`;
+  let h = `<tr><th>Fila \\ Col</th>${res.vars.map((v, i) => `<th title="${esc(v.name)}"><div class="col-hdr-box"><span class="hdr-num">${i + 1}</span><span class="hdr-code">${esc(v.code)}</span></div></th>`).join('')}</tr>`;
   res.vars.forEach((a, i) => {
-    h += `<tr><th>${esc(a.code)}</th>`;
+    h += `<tr><th><span class="hdr-num">${i + 1}</span> ${esc(a.code)}</th>`;
     res.vars.forEach((b, j) => {
       const val = M[i][j];
       if (i === j && dynMatrixView !== 'sneta') {

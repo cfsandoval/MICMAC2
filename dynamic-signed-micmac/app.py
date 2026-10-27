@@ -261,6 +261,7 @@ except me.MicmacError as exc:
     st.stop()
 
 c = me.clasificar(res.indicadores, criterio, omega_trampa)
+c.insert(0, "N°", range(1, len(c) + 1))
 A_out = pd.DataFrame(res.A, index=res.variables, columns=res.variables)
 T_out = pd.DataFrame(res.T, index=res.variables, columns=res.variables)
 st.sidebar.download_button("⬇ Descargar Excel Multi-Hoja (Base + Nuevos Análisis)",
@@ -276,7 +277,7 @@ with t_plano:
         col.markdown(f'<div class="kpi"><b>{val}</b><span>{lab}</span></div>', unsafe_allow_html=True)
     st.plotly_chart(fig_plano(c, criterio), use_container_width=True)
     st.markdown("".join(f'<span class="tag" style="background:{v}">{k_}</span>' for k_, v in COLOR_CUAD.items()))
-    st.dataframe(c[["Cuadrante", "Motricidad neta", "Dependencia neta", "Bucle propio (F)", "Ambigüedad Ω (%)", "Diagnóstico"]].round(3), use_container_width=True)
+    st.dataframe(c[["N°", "Cuadrante", "Motricidad neta", "Dependencia neta", "Bucle propio (F)", "Ambigüedad Ω (%)", "Diagnóstico"]].round(3), use_container_width=True)
 
 with t_comp:
     bars, sl = fig_ranking(c)
@@ -289,7 +290,7 @@ with t_comp:
         st.warning(f"{len(tr)} variable(s) aparecen como muy motrices en el MICMAC clásico, pero pierden más de {omega_trampa:.0f} % de su influencia por cancelación de signos.")
     else:
         st.success("No se detectan trampas de política con el umbral actual.")
-    tab = c[["Motricidad clásica", "Rango clásico", "Motricidad neta", "Rango dinámico", "Cambio de rango", "Ambigüedad Ω (%)", "Trampa de política"]].copy()
+    tab = c[["N°", "Motricidad clásica", "Rango clásico", "Motricidad neta", "Rango dinámico", "Cambio de rango", "Ambigüedad Ω (%)", "Trampa de política"]].copy()
     tab["Alerta"] = np.where(tab["Trampa de política"], "⚠ Trampa", "")
     st.dataframe(tab.drop(columns=["Trampa de política"]).sort_values("Rango dinámico").round(3), use_container_width=True,
                  column_config={"Ambigüedad Ω (%)": st.column_config.ProgressColumn("Ambigüedad Ω (%)", min_value=0, max_value=100, format="%.1f"),

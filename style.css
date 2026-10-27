@@ -190,3 +190,49 @@ tr.sel td{background:rgba(124,140,255,.16)}
 .modal-footer-hint{font-size:12px;color:var(--mut)}
 
 
+
+/* Correlativo de variables y cabeceras estructuradas */
+.var-idx {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--acc2);
+  font-weight: 700;
+  font-size: 11.5px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.var-idx.sm {
+  min-width: 20px;
+  height: 18px;
+  padding: 0 4px;
+  font-size: 10.5px;
+  border-radius: 4px;
+  margin-right: 5px;
+}
+.hdr-num {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--acc2);
+  opacity: .85;
+  font-family: 'JetBrains Mono', monospace;
+}
+.col-hdr-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  line-height: 1.1;
+}
+.col-hdr-box .hdr-num {
+  font-size: 9px;
+  color: rgba(56, 189, 248, .9);
+}
+.row-hdr .hdr-num {
+  margin-right: 4px;
+}

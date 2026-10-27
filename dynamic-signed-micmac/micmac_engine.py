@@ -467,20 +467,21 @@ def crear_libro_excel_completo(
     ws1.cell(row=1, column=1, value="BASE ORIGINAL · VARIABLES DEL SISTEMA").font = font_title
     ws1.cell(row=2, column=1, value="Definición institucional, mecanismo conceptual y valor basal inicial (x₀)").font = font_subtitle
     
-    headers1 = ["Código", "Nombre de la Variable", "Definición y Alcance Conceptual", "Valor Inicial (x₀)"]
+    headers1 = ["N°", "Código", "Nombre de la Variable", "Definición y Alcance Conceptual", "Valor Inicial (x₀)"]
     for col_idx, h in enumerate(headers1, start=1):
         c = ws1.cell(row=4, column=col_idx, value=h)
         c.font, c.fill, c.alignment = font_hdr, fill_hdr_base, align_center
     
     row_idx = 5
-    for code, name, desc, x0 in BASE_VARIABLES_INFO:
-        ws1.cell(row=row_idx, column=1, value=code).alignment = align_center
-        ws1.cell(row=row_idx, column=2, value=name).font = font_bold
-        ws1.cell(row=row_idx, column=3, value=desc).alignment = align_left
-        c_x0 = ws1.cell(row=row_idx, column=4, value=x0)
+    for i, (code, name, desc, x0) in enumerate(BASE_VARIABLES_INFO, start=1):
+        ws1.cell(row=row_idx, column=1, value=i).alignment = align_center
+        ws1.cell(row=row_idx, column=2, value=code).alignment = align_center
+        ws1.cell(row=row_idx, column=3, value=name).font = font_bold
+        ws1.cell(row=row_idx, column=4, value=desc).alignment = align_left
+        c_x0 = ws1.cell(row=row_idx, column=5, value=x0)
         c_x0.alignment = align_right
         c_x0.number_format = "#,##0"
-        for col_idx in range(1, 5):
+        for col_idx in range(1, 6):
             ws1.cell(row=row_idx, column=col_idx).border = border_cell
         row_idx += 1
     auto_ancho(ws1)
@@ -726,7 +727,7 @@ def crear_libro_excel_completo(
     ws10.cell(row=2, column=1, value="Comparación Clásico vs. Dinámico, Índice de Retorno F, Ambigüedad Ω, Trampas de Política y Cuadrantes.").font = font_subtitle
 
     headers10 = [
-        "Variable", "Motricidad Clásica", "Dependencia Clásica", "Rango Clásico",
+        "N°", "Variable", "Motricidad Clásica", "Dependencia Clásica", "Rango Clásico",
         "Motricidad Neta", "Dependencia Neta", "Rango Dinámico", "Δ Rango",
         "Bucle Propio (F)", "Ambigüedad Ω (%)", "Cuadrante Dinámico", "Trampa de Política", "Rol Estratégico Diagnóstico"
     ]
@@ -735,51 +736,52 @@ def crear_libro_excel_completo(
         c.font, c.fill, c.alignment = font_hdr, fill_hdr_diag, align_center
 
     row_idx = 5
-    for var_name, r in c_df.iterrows():
-        ws10.cell(row=row_idx, column=1, value=var_name).font = font_bold
+    for i, (var_name, r) in enumerate(c_df.iterrows(), start=1):
+        ws10.cell(row=row_idx, column=1, value=i).alignment = align_center
+        ws10.cell(row=row_idx, column=2, value=var_name).font = font_bold
         
-        c_mc = ws10.cell(row=row_idx, column=2, value=float(r["Motricidad clásica"]))
+        c_mc = ws10.cell(row=row_idx, column=3, value=float(r["Motricidad clásica"]))
         c_mc.alignment, c_mc.number_format = align_right, "0.0"
-        c_dc = ws10.cell(row=row_idx, column=3, value=float(r["Dependencia clásica"]))
+        c_dc = ws10.cell(row=row_idx, column=4, value=float(r["Dependencia clásica"]))
         c_dc.alignment, c_dc.number_format = align_right, "0.0"
-        ws10.cell(row=row_idx, column=4, value=int(r["Rango clásico"])).alignment = align_center
+        ws10.cell(row=row_idx, column=5, value=int(r["Rango clásico"])).alignment = align_center
 
-        c_mn = ws10.cell(row=row_idx, column=5, value=float(r["Motricidad neta"]))
+        c_mn = ws10.cell(row=row_idx, column=6, value=float(r["Motricidad neta"]))
         c_mn.alignment, c_mn.number_format = align_right, "0.00"
-        c_dn = ws10.cell(row=row_idx, column=6, value=float(r["Dependencia neta"]))
+        c_dn = ws10.cell(row=row_idx, column=7, value=float(r["Dependencia neta"]))
         c_dn.alignment, c_dn.number_format = align_right, "0.00"
-        ws10.cell(row=row_idx, column=7, value=int(r["Rango dinámico"])).alignment = align_center
+        ws10.cell(row=row_idx, column=8, value=int(r["Rango dinámico"])).alignment = align_center
         
-        c_dr = ws10.cell(row=row_idx, column=8, value=int(r["Cambio de rango"]))
+        c_dr = ws10.cell(row=row_idx, column=9, value=int(r["Cambio de rango"]))
         c_dr.alignment = align_center
         if r["Cambio de rango"] > 0:
             c_dr.font = Font(name="Calibri", size=11, bold=True, color="047857")
         elif r["Cambio de rango"] < 0:
             c_dr.font = Font(name="Calibri", size=11, bold=True, color="BE123C")
 
-        c_f = ws10.cell(row=row_idx, column=9, value=float(r["Bucle propio (F)"]))
+        c_f = ws10.cell(row=row_idx, column=10, value=float(r["Bucle propio (F)"]))
         c_f.alignment, c_f.number_format = align_right, "0.000"
         if r["Bucle propio (F)"] > 0:
             c_f.font = Font(name="Calibri", size=11, bold=True, color="047857")
         elif r["Bucle propio (F)"] < 0:
             c_f.font = Font(name="Calibri", size=11, bold=True, color="BE123C")
 
-        c_om = ws10.cell(row=row_idx, column=10, value=float(r["Ambigüedad Ω (%)"]))
+        c_om = ws10.cell(row=row_idx, column=11, value=float(r["Ambigüedad Ω (%)"]))
         c_om.alignment, c_om.number_format = align_right, "0.0"
         if r["Ambigüedad Ω (%)"] > 30:
             c_om.font = Font(name="Calibri", size=11, bold=True, color="BE123C")
 
-        ws10.cell(row=row_idx, column=11, value=str(r["Cuadrante"])).alignment = align_left
+        ws10.cell(row=row_idx, column=12, value=str(r["Cuadrante"])).alignment = align_left
         
-        c_tr = ws10.cell(row=row_idx, column=12, value="⚠ SÍ" if r["Trampa de política"] else "No")
+        c_tr = ws10.cell(row=row_idx, column=13, value="⚠ SÍ" if r["Trampa de política"] else "No")
         c_tr.alignment = align_center
         if r["Trampa de política"]:
             c_tr.font = Font(name="Calibri", size=11, bold=True, color="BE123C")
             c_tr.fill = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
 
-        ws10.cell(row=row_idx, column=13, value=str(r["Diagnóstico"])).alignment = align_left
+        ws10.cell(row=row_idx, column=14, value=str(r["Diagnóstico"])).alignment = align_left
 
-        for col_idx in range(1, 14):
+        for col_idx in range(1, 15):
             ws10.cell(row=row_idx, column=col_idx).border = border_cell
         row_idx += 1
     auto_ancho(ws10)
