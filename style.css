@@ -49,6 +49,8 @@ td input.code{width:70px;font-family:'JetBrains Mono';text-transform:uppercase}t
 #matrix{width:auto;font-family:'JetBrains Mono',monospace;font-size:12.5px}
 #matrix th,#matrix td{text-align:center;padding:0;border:1px solid rgba(148,163,255,.08)}
 #matrix th{padding:8px 6px;position:sticky;top:0}
+#matrix th.th-var{cursor:help;transition:background .15s, color .15s}
+#matrix th.th-var:hover{background:rgba(56,189,248,.22);color:var(--acc2)}
 #matrix td.cell{width:46px;height:40px;cursor:pointer;transition:.12s;position:relative}
 #matrix td.cell:hover{outline:2px solid var(--acc2);z-index:2}
 #matrix td.cell.sel{outline:2px solid #fff;z-index:3}

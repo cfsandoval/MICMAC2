@@ -33,7 +33,7 @@ La aplicación está preconfigurada con [`vercel.json`](./vercel.json) y [`.verc
 
 2. **Plano de Influencia–Dependencia Clásico (Godet):**
    - Análisis directo e indirecto (caminos hasta $k$).
-   - Cuadrantes prospectivos (Poder, Conflicto, Resultados, Autónomas) con umbrales configurables (media, mediana, punto medio).
+   - Cuadrantes prospectivos de Godet (Variables Motrices/Determinantes, Variables Críticas/Estratégicas o de Enlace, Variables de Resultado/Salida y Variables Autónomas) con umbrales configurables (media, mediana, punto medio).
 
 3. **Simulación Temporal Continua:**
    - Propagación de perturbaciones y políticas externas (impulsos rápidos o intervenciones sostenidas).

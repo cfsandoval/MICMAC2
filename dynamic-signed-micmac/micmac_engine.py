@@ -367,8 +367,8 @@ def umbrales(ind: pd.DataFrame, criterio: str = "media") -> Tuple[float, float]:
 
 def cuadrante(d: float, m: float, ud: float, um: float) -> str:
     if m >= um:
-        return "Variable de enlace / reto" if d >= ud else "Variable motriz / de entrada"
-    return "Variable dependiente / de resultado" if d >= ud else "Variable autónoma"
+        return "Variable crítica / estratégica (enlace)" if d >= ud else "Variable motriz / determinante"
+    return "Variable de resultado / dependiente" if d >= ud else "Variable autónoma"
 
 
 def clasificar(ind: pd.DataFrame, criterio: str = "media", omega_trampa: float = 30.0) -> pd.DataFrame:

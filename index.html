@@ -7,7 +7,7 @@
 <meta name="description" content="Micmac extendido: matriz de influencias justificada, plano dinámico 4D, propagación convergente Katz-Bonacich y simulación temporal.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=101">
 </head>
 <body>
 <header class="top">
@@ -281,9 +281,11 @@
 
     <div class="card method" id="m5"><h3>5 · Umbrales y cuadrantes</h3>
       <p>Los umbrales dividen el plano en cuatro zonas. Opciones: <b>media</b> aritmética, <b>mediana</b> o <b>punto medio</b> del rango [mín+máx]/2, calculados sobre cada eje por separado. Regla de asignación (con ≥ en los umbrales):</p>
-      <table class="mt"><tr><th>Influencia</th><th>Dependencia</th><th>Cuadrante</th></tr>
-      <tr><td>Alta</td><td>Baja</td><td style="color:#34d399">Poder (motrices)</td></tr><tr><td>Alta</td><td>Alta</td><td style="color:#f59e0b">Conflicto (enlace)</td></tr>
-      <tr><td>Baja</td><td>Alta</td><td style="color:#a78bfa">Resultado (dependientes)</td></tr><tr><td>Baja</td><td>Baja</td><td style="color:#94a3b8">Autónoma</td></tr></table>
+      <table class="mt"><tr><th>Influencia (Motricidad)</th><th>Dependencia</th><th>Cuadrante (Metodología Godet)</th></tr>
+      <tr><td>Alta</td><td>Baja</td><td style="color:#34d399"><b>Variables motrices / determinantes</b> (Zona de poder)</td></tr>
+      <tr><td>Alta</td><td>Alta</td><td style="color:#f59e0b"><b>Variables críticas / estratégicas</b> (Zona de enlace o clave)</td></tr>
+      <tr><td>Baja</td><td>Alta</td><td style="color:#a78bfa"><b>Variables de resultado / salida</b> (Zona dependiente)</td></tr>
+      <tr><td>Baja</td><td>Baja</td><td style="color:#94a3b8"><b>Variables autónomas</b> (Zona excluida o secundaria)</td></tr></table>
       <p>La <b>media</b> es sensible a valores extremos; la <b>mediana</b> reparte las variables de forma más equilibrada (mitad sobre y mitad bajo el umbral); el <b>punto medio</b> es útil para comparar escenarios con una referencia fija. Una variable se marca «≈ frontera» si su distancia a un umbral es menor al 4 % del rango visible del eje: su clasificación es frágil y conviene analizarla con ambos umbrales.</p></div>
 
     <div class="card method" id="m6"><h3>6 · Parámetros de visualización del plano</h3>
@@ -574,9 +576,9 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="vendor/docx.umd.js"></script>
 <script>if (!window.docx) { document.write('<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"><\/script>'); }</script>
-<script src="i18n.js?v=99"></script>
-<script src="data.js?v=99"></script>
-<script src="app.js?v=99"></script>
-<script src="word-export.js?v=99"></script>
+<script src="i18n.js?v=101"></script>
+<script src="data.js?v=101"></script>
+<script src="app.js?v=101"></script>
+<script src="word-export.js?v=101"></script>
 </body>
 </html>

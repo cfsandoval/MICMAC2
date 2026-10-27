@@ -93,26 +93,26 @@ const I18N = {
     th_quad: "Cuadrante",
     quad_cards_title: "Marco conceptual de los cuadrantes",
 
-    // Quadrants definition
-    q_power_name: "Zona de poder · Motrices",
-    q_power_short: "Poder",
-    q_power_concept: "Alta influencia y baja dependencia. Determinan el sistema y casi no son afectadas por él. Son las palancas de intervención: actuar sobre ellas produce efectos amplios y predecibles.",
-    q_power_action: "Priorizar: son el punto de partida de la estrategia y de la gestión del cambio.",
+    // Quadrants definition (Metodología Godet)
+    q_power_name: "Variables motrices · Determinantes (Poder)",
+    q_power_short: "Motrices",
+    q_power_concept: "Alta influencia (motricidad) y baja dependencia. Condicionan la dinámica del sistema y casi no son afectadas por él. Son las palancas prioritarias de intervención: actuar sobre ellas produce efectos amplios y estructurantes.",
+    q_power_action: "Priorizar: constituyen el punto de partida fundamental de la estrategia y de la gestión del cambio.",
 
-    q_conflict_name: "Zona de conflicto · Enlace",
-    q_conflict_short: "Conflicto",
-    q_conflict_concept: "Alta influencia y alta dependencia. Son inestables: toda acción sobre ellas se propaga y retorna amplificada o amortiguada (bucles de retroalimentación).",
-    q_conflict_action: "Gestionar con cuidado: intervenir en conjunto y monitorear efectos de retorno.",
+    q_conflict_name: "Variables críticas / estratégicas (Enlace o Clave)",
+    q_conflict_short: "Estratégicas",
+    q_conflict_concept: "Alta influencia y alta dependencia. Son variables clave, críticas e inestables por naturaleza: toda acción sobre ellas se propaga a todo el sistema y retorna por bucles de retroalimentación. Representan los retos y apuestas estratégicas.",
+    q_conflict_action: "Gestión prioritaria y cuidadosa: intervenir con estrategias coordinadas y monitorear permanentemente los efectos de retorno.",
 
-    q_result_name: "Zona de resultados · Dependientes",
+    q_result_name: "Variables de resultado / salida (Dependientes)",
     q_result_short: "Resultado",
-    q_result_concept: "Baja influencia y alta dependencia. Reflejan el estado del sistema: son los indicadores de éxito, no las palancas.",
-    q_result_action: "Usar como tablero de control; no intervenir directamente, sino mediante las variables motrices.",
+    q_result_concept: "Baja influencia y alta dependencia. Reflejan el estado y la evolución del sistema: son los indicadores de impacto y objetivos de salida, no las palancas directas de cambio.",
+    q_result_action: "Usar como tablero de control e indicadores de éxito; no intervenir directamente, sino mediante las variables motrices.",
 
-    q_auto_name: "Zona autónoma · Excluidas",
-    q_auto_short: "Autónoma",
-    q_auto_concept: "Baja influencia y baja dependencia. Poco conectadas con el resto: evolucionan por su cuenta o son marginales para la dinámica estudiada.",
-    q_auto_action: "Seguimiento mínimo; revisar si realmente deben formar parte del análisis.",
+    q_auto_name: "Variables autónomas (Excluidas / Secundarias)",
+    q_auto_short: "Autónomas",
+    q_auto_concept: "Baja influencia y baja dependencia. Poco conectadas con la dinámica central del sistema: evolucionan por su cuenta o son secundarias para el problema analizado.",
+    q_auto_action: "Seguimiento periódico sin sobreasignar recursos; evaluar si deben mantenerse o excluirse del modelo.",
 
     // Tab 4: Simulación
     sim_ints_title: "Intervenciones externas",
@@ -380,25 +380,25 @@ const I18N = {
     th_quad: "Quadrant",
     quad_cards_title: "Conceptual Framework of Quadrants",
 
-    // Quadrants definition
-    q_power_name: "Power Zone · Drivers",
-    q_power_short: "Power",
-    q_power_concept: "High influence and low dependence. They govern the system and are barely affected by it. These are strategic intervention levers: action on them triggers broad, predictable outcomes.",
-    q_power_action: "Prioritize: foundational starting point for strategic planning and executive change management.",
+    // Quadrants definition (Godet Methodology)
+    q_power_name: "Driver Variables · Determinants (Power Zone)",
+    q_power_short: "Drivers",
+    q_power_concept: "High influence (motricity) and low dependence. They govern the system and are barely affected by it. These are strategic intervention levers: action on them triggers broad, stable, and predictable outcomes.",
+    q_power_action: "Prioritize: foundational starting point for strategic planning, structural policy, and change management.",
 
-    q_conflict_name: "Conflict Zone · Relays",
-    q_conflict_short: "Conflict",
-    q_conflict_concept: "High influence and high dependence. Highly unstable: actions on them cascade through the network and return amplified or dampened via feedback loops.",
-    q_conflict_action: "Manage with caution: intervene jointly and monitor circular return effects continuously.",
+    q_conflict_name: "Strategic / Critical Variables (Key & Linkage Zone)",
+    q_conflict_short: "Critical / Strategic",
+    q_conflict_concept: "High influence and high dependence. Highly volatile and reactive: any action cascades through the network and returns via feedback loops. They represent core strategic challenges and high-stake variables.",
+    q_conflict_action: "Manage with highest priority: require coordinated strategies, continuous monitoring, and control of return backlash.",
 
-    q_result_name: "Results Zone · Dependents",
-    q_result_short: "Results",
-    q_result_concept: "Low influence and high dependence. They reflect the emergent state of the system: they serve as success KPIs, not intervention levers.",
-    q_result_action: "Use as an executive control dashboard; do not intervene directly, but via driver variables.",
+    q_result_name: "Result / Output Variables (Dependent Zone)",
+    q_result_short: "Results / Output",
+    q_result_concept: "Low influence and high dependence. They reflect the emergent state and performance of the system: they serve as success KPIs and outcome targets, not direct levers.",
+    q_result_action: "Use as an executive control dashboard; do not intervene directly, but rather through driver variables.",
 
-    q_auto_name: "Autonomous Zone · Excluded",
+    q_auto_name: "Autonomous Variables (Excluded / Secondary Zone)",
     q_auto_short: "Autonomous",
-    q_auto_concept: "Low influence and low dependence. Marginally connected: they evolve autonomously or are secondary to the focal system dynamics.",
+    q_auto_concept: "Low influence and low dependence. Marginally connected to the core system dynamics: they evolve mostly autonomously or are secondary to the strategic scope.",
     q_auto_action: "Minimal monitoring; verify whether they strictly belong in the strategic model.",
 
     // Tab 4: Simulation

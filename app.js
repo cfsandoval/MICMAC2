@@ -87,9 +87,9 @@ function sums() {
 }
 function renderMatrix() {
   const { inf, dep } = sums();
-  let h = `<tr><th></th>${V().map(v => `<th title="${esc(v.name)}">${esc(v.code)}</th>`).join('')}<th>${t('th_sum_infl')}</th></tr>`;
+  let h = `<tr><th></th>${V().map(v => `<th class="th-var col-hdr" data-vid="${v.id}" title="${esc(v.name)}">${esc(v.code)}</th>`).join('')}<th>${t('th_sum_infl')}</th></tr>`;
   V().forEach((a, i) => {
-    h += `<tr><th>${esc(a.code)}</th>`;
+    h += `<tr><th class="th-var row-hdr" data-vid="${a.id}" title="${esc(a.name)}">${esc(a.code)}</th>`;
     V().forEach((b, j) => {
       if (i === j) { h += `<td class="diag"></td>`; return; }
       const l = L(a.id, b.id), v = l?.v || 0, miss = v !== 0 && !hasJust(l);
@@ -120,9 +120,21 @@ function renderRubric() {
 renderRubric();
 $('#matrix').onclick = e => { const c = e.target.closest('.cell'); if (c) { ui.sel = [c.dataset.a, c.dataset.b]; renderMatrix(); renderEditor(); } };
 $('#matrix').onmousemove = e => {
-  const c = e.target.closest('.cell'); if (!c) return tip(null);
-  const l = L(c.dataset.a, c.dataset.b);
-  tip(e, `<b>${esc(code(c.dataset.a))} → ${esc(code(c.dataset.b))}</b> (${sgn(l?.v || 0)})<br>${l?.concept ? esc(l.concept.slice(0, 160)) + '…' : t('tip_matrix_no_dir')}`);
+  const th = e.target.closest('.th-var');
+  if (th && th.dataset.vid) {
+    const v = V()[idx(th.dataset.vid)];
+    if (v) {
+      return tip(e, `<div style="min-width:190px"><span class="badge" style="background:#38bdf8;color:#0b0f1a;font-weight:700;margin-right:6px">${esc(v.code)}</span><b style="color:#fff;font-size:13.5px">${esc(v.name)}</b>${v.desc ? `<div style="color:#94a3c8;font-size:12px;margin-top:6px;line-height:1.4">${esc(v.desc)}</div>` : ''}<div style="color:#64748b;font-size:11px;margin-top:5px">${currentLang === 'en' ? 'Baseline state x₀:' : 'Estado base x₀:'} <b style="color:#e2e8f0">${v.x0}</b></div></div>`);
+    }
+  }
+  const c = e.target.closest('.cell');
+  if (c) {
+    const l = L(c.dataset.a, c.dataset.b);
+    const va = V()[idx(c.dataset.a)], vb = V()[idx(c.dataset.b)];
+    const valColor = (l?.v || 0) > 0 ? '#38bdf8' : (l?.v || 0) < 0 ? '#fb7185' : '#94a3b8';
+    return tip(e, `<div style="min-width:230px"><b style="color:var(--acc2)">${esc(va?.code || '?')}</b> <span style="color:#cbd5e1">(${esc(va?.name || '')})</span> <span style="color:#94a3ff">→</span> <b style="color:var(--acc2)">${esc(vb?.code || '?')}</b> <span style="color:#cbd5e1">(${esc(vb?.name || '')})</span> <b style="color:${valColor}">[${sgn(l?.v || 0)}]</b><div style="margin-top:6px;color:#c3cbe6;line-height:1.4">${l?.concept ? esc(l.concept.slice(0, 180)) + (l.concept.length > 180 ? '…' : '') : t('tip_matrix_no_dir')}</div></div>`);
+  }
+  tip(null);
 };
 $('#matrix').onmouseleave = () => tip(null);
 function tip(e, html) {

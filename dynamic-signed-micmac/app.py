@@ -34,9 +34,9 @@ h1,h2,h3{letter-spacing:-.01em}
 )
 
 COLOR_CUAD = {
-    "Variable motriz / de entrada": "#34d399",
-    "Variable de enlace / reto": "#f59e0b",
-    "Variable dependiente / de resultado": "#a78bfa",
+    "Variable motriz / determinante": "#34d399",
+    "Variable crítica / estratégica (enlace)": "#f59e0b",
+    "Variable de resultado / dependiente": "#a78bfa",
     "Variable autónoma": "#94a3b8",
 }
 

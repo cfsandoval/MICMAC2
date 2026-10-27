@@ -346,8 +346,8 @@ async function generateWordReportBlob() {
       children: [
         new TextRun({
           text: isEn
-            ? "The classical Godet method classifies variables according to direct and indirect influence and dependence into four structural quadrants: Power (drivers), Conflict (linkage), Result (dependent), and Autonomous."
-            : "El análisis clásico de Godet clasifica las variables según su motricidad y dependencia directas e indirectas en cuatro cuadrantes estructurales: Poder (variables motrices), Conflicto (variables de enlace), Salida o Resultado (variables dependientes) y Autónomas."
+            ? "The classical Godet method classifies variables according to direct and indirect influence (motricity) and dependence into four structural quadrants: Driver / Determinant variables (Power zone), Strategic / Critical variables (Key / Linkage zone), Result / Output variables (Dependent zone), and Autonomous variables (Excluded zone)."
+            : "El análisis clásico de Godet clasifica las variables según su motricidad y dependencia directas e indirectas en cuatro cuadrantes estructurales: Variables Motrices o Determinantes (Zona de poder), Variables Críticas o Estratégicas (Zona de enlace / clave), Variables de Salida o Resultado (Zona dependiente) y Variables Autónomas (Zona excluida)."
         })
       ]
     })
@@ -372,8 +372,8 @@ async function generateWordReportBlob() {
         children: [
           new TextRun({
             text: isEn 
-              ? "Figure 1: Classical Influence vs. Dependence Plane (Quadrants: Power, Conflict, Result, Autonomous)."
-              : "Figura 1: Plano Clásico de Influencia vs. Dependencia (Cuadrantes: Poder, Conflicto, Salida, Autónomas).",
+              ? "Figure 1: Classical Influence vs. Dependence Plane (Quadrants: Drivers, Strategic/Critical, Results/Output, Autonomous)."
+              : "Figura 1: Plano Clásico de Influencia vs. Dependencia (Cuadrantes: Motrices, Críticas/Estratégicas, Salida/Resultado, Autónomas).",
             italics: true,
             size: 18,
             color: "64748B"
@@ -395,7 +395,7 @@ async function generateWordReportBlob() {
       spacing: { before: 80, after: 60 },
       children: [
         new TextRun({
-          text: isEn ? "Detailed Quadrant Interpretation:" : "Interpretación Detallada por Cuadrantes:",
+          text: isEn ? "Detailed Quadrant Interpretation (Godet Methodology):" : "Interpretación Detallada por Cuadrantes (Metodología Godet):",
           bold: true,
           color: "1E3A8A",
           size: 20
@@ -405,43 +405,43 @@ async function generateWordReportBlob() {
     new Paragraph({
       spacing: { before: 40, after: 60 },
       children: [
-        new TextRun({ text: isEn ? "• Power Zone (Driver Variables): " : "• Cuadrante de Poder (Variables Motrices): ", bold: true, color: "059669" }),
+        new TextRun({ text: isEn ? "• Driver Variables (Power Zone / Levers): " : "• Cuadrante de Variables Motrices (Determinantes / Palancas de Poder): ", bold: true, color: "059669" }),
         new TextRun({ text: motricesClas.join(', ') || (isEn ? 'None' : 'Ninguna') + '. ' }),
         new TextRun({
           text: isEn
-            ? "These variables have high motricity and low dependence. They act as the primary structural engines of the system, setting initial conditions and transmitting change forward."
-            : "Poseen alta motricidad y baja dependencia. Actúan como los motores estructurales primarios del sistema; sus movimientos condicionan al resto sin verse fuertemente afectados por las demás."
+            ? "High motricity and low dependence. They act as the primary structural engines and levers of the system; their movement conditions the rest of the variables with little vulnerability to systemic feedback."
+            : "Poseen alta motricidad y baja dependencia. Actúan como los motores y palancas estructurales del sistema; sus movimientos condicionan al resto sin verse fuertemente afectados por las demás."
         })
       ]
     }),
     new Paragraph({
       spacing: { before: 40, after: 60 },
       children: [
-        new TextRun({ text: isEn ? "• Conflict Zone (Linkage Variables): " : "• Cuadrante de Conflicto (Variables de Enlace): ", bold: true, color: "D97706" }),
+        new TextRun({ text: isEn ? "• Strategic / Critical Variables (Key & Linkage Zone): " : "• Cuadrante de Variables Críticas / Estratégicas (Enlace o Clave): ", bold: true, color: "D97706" }),
         new TextRun({ text: enlaceClas.join(', ') || (isEn ? 'None' : 'Ninguna') + '. ' }),
         new TextRun({
           text: isEn
-            ? "Highly motrice and highly dependent. Highly volatile and reactive; any action injected here spreads quickly but also triggers strong feedback reactions."
-            : "Altamente motrices y altamente dependientes. Son las variables más inestables y reactivas; cualquier intervención en ellas se amplifica rápidamente pero genera fuertes rebotes de retorno."
+            ? "Highly motrice and highly dependent. These are key, critical, and volatile variables representing system stakes; any intervention spreads rapidly but triggers strong feedback rebounds."
+            : "Altamente motrices y altamente dependientes. Son las variables clave, críticas y de enlace del sistema; concentran las mayores apuestas estratégicas e inestabilidad dinámica, pues cualquier intervención se amplifica y retorna por bucles de retroalimentación."
         })
       ]
     }),
     new Paragraph({
       spacing: { before: 40, after: 60 },
       children: [
-        new TextRun({ text: isEn ? "• Result Zone (Dependent Variables): " : "• Cuadrante de Salida (Variables Dependientes): ", bold: true, color: "7C3AED" }),
+        new TextRun({ text: isEn ? "• Result / Output Variables (Dependent Zone): " : "• Cuadrante de Variables de Salida o Resultado (Dependientes): ", bold: true, color: "7C3AED" }),
         new TextRun({ text: dependientesClas.join(', ') || (isEn ? 'None' : 'Ninguna') + '. ' }),
         new TextRun({
           text: isEn
-            ? "High dependence and low driving force. They represent the final performance indicators of the system (e.g. retention, reputation). They cannot be altered directly; they move only when driver variables are mobilized."
-            : "Baja motricidad y alta dependencia. Representan los indicadores de resultado final y efectividad del sistema. No se pueden gestionar directamente: cambian únicamente como consecuencia del empuje de las motrices."
+            ? "High dependence and low driving force. They represent the final performance outcomes and indicators of the system. They cannot be altered directly; they move as a consequence of mobilising driver and relay variables."
+            : "Baja motricidad y alta dependencia. Representan los indicadores de resultado final, efectividad e impacto del sistema. No se pueden gestionar directamente: evolucionan como consecuencia del empuje de las motrices y estratégicas."
         })
       ]
     }),
     new Paragraph({
       spacing: { before: 40, after: 120 },
       children: [
-        new TextRun({ text: isEn ? "• Autonomous Zone: " : "• Cuadrante de Variables Autónomas: ", bold: true, color: "64748B" }),
+        new TextRun({ text: isEn ? "• Autonomous Variables (Excluded / Secondary Zone): " : "• Cuadrante de Variables Autónomas (Excluidas o Secundarias): ", bold: true, color: "64748B" }),
         new TextRun({ text: autonomasClas.join(', ') || (isEn ? 'None' : 'Ninguna') + '. ' }),
         new TextRun({
           text: isEn
