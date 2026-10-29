@@ -7,6 +7,37 @@ Ejecutar:  streamlit run app.py
 """
 from __future__ import annotations
 
+import os
+import sys
+import pathlib as _pathlib
+
+# Ensure we import the local micmac_engine module
+_base = _pathlib.Path(__file__).resolve().parent
+if str(_base) not in sys.path:
+    sys.path.insert(0, str(_base))
+
+import os
+import sys
+import pathlib as _pathlib
+
+# Determine the directory of this script
+_script_dir = _pathlib.Path(__file__).resolve().parent
+
+# Check if micmac_engine is in the same directory
+if (_script_dir / 'micmac_engine.py').exists():
+    if str(_script_dir) not in sys.path:
+        sys.path.insert(0, str(_script_dir))
+else:
+    # Search for micmac_engine.py in parent directories
+    current = _script_dir
+    for _ in range(5):
+        parent = current.parent
+        if (parent / 'micmac_engine.py').exists():
+            if str(parent) not in sys.path:
+                sys.path.insert(0, str(parent))
+            break
+        current = parent
+
 import math
 from typing import List, Optional, Tuple
 
@@ -58,7 +89,7 @@ def sidebar() -> Tuple[float, float, str, float, float, bool]:
                             help="Decaimiento exponencial del impacto con el retardo: w = a·e^(−λt).")
     alpha_ratio = st.sidebar.slider("Ratio de convergencia espectral (α·ρ)", 0.05, 0.99, 0.80, 0.01,
                                     help="α = ratio / ρ(|W|). Debe ser < 1 para que la serie de cadenas indirectas converja.")
-    criterio = st.sidebar.radio("Línea divisoria de cuadrantes", ["media", "mediana"], horizontal=True)
+    criterio = st.sidebar.radio("Línea divisoria de cuadrantes", ["mediana", "media", "moda"], horizontal=True)
     omega_trampa = st.sidebar.slider("Umbral de trampa de política Ω (%)", 5, 80, 30, 5,
                                      help="Una variable motriz en el MICMAC clásico con Ω superior a este valor se marca como trampa.")
     umbral_red = st.sidebar.slider("Umbral del grafo (% del flujo máx.)", 0, 90, 15, 5,
@@ -262,10 +293,17 @@ except me.MicmacError as exc:
 
 c = me.clasificar(res.indicadores, criterio, omega_trampa)
 c.insert(0, "N°", range(1, len(c) + 1))
+
+# Medidas de coherencia y estabilidad (Godet)
+ind_coh = me.indice_coherencia_global(c.drop(columns=["N°"]))
+try:
+    df_estab = me.analisis_sensibilidad_cuadrantes(A_out, T_out, lam=lam, alpha_ratio=alpha_ratio, n_escenarios=50, perturbacion=1.0, criterio=criterio)
+except Exception:
+    df_estab = None
 A_out = pd.DataFrame(res.A, index=res.variables, columns=res.variables)
 T_out = pd.DataFrame(res.T, index=res.variables, columns=res.variables)
 st.sidebar.download_button("⬇ Descargar Excel Multi-Hoja (Base + Nuevos Análisis)",
-                           me.a_excel_bytes(A_out, T_out, c, lam=lam, alpha_ratio=alpha_ratio),
+                           me.a_excel_bytes(A_out, T_out, c),
                            file_name="analisis_micmac_convergente.xlsx",
                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                            use_container_width=True)
@@ -275,8 +313,13 @@ with t_plano:
     for col, (lab, val) in zip(k, [("Variables", f"{len(c)}"), ("ρ(|W|)", f"{res.rho:.3f}"), ("α = ratio/ρ", f"{res.alpha:.3f}"),
                                    ("Ω medio", f"{c['Ambigüedad Ω (%)'].mean():.1f} %")]):
         col.markdown(f'<div class="kpi"><b>{val}</b><span>{lab}</span></div>', unsafe_allow_html=True)
-    st.plotly_chart(fig_plano(c, criterio), use_container_width=True)
-    st.markdown("".join(f'<span class="tag" style="background:{v}">{k_}</span>' for k_, v in COLOR_CUAD.items()))
+
+    # KPIs de coherencia y estabilidad (Godet)
+    col_c = st.columns(3)
+    coh_idx = ind_coh['indice_coherencia_global']
+    col_c[0].metric("Coherencia %", str(round(coh_idx, 1)) + " %")
+    col_c[1].metric("Vars con Ω alto", str(ind_coh['variables_alta_ambiguedad']))
+    col_c[2].metric("Trampas Ω", str(ind_coh['trampas_politica']))
     st.dataframe(c[["N°", "Cuadrante", "Motricidad neta", "Dependencia neta", "Bucle propio (F)", "Ambigüedad Ω (%)", "Diagnóstico"]].round(3), use_container_width=True)
 
 with t_comp:

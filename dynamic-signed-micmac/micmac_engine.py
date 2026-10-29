@@ -360,8 +360,16 @@ def calcular(A_df: pd.DataFrame, T_df: pd.DataFrame, lam: float = 0.10, alpha_ra
 # --------------------------------------------------------------------------- #
 # Interpretación y clasificación prospectiva
 # --------------------------------------------------------------------------- #
-def umbrales(ind: pd.DataFrame, criterio: str = "media") -> Tuple[float, float]:
-    f = np.mean if criterio == "media" else np.median
+def umbrales(ind: pd.DataFrame, criterio: str = "mediana") -> Tuple[float, float]:
+    def _moda(serie):
+        m = pd.Series(serie).mode()
+        return float(m.iloc[0]) if not m.empty else float(np.median(serie))
+    if criterio == "media":
+        f = np.mean
+    elif criterio == "moda":
+        f = _moda
+    else:
+        f = np.median
     return float(f(ind["Dependencia neta"])), float(f(ind["Motricidad neta"]))
 
 
@@ -371,7 +379,7 @@ def cuadrante(d: float, m: float, ud: float, um: float) -> str:
     return "Variable de resultado / dependiente" if d >= ud else "Variable autónoma"
 
 
-def clasificar(ind: pd.DataFrame, criterio: str = "media", omega_trampa: float = 30.0) -> pd.DataFrame:
+def clasificar(ind: pd.DataFrame, criterio: str = "mediana", omega_trampa: float = 30.0) -> pd.DataFrame:
     """Añade cuadrantes, rangos, trampas de política y roles estratégicos."""
     out = ind.copy()
     ud, um = umbrales(out, criterio)
@@ -981,6 +989,77 @@ def crear_libro_excel_completo(
 
     return wb
 
+
+
+
+# INICIO: Medidas de coherencia y estabilidad (Godet)
+def indice_coherencia_global(ind, umbral_alta=30.0):
+    if ind is None or ind.empty:
+        return {}
+    col_omega = [c for c in ind.columns if 'ambig' in c.lower()]
+    omega = pd.to_numeric(ind[col_omega[0]], errors='coerce').fillna(0.0)
+    n = len(omega)
+    alta = omega > umbral_alta
+    trap = int(ind['Trampa de política'].sum()) if 'Trampa de política' in ind.columns else 0
+    return {
+        'omega_promedio': float(omega.mean()),
+        'omega_mediana': float(omega.median()),
+        'omega_min': float(omega.min()),
+        'omega_max': float(omega.max()),
+        'omega_std': float(omega.std(ddof=1)) if n > 1 else 0.0,
+        'variables_alta_ambiguedad': int(alta.sum()),
+        'pct_incoherencia': float((alta.mean() * 100.0) if n else 0.0),
+        'trampas_politica': trap,
+        'indice_coherencia_global': float(100.0 - (alta.mean() * 100.0) if n else 100.0),
+    }
+
+def analisis_sensibilidad_cuadrantes(A_df, T_df, lam=0.10, alpha_ratio=0.80, n_escenarios=100, perturbacion=1.0, criterio='mediana'):
+    base_res = calcular(A_df, T_df, lam=lam, alpha_ratio=alpha_ratio)
+    base_ind = base_res.indicadores.copy()
+    base_clas = clasificar(base_ind.copy(), criterio=criterio)
+    nombres = list(base_ind.index)
+    n = len(nombres)
+    A_mat = A_df.to_numpy(float).copy()
+    T_mat = T_df.to_numpy(float).copy()
+    ud, um = umbrales(base_clas, criterio=criterio)
+    cuad_base = []
+    for _, r in base_clas.iterrows():
+        cuad_base.append(cuadrante(r['Dependencia neta'], r['Motricidad neta'], ud, um))
+    mantiene = [0] * n
+    cuad_contador = [{} for _ in range(n)]
+    rng = np.random.default_rng(42)
+    nz = [(i, j) for i in range(n) for j in range(n) if i != j and A_mat[i, j] != 0]
+    for _ in range(n_escenarios):
+        A_pert = A_mat.copy()
+        for i, j in nz:
+            delta = rng.uniform(-perturbacion, perturbacion)
+            A_pert[i, j] = float(np.clip(A_pert[i, j] + delta, -3.0, 3.0))
+        A_p_df = pd.DataFrame(A_pert, index=nombres, columns=nombres)
+        T_p_df = pd.DataFrame(T_mat, index=nombres, columns=nombres)
+        try:
+            res_p = calcular(A_p_df, T_p_df, lam=lam, alpha_ratio=alpha_ratio)
+            clas_p = clasificar(res_p.indicadores.copy(), criterio=criterio)
+            ud_p, um_p = umbrales(clas_p, criterio=criterio)
+            for k in range(n):
+                r_p = clas_p.iloc[k]
+                c_p = cuadrante(r_p['Dependencia neta'], r_p['Motricidad neta'], ud_p, um_p)
+                cuad_contador[k][c_p] = cuad_contador[k].get(c_p, 0) + 1
+                if c_p == cuad_base[k]:
+                    mantiene[k] += 1
+        except Exception:
+            continue
+    filas = []
+    for k, var in enumerate(nombres):
+        filas.append({
+            'Variable': var,
+            'Cuadrante base': cuad_base[k],
+            'Estabilidad (%)': round(100.0 * mantiene[k] / n_escenarios, 1),
+            'Escenarios validos': n_escenarios,
+            'Cuadrante mas frecuente': max(cuad_contador[k], key=cuad_contador[k].get) if cuad_contador[k] else '-',
+            'Cambios de cuadrante': n_escenarios - mantiene[k],
+        })
+    return pd.DataFrame(filas)
+# FIN: Medidas de coherencia y estabilidad
 
 def a_excel_bytes(
     A: pd.DataFrame,

@@ -256,12 +256,22 @@ async function generateWordReportBlob() {
       ]
     }),
     new Paragraph({
-      spacing: { before: 60, after: 120 },
+      spacing: { before: 60, after: 100 },
       children: [
         new TextRun({
           text: isEn
-            ? "This strategic prospective report evaluates the institutional system through an extended MICMAC methodology, overcoming the historical mathematical limits of the traditional Godet method. By incorporating the Katz-Bonacich spectral resolvent operator, continuous time friction discount, and signed loop polarity, the system reveals hidden systemic contradictions and identifies the optimal levers for intervention."
-            : "El presente informe prospectivo evalúa el sistema institucional a través de la metodología MICMAC extendida, superando las limitaciones matemáticas del enfoque tradicional de Michel Godet. Al incorporar el operador resolvente de Katz-Bonacich, el descuento por fricción temporal continuo y la polaridad con signo de los bucles causales, el análisis devela contradicciones sistémicas ocultas y define los puntos óptimos de apalancamiento."
+            ? "This strategic prospective report evaluates the institutional system through an extended MICMAC methodology (Godet & Durance, 2011), overcoming the historical mathematical limits of the traditional Godet method. By incorporating the Katz-Bonacich spectral resolvent operator (Katz, 1953; Bonacich, 1987), continuous time friction discount (Sterman, 2000), and signed loop polarity (Meadows, 2008), the system reveals hidden systemic contradictions and identifies the optimal levers for intervention."
+            : "El presente informe prospectivo evalúa el sistema institucional a través de la metodología MICMAC extendida (Godet & Durance, 2011), superando las limitaciones matemáticas del enfoque tradicional de Michel Godet. Al incorporar el operador resolvente de Katz-Bonacich (Katz, 1953; Bonacich, 1987), el descuento por fricción temporal continuo (Sterman, 2000) y la polaridad con signo de los bucles causales (Meadows, 2008; Senge, 1990), el análisis devela contradicciones sistémicas ocultas y define los puntos óptimos de apalancamiento estratégico."
+        })
+      ]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 120 },
+      children: [
+        new TextRun({
+          text: isEn
+            ? `The system comprises n = ${n} variables and a signed direct influence matrix W \u2208 \u211d\u207f\u02e3\u207f. The classical MICMAC method (Godet, 1994, 2001) computes cumulative influence by matrix power iteration B = A + A\u00b2 + A\u00b3 + \u2026, which Perron-Frobenius theory shows collapses onto the dominant eigenvector at high powers (Bonacich, 1987). The Katz-Bonacich resolvent S = (I \u2212 \u03b1W)\u207b\u00b9W overcomes this by converging if \u03b1\u00b7\u03c1(|W|) < 1 (Leontief, 1951). Temporal friction \u03c9\u1d62\u1d63 = exp(\u2212\u03bb\u00b7t\u1d62\u1d63) discounts delayed causal paths (Sterman, 2000). Signed polarity sums detect Meadows\u2019 \u2018fixes that fail\u2019 archetype (Meadows, 2008, pp. 112\u2013145; Senge, 1990). Current parameters: \u03b1\u00b7\u03c1(|W|) = ${alphaRatio.toFixed(3)} (stability ${alphaRatio < 1 ? 'CONFIRMED' : 'WARNING: condition violated'}); \u03a9\u0304 = ${meanOmega.toFixed(1)}%.`
+            : `El sistema analizado comprende n = ${n} variables y una matriz de influencia directa con signo W \u2208 \u211d\u207f\u02e3\u207f. El m\u00e9todo MICMAC cl\u00e1sico (Godet, 1994, 2001) calcula la influencia acumulada por iteraci\u00f3n de potencias matriciales B = A + A\u00b2 + A\u00b3 + \u2026, lo que Perron-Frobenius muestra que colapsa sobre el autovector dominante a altas potencias (Bonacich, 1987). El resolvente de Katz-Bonacich S = (I \u2212 \u03b1W)\u207b\u00b9W supera esto convergiendo cuando \u03b1\u00b7\u03c1(|W|) < 1 (Leontief, 1951). La fricci\u00f3n temporal \u03c9\u1d62\u1d63 = exp(\u2212\u03bb\u00b7t\u1d62\u1d63) descuenta caminos causales retardados (Sterman, 2000). Las sumas de polaridad con signo detectan el arquetipo de \u2018soluciones que fracasan\u2019 de Meadows (Meadows, 2008, pp. 112\u2013145; Senge, 1990). Par\u00e1metros actuales: \u03b1\u00b7\u03c1(|W|) = ${alphaRatio.toFixed(3)} (estabilidad ${alphaRatio < 1 ? 'CONFIRMADA' : 'ADVERTENCIA: condici\u00f3n violada'}); \u03a9\u0304 = ${meanOmega.toFixed(1)}%.`
         })
       ]
     })
@@ -508,52 +518,57 @@ async function generateWordReportBlob() {
     );
   }
 
-  // Interpretación de Palancas y Trampas
+  // Interpretación ampliada de Palancas, Trampas y Bucles
   children.push(
     new Paragraph({
       spacing: { before: 80, after: 60 },
+      children: [new TextRun({ text: isEn ? "4.1 Strategic Diagnostic Findings — Levers, Traps, Amplifiers, Stabilizers:" : "4.1 Hallazgos Estratégicos Críticos — Palancas, Trampas, Amplificadores, Estabilizadores:", bold: true, color: "1E3A8A", size: 20 })]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 80 },
       children: [
+        new TextRun({ text: isEn ? "\u2605 Consistent Master Levers: " : "\u2605 Palancas Maestras Consistentes: ", bold: true, color: "059669" }),
+        new TextRun({ text: (palancas.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None identified' : 'Ninguna identificada')) + '. ' }),
         new TextRun({
-          text: isEn ? "Strategic Diagnostic Findings (Levers & Traps):" : "Hallazgos Estratégicos Críticos (Palancas Maestras y Trampas):",
-          bold: true,
-          color: "1E3A8A",
-          size: 20
+          text: isEn
+            ? `CRITICAL RECOMMENDATION: These variables exhibit high Net Motricity and low Ambiguity (\u03a9). Their causal paths are coherent and free from destructive internal pushback (Bonacich, 1987). They should receive 70\u201380% of leadership focus and budget allocation. From Meadows\u2019 (1999) Leverage Points theory, these correspond to the highest-order leverage points: changing the goals, rules, or paradigms of the system. Sterman (2000, p. 350) calls these \u2018high-leverage policy interventions\u2019 because they exploit the structure\u2019s own dynamics. If a variable is simultaneously a Godet driver AND a dynamic lever, it receives absolute strategic priority.`
+            : `RECOMENDACI\u00d3N CR\u00cdTICA: Estas variables exhiben alta Motricidad Neta Efectiva y baja Ambig\u00fcedad (\u03a9 reducido). Su se\u00f1al viaja limpia sin cancelarse en la red (Bonacich, 1987). Deben constituir el 70\u201380% del presupuesto y la gesti\u00f3n directiva. Desde la teor\u00eda de Puntos de Apalancamiento de Meadows (1999), estas corresponden a los puntos de apalancamiento de mayor orden: cambiar las metas, reglas o paradigmas del sistema. Sterman (2000, p. 350) las denomina \u2018intervenciones de pol\u00edtica de alto apalancamiento\u2019. Si una variable es simult\u00e1neamente motriz de Godet Y palanca din\u00e1mica, recibe la m\u00e1xima prioridad estrat\u00e9gica absoluta.`
         })
       ]
     }),
     new Paragraph({
-      spacing: { before: 40, after: 60 },
+      spacing: { before: 40, after: 80 },
       children: [
-        new TextRun({ text: isEn ? "★ Consistent Master Levers: " : "★ Palancas Maestras Consistentes: ", bold: true, color: "059669" }),
-        new TextRun({ text: palancas.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None identified' : 'Ninguna identificada') + '. ' }),
+        new TextRun({ text: isEn ? "\u26a0 Policy Traps & Causal Mirages: " : "\u26a0 Trampas de Pol\u00edtica y Espejismos Causales: ", bold: true, color: "E11D48" }),
+        new TextRun({ text: (trampas.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None detected' : 'Ninguna detectada')) + '. ' }),
         new TextRun({
           text: isEn
-            ? "CRITICAL RECOMMENDATION: These variables exhibit high Net Motricity and low Ambiguity (Ω). Their causal paths are coherent and free from destructive internal pushback. They should receive 70-80% of leadership focus and budget allocation."
-            : "RECOMENDACIÓN CLAVE: Estas variables exhiben alta Motricidad Neta Efectiva y baja Ambigüedad (Ω reducido). Su señal viaja limpia sin cancelarse en la red. Deben constituir el núcleo del presupuesto y la gestión directiva."
+            ? `EXECUTIVE WARNING: These variables appear highly motrice under classical Godet analysis (Godet, 2001), but suffer severe dissipation (\u03a9 > 30%) due to opposing balancing loops. This corresponds to the \u2018Fixes that Fail\u2019 and \u2018Limits to Growth\u2019 system archetypes (Senge, 1990, pp. 103\u2013145; Meadows, 2008, pp. 112\u2013145). The balancing loops generating ambiguity often represent: (a) organizational resistance to change (Kotter, 1996); (b) resource constraints that re-emerge after superficial fixes (Sterman, 2000); (c) cultural norms resisting innovation (Schein, 2010). Before intervening, leadership must first dismantle the resistance loops \u2014 this is a PREREQUISITE condition, not optional.`
+            : `ADVERTENCIA DIRECTIVA: Parecen grandes motores en el MICMAC cl\u00e1sico de Godet (Godet, 2001), pero sufren una severa p\u00e9rdida por cancelaci\u00f3n de bucles opuestos (\u03a9 elevado > 30%). Esto corresponde a los arquetipos sist\u00e9micos \u2018Soluciones que Fracasan\u2019 y \u2018L\u00edmites al Crecimiento\u2019 (Senge, 1990, pp. 103\u2013145; Meadows, 2008, pp. 112\u2013145). Los bucles equilibradores que generan ambig\u00fcedad representan frecuentemente: (a) resistencia organizacional al cambio (Kotter, 1996); (b) restricciones de recursos que reemergen tras soluciones superficiales (Sterman, 2000); (c) normas culturales que resisten la innovaci\u00f3n (Schein, 2010). Destrabar los bucles de resistencia es una condici\u00f3n PREVIA, no un complemento opcional.`
         })
       ]
     }),
     new Paragraph({
-      spacing: { before: 40, after: 60 },
+      spacing: { before: 40, after: 80 },
       children: [
-        new TextRun({ text: isEn ? "⚠ Policy Traps & Causal Mirages: " : "⚠ Trampas de Política y Espejismos Causales: ", bold: true, color: "E11D48" }),
-        new TextRun({ text: trampas.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None detected' : 'Ninguna detectada') + '. ' }),
+        new TextRun({ text: isEn ? "\uD83D\uDD04 Positive Self-Loops (Snowball / Virtuous Cycle Effect): " : "\uD83D\uDD04 Bucles Propios Expansivos (Ciclo Virtuoso / Efecto Bola de Nieve): ", bold: true, color: "0284C7" }),
+        new TextRun({ text: (amplificadores.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None' : 'Ninguno')) + '. ' }),
         new TextRun({
           text: isEn
-            ? "EXECUTIVE WARNING: These variables appear highly motrice under classical Godet analysis, but suffer severe dissipation (Ω > 30%) due to opposing balancing loops. Pushing them in isolation triggers organizational resistance and heavy costs with near-zero net payoff. Before intervening, leadership must first dismantle the resistance loops."
-            : "ADVERTENCIA DIRECTIVA: Parecen grandes motores en el MICMAC clásico de Godet, pero sufren una severa pérdida por fricción y cancelación de bucles opuestos (elevado Ω). Invertir recursos masivos en ellas de forma aislada genera frustración y sobrecostos. Se requiere destrabar previamente la cultura y resistencias antes de presionarlas."
+            ? `F > 0 (75th percentile): These nodes return energy amplified through reinforcing loops across the network \u2014 Senge\u2019s \u2018Virtuous Cycle\u2019 archetype (Senge, 1990, pp. 77\u201389). Once triggered, they compound over time. Strategic implication: Use as \u2018seed variables\u2019 for a positive tipping point. If combined with master levers, the system can self-amplify toward desired outcomes without continuous external pressure (Meadows, 2008).`
+            : `F > 0 (percentil 75): Estos nodos retornan energ\u00eda amplificada a trav\u00e9s de bucles reforzadores de la red \u2014 el arquetipo del \u2018Ciclo Virtuoso\u2019 de Senge (1990, pp. 77\u201389). Una vez activados, se componen a lo largo del tiempo. Implicaci\u00f3n estrat\u00e9gica: Usarlos como \u2018variables semilla\u2019 para un punto de inflexi\u00f3n positivo. Combinados con palancas maestras, el sistema puede auto-amplificarse hacia los resultados deseados sin presi\u00f3n externa continua (Meadows, 2008).`
         })
       ]
     }),
     new Paragraph({
       spacing: { before: 40, after: 120 },
       children: [
-        new TextRun({ text: isEn ? "🔄 Positive Self-Loops (Snowball Effect): " : "🔄 Bucles Propios Expansivos (Efecto Bola de Nieve): ", bold: true, color: "0284C7" }),
-        new TextRun({ text: amplificadores.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None' : 'Ninguno') + '. ' }),
+        new TextRun({ text: isEn ? "\uD83D\uDEE1 Stabilizer Nodes (Negative Self-Loops, Q1): " : "\uD83D\uDEE1 Nodos Estabilizadores (Bucles Propios Negativos, Q1): ", bold: true, color: "7C3AED" }),
+        new TextRun({ text: (estabilizadores.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None' : 'Ninguno')) + '. ' }),
         new TextRun({
           text: isEn
-            ? "These nodes have F > 0: any investment returns amplified through reinforcing loops across the academic and organizational network."
-            : "Presentan F > 0: la energía inyectada retorna amplificada al punto de partida a través de cadenas docentes y de experiencia institucional."
+            ? `F < 0 (25th percentile): These variables act as internal stabilizers or shock absorbers. They naturally resist deviation from equilibrium. From control theory (Sterman, 2000, pp. 96\u2013110), they represent \u2018goal-seeking feedback loops\u2019 providing system homeostasis. Strategic implication: Do not try to amplify them \u2014 leverage their stabilizing role to buffer shocks while levers are activated.`
+            : `F < 0 (percentil 25): Estas variables act\u00faan como estabilizadores internos o amortiguadores de choques. Resisten naturalmente la desviaci\u00f3n del equilibrio. Desde la teor\u00eda de control (Sterman, 2000, pp. 96\u2013110), representan \u2018bucles buscadores de meta\u2019 que proveen homeostasis sist\u00e9mica. Implicaci\u00f3n estrat\u00e9gica: No intentar amplificarlos \u2014 aprovechar su rol estabilizador para amortiguar choques mientras se activan las palancas.`
         })
       ]
     })
@@ -739,51 +754,146 @@ async function generateWordReportBlob() {
     );
   }
 
-  // 6. HOJA DE RUTA Y CONCLUSIONES ESTRATÉGICAS
+  // 6. FUNDAMENTOS TEÓRICO-METODOLÓGICOS
+  children.push(
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 260, after: 100 },
+      children: [new TextRun({ text: isEn ? "6. THEORETICAL & METHODOLOGICAL FOUNDATIONS" : "6. FUNDAMENTOS TE\u00d3RICO-METODOL\u00d3GICOS", bold: true, size: 28, color: "1E3A8A" })]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 60 },
+      children: [new TextRun({ text: isEn ? "6.1 Classical MICMAC (Godet, 1994; Godet & Durance, 2011)" : "6.1 MICMAC Cl\u00e1sico (Godet, 1994; Godet & Durance, 2011)", bold: true, color: "1D4ED8", size: 20 })]
+    }),
+    new Paragraph({
+      spacing: { before: 30, after: 60 },
+      children: [new TextRun({ text: isEn
+        ? "Developed by Michel Godet at LIPSOR (Paris), MICMAC classifies variables on a motricity-dependence plane via matrix power iteration B = A + A\u00b2 + A\u00b3 + \u2026 The fundamental limitation is that Perron-Frobenius theory guarantees collapse onto the dominant eigenvector at high powers, erasing structural nuances (Bonacich, 1987). Quadrant classification: (I) Motrices/Power: high motricity, low dep. \u2014 upstream levers; (II) Clave/Conflict: high both \u2014 strategic pivot, volatile; (III) Resultado/Dependent: high dep., low motricity \u2014 outcome KPIs; (IV) Aut\u00f3nomas/Auto: low both \u2014 decoupled, exclude from priority action."
+        : "Desarrollado por Michel Godet en el LIPSOR (Par\u00eds), MICMAC clasifica variables en un plano motricidad-dependencia v\u00eda iteraci\u00f3n de potencias matriciales B = A + A\u00b2 + A\u00b3 + \u2026 La limitaci\u00f3n fundamental es que el teorema de Perron-Frobenius garantiza el colapso sobre el autovector dominante a altas potencias, borrando los matices estructurales (Bonacich, 1987). Clasificaci\u00f3n de cuadrantes: (I) Motrices/Poder: alta motricidad, baja dep. \u2014 palancas aguas arriba; (II) Clave/Conflicto: alta ambas \u2014 pivote estrat\u00e9gico, vol\u00e1til; (III) Resultado/Dependiente: alta dep., baja motricidad \u2014 KPIs de resultado; (IV) Aut\u00f3nomas/Auto: baja ambas \u2014 desacopladas, excluir de acci\u00f3n prioritaria." })]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 60 },
+      children: [new TextRun({ text: isEn ? "6.2 Katz-Bonacich Spectral Resolvent (Katz, 1953; Bonacich, 1987; Leontief, 1951)" : "6.2 Resolvente Espectral de Katz-Bonacich (Katz, 1953; Bonacich, 1987; Leontief, 1951)", bold: true, color: "1D4ED8", size: 20 })]
+    }),
+    new Paragraph({
+      spacing: { before: 30, after: 60 },
+      children: [new TextRun({ text: isEn
+        ? `S = \u03b1W + \u03b1\u00b2W\u00b2 + \u2026 = \u03b1(I \u2212 \u03b1W)\u207b\u00b9W, converges iff \u03b1 < 1/\u03c1(W). Equivalent to Leontief inverse (I\u2212A)\u207b\u00b9 in Input-Output Economics (Leontief, 1951). Current \u03b1\u00b7\u03c1 = ${alphaRatio.toFixed(3)} (${alphaRatio < 1 ? 'STABLE' : 'UNSTABLE \u2014 interpret with caution'}). Preserves all structural heterogeneity without collapsing onto the dominant mode \u2014 the key mathematical advantage over classical MICMAC.`
+        : `S = \u03b1W + \u03b1\u00b2W\u00b2 + \u2026 = \u03b1(I \u2212 \u03b1W)\u207b\u00b9W, converge sii \u03b1 < 1/\u03c1(W). Equivalente a la inversa de Leontief (I\u2212A)\u207b\u00b9 en Econom\u00eda de Insumo-Producto (Leontief, 1951). \u03b1\u00b7\u03c1 actual = ${alphaRatio.toFixed(3)} (${alphaRatio < 1 ? 'ESTABLE' : 'INESTABLE \u2014 interpretar con cautela'}). Preserva toda la heterogeneidad estructural sin colapsar sobre el modo dominante \u2014 la ventaja matem\u00e1tica clave sobre el MICMAC cl\u00e1sico.` })]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 60 },
+      children: [new TextRun({ text: isEn ? "6.3 Temporal Friction & Implementation Delays (Sterman, 2000; Richardson, 1991)" : "6.3 Fricci\u00f3n Temporal y Retardos de Implementaci\u00f3n (Sterman, 2000; Richardson, 1991)", bold: true, color: "1D4ED8", size: 20 })]
+    }),
+    new Paragraph({
+      spacing: { before: 30, after: 60 },
+      children: [new TextRun({ text: isEn
+        ? `\u03c9\u1d62\u1d63 = exp(\u2212\u03bb\u00b7t\u1d62\u1d63). Effective matrix W\u1d49\u1da0\u1da0 = W \u2299 \u03a9 (Hadamard product). Current \u03bb = ${simLambda}. High-\u03bb pairs lose influence rapidly; low-\u03bb pairs maintain structural importance across long horizons. This formally captures Sterman\u2019s (2000) policy resistance due to implementation lags, and aligns with Richardson\u2019s (1991) feedback thought tradition.`
+        : `\u03c9\u1d62\u1d63 = exp(\u2212\u03bb\u00b7t\u1d62\u1d63). Matriz efectiva W\u1d49\u1da0\u1da0 = W \u2299 \u03a9 (producto de Hadamard). \u03bb actual = ${simLambda}. Los pares con \u03bb alto pierden influencia r\u00e1pidamente; los pares con \u03bb bajo mantienen importancia estructural en horizontes largos. Esto captura formalmente la resistencia pol\u00edtica por retardos de implementaci\u00f3n de Sterman (2000) y se alinea con la tradici\u00f3n de retroalimentaci\u00f3n de Richardson (1991).` })]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 60 },
+      children: [new TextRun({ text: isEn ? "6.4 Signed Polarity & Feedback Loop Ambiguity (Meadows, 2008; Senge, 1990)" : "6.4 Polaridad con Signo y Ambig\u00fcedad de Bucles de Retroalimentaci\u00f3n (Meadows, 2008; Senge, 1990)", bold: true, color: "1D4ED8", size: 20 })]
+    }),
+    new Paragraph({
+      spacing: { before: 30, after: 120 },
+      children: [new TextRun({ text: isEn
+        ? `\u03a9 = |M_brute_pos \u2212 M_brute_neg| / M_brute_total \u00d7 100%. High \u03a9 = 'fixes that fail' archetype (Meadows, 2008, pp. 112\u2013145). Classical Godet uses |W|, erasing this distinction. The signed extension reveals which variables are contested by competing feedback loops \u2014 the systemic archetype Senge (1990) identifies as 'policy resistance' and 'limits to growth'. Mean system ambiguity \u03a9\u0304 = ${meanOmega.toFixed(1)}%.`
+        : `\u03a9 = |M_bruta_pos \u2212 M_bruta_neg| / M_bruta_total \u00d7 100%. \u03a9 elevado = arquetipo 'soluciones que fracasan' (Meadows, 2008, pp. 112\u2013145). El MICMAC cl\u00e1sico de Godet usa |W|, borrando esta distinci\u00f3n. La extensi\u00f3n con signo revela qu\u00e9 variables est\u00e1n disputadas por bucles de retroalimentaci\u00f3n competidores \u2014 el arquetipo sist\u00e9mico que Senge (1990) identifica como 'resistencia pol\u00edtica' y 'l\u00edmites al crecimiento'. Ambig\u00fcedad media del sistema \u03a9\u0304 = ${meanOmega.toFixed(1)}%.` })]
+    })
+  );
+
+  // 7. HOJA DE RUTA ESTRATÉGICA POR HORIZONTE TEMPORAL
   children.push(
     new Paragraph({
       heading: HeadingLevel.HEADING_1,
       spacing: { before: 240, after: 100 },
-      children: [
-        new TextRun({
-          text: isEn ? "5. STRATEGIC ROADMAP & POLICY RECOMMENDATIONS" : "5. HOJA DE RUTA Y RECOMENDACIONES DE POLÍTICA INSTITUCIONAL",
-          bold: true,
-          size: 28,
-          color: "1E3A8A"
-        })
-      ]
+      children: [new TextRun({ text: isEn ? "7. STRATEGIC ROADMAP — PHASED POLICY RECOMMENDATIONS" : "7. HOJA DE RUTA ESTRAT\u00c9GICA \u2014 RECOMENDACIONES POR HORIZONTE TEMPORAL", bold: true, size: 28, color: "1E3A8A" })]
     }),
     new Paragraph({
-      spacing: { before: 60, after: 60 },
-      children: [
-        new TextRun({
-          text: isEn
-            ? "1. Sequence Before Injecting Resources: Never attempt isolated pushes on Policy Traps without first resolving underlying cultural resistance and operational bottlenecks."
-            : "1. Secuenciación Estratégica: No intervenir de manera aislada en las Trampas de Política sin haber desactivado previamente las resistencias culturales y los cuellos de botella organizacionales."
-        })
-      ]
+      spacing: { before: 60, after: 40 },
+      children: [new TextRun({ text: isEn ? "Short Term (0\u201312 months): Structural Foundations" : "Corto Plazo (0\u201312 meses): Cimientos Estructurales", bold: true, color: "059669", size: 22 })]
     }),
     new Paragraph({
-      spacing: { before: 40, after: 60 },
-      children: [
-        new TextRun({
-          text: isEn
-            ? "2. Concentrate Budget on Consistent Levers: Focus institutional capital and execution capacity on identified master levers, which guarantee maximum net impact with minimal dissipation."
-            : "2. Concentración Presupuestaria en Palancas Maestras: Dirigir el esfuerzo financiero e institucional prioritariamente hacia las Palancas Maestras Consistentes, garantizando el máximo retorno con mínima disipación causal."
-        })
-      ]
+      spacing: { before: 30, after: 80 },
+      children: [new TextRun({ text: isEn
+        ? `1. Sequencing before resource injection: Never push Policy Traps (${trampas.map(v=>v.code).join(', ')||'N/A'}) without first resolving resistance loops (Sterman, 2000, p. 5; Kotter, 1996). 2. Prioritize Master Levers (${palancas.map(v=>v.code).join(', ')||'N/A'}): allocate 70\u201380% of budget and executive attention \u2014 low \u03a9 guarantees efficient causal transmission (Meadows, 1999; Bonacich, 1987). 3. Activate reinforcing seed nodes (${amplificadores.map(v=>v.code).join(', ')||'N/A'}): small early wins compound through virtuous cycles (Senge, 1990, p. 88).`
+        : `1. Secuenciaci\u00f3n antes de inyectar recursos: No presionar Trampas de Pol\u00edtica (${trampas.map(v=>v.code).join(', ')||'N/A'}) sin haber resuelto primero los bucles de resistencia (Sterman, 2000, p. 5; Kotter, 1996). 2. Priorizar Palancas Maestras (${palancas.map(v=>v.code).join(', ')||'N/A'}): asignar 70\u201380% del presupuesto y atenci\u00f3n ejecutiva \u2014 el bajo \u03a9 garantiza transmisi\u00f3n causal eficiente (Meadows, 1999; Bonacich, 1987). 3. Activar nodos semilla reforzadores (${amplificadores.map(v=>v.code).join(', ')||'N/A'}): peque\u00f1as victorias tempranas se componen mediante ciclos virtuosos (Senge, 1990, p. 88).` })]
     }),
     new Paragraph({
-      spacing: { before: 40, after: 120 },
-      children: [
-        new TextRun({
-          text: isEn
-            ? "3. Continuous Monitoring: Track dependent result variables as early-warning barometers, establishing periodic evaluations aligned with the calculated time friction rate (λ)."
-            : "3. Monitoreo Continuo y Barómetro de Resultados: Evaluar periódicamente las variables del cuadrante de salida como indicadores de éxito, calibrando el ritmo de avance según la tasa de fricción temporal (λ)."
-        })
-      ]
+      spacing: { before: 40, after: 40 },
+      children: [new TextRun({ text: isEn ? "Medium Term (1\u20133 years): Systemic Momentum" : "Mediano Plazo (1\u20133 a\u00f1os): Momentum Sist\u00e9mico", bold: true, color: "D97706", size: 22 })]
+    }),
+    new Paragraph({
+      spacing: { before: 30, after: 80 },
+      children: [new TextRun({ text: isEn
+        ? `4. Dismantle resistance loops: Address balancing loops generating \u03a9 in trap variables \u2014 organizational (Kotter, 1996), cultural (Schein, 2010), or resource-based (Sterman, 2000). Beware 'Shifting the Burden' archetype (Senge, 1990, pp. 103\u2013117). 5. Monitor strategic/critical variables (${enlaceClas.join(', ')||'N/A'}): their high interactivity demands real-time feedback dashboards (OECD, 2010). 6. Use simulation timing data (Section 5) to anticipate peak displacement windows and prepare organizational capacity for delayed effects (Sterman, 2000, Chapter 11).`
+        : `4. Desactivar bucles de resistencia: Abordar bucles equilibradores que generan \u03a9 en variables trampa \u2014 organizacionales (Kotter, 1996), culturales (Schein, 2010) o basados en recursos (Sterman, 2000). Precauci\u00f3n: arquetipo 'Desplazando la Carga' (Senge, 1990, pp. 103\u2013117). 5. Monitorear variables estrat\u00e9gicas/cr\u00edticas (${enlaceClas.join(', ')||'N/A'}): su alta interactividad exige dashboards de retroalimentaci\u00f3n en tiempo real (OCDE, 2010). 6. Usar datos de temporalizaci\u00f3n de simulaci\u00f3n (Secci\u00f3n 5) para anticipar ventanas de desplazamiento m\u00e1ximo y preparar capacidad organizacional para efectos retardados (Sterman, 2000, Cap\u00edtulo 11).` })]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 40 },
+      children: [new TextRun({ text: isEn ? "Long Term (3\u201310 years): Structural Transformation" : "Largo Plazo (3\u201310 a\u00f1os): Transformaci\u00f3n Estructural", bold: true, color: "7C3AED", size: 22 })]
+    }),
+    new Paragraph({
+      spacing: { before: 30, after: 120 },
+      children: [new TextRun({ text: isEn
+        ? `7. Continuous monitoring via result variables (${dependientesClas.join(', ')||'N/A'}): establish periodic evaluations aligned with \u03bb = ${simLambda} friction rate (OECD, 2010; Senge, 1990). 8. Annual recalibration of W matrix: as causal relationships evolve, the spectral structure changes (Godet & Durance, 2011). Previously trapped variables may become levers and vice versa \u2014 this structural learning is fundamental (Sterman, 2000). 9. Structural learning & scenario planning: use the extended MICMAC as a shared mental model (Senge, 1990, pp. 174\u2013204) for strategic dialogue. Regular scenario exercises reveal possible evolutionary trajectories (Godet & Durance, 2011; Schwartz, 1991).`
+        : `7. Monitoreo continuo v\u00eda variables de resultado (${dependientesClas.join(', ')||'N/A'}): establecer evaluaciones peri\u00f3dicas alineadas con tasa de fricci\u00f3n \u03bb = ${simLambda} (OCDE, 2010; Senge, 1990). 8. Recalibraci\u00f3n anual de la matriz W: a medida que las relaciones causales evolucionan, la estructura espectral cambia (Godet & Durance, 2011). Variables previamente atrapadas pueden convertirse en palancas y viceversa \u2014 este aprendizaje estructural es fundamental (Sterman, 2000). 9. Aprendizaje estructural y planificaci\u00f3n de escenarios: usar el MICMAC extendido como modelo mental compartido (Senge, 1990, pp. 174\u2013204) para el di\u00e1logo estrat\u00e9gico. Los ejercicios de escenarios regulares revelan posibles trayectorias evolutivas (Godet & Durance, 2011; Schwartz, 1991).` })]
     })
   );
+
+  // 8. LIMITACIONES Y SUPUESTOS
+  children.push(
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 240, after: 100 },
+      children: [new TextRun({ text: isEn ? "8. LIMITATIONS, ASSUMPTIONS & VALIDITY CONDITIONS" : "8. LIMITACIONES, SUPUESTOS Y CONDICIONES DE VALIDEZ", bold: true, size: 28, color: "1E3A8A" })]
+    }),
+    new Paragraph({
+      spacing: { before: 60, after: 100 },
+      children: [new TextRun({ text: isEn
+        ? `(1) Linearity: MICMAC assumes linear causal relationships. Non-linear thresholds and chaotic dynamics (Lorenz, 1963) are not captured. Complement with Agent-Based Modeling or full System Dynamics simulation (Sterman, 2000) for highly non-linear systems. (2) Expert elicitation bias: W\u1d62\u2c7c values are expert judgments subject to anchoring, availability heuristic, and groupthink (Kahneman, 2011; Montibeller & von Winterfeldt, 2015). Triangulate with empirical data (time series, meta-analysis). (3) Convergence condition: mathematical validity requires \u03b1\u00b7\u03c1(|W|) = ${alphaRatio.toFixed(3)} < 1 \u2014 ${alphaRatio < 1 ? 'SATISFIED' : 'VIOLATED \u2014 results are mathematically invalid without parameter correction'}. (4) Static structure: W is assumed stable over the analysis horizon. In VUCA environments, reassess more frequently (Godet & Durance, 2011). (5) Delay estimates: t\u1d62\u1d63 parameters are estimated; sensitivity analysis by varying \u03bb and individual delays is recommended (Sterman, 2000, Chapter 21).`
+        : `(1) Linealidad: MICMAC asume relaciones causales lineales. Los umbrales no lineales y la din\u00e1mica ca\u00f3tica (Lorenz, 1963) no se capturan. Complementar con Modelado Basado en Agentes o simulaci\u00f3n de Flujos y Acervos (Sterman, 2000) para sistemas altamente no lineales. (2) Sesgo de elicitaci\u00f3n experta: los valores W\u1d62\u1d63 son juicios expertos sujetos a anclaje, heur\u00edstica de disponibilidad y pensamiento grupal (Kahneman, 2011; Montibeller & von Winterfeldt, 2015). Triangular con datos emp\u00edricos (series temporales, meta-an\u00e1lisis). (3) Condici\u00f3n de convergencia: validez matem\u00e1tica requiere \u03b1\u00b7\u03c1(|W|) = ${alphaRatio.toFixed(3)} < 1 \u2014 ${alphaRatio < 1 ? 'SATISFECHA' : 'VIOLADA \u2014 resultados matem\u00e1ticamente inv\u00e1lidos sin correcci\u00f3n de par\u00e1metros'}. (4) Estructura est\u00e1tica: se asume W estable en el horizonte de an\u00e1lisis. En entornos VUCA, reevaluar con mayor frecuencia (Godet & Durance, 2011). (5) Estimaciones de retardo: los par\u00e1metros t\u1d62\u1d63 son estimados; se recomienda an\u00e1lisis de sensibilidad variando \u03bb y retardos individuales (Sterman, 2000, Cap\u00edtulo 21).` })]
+    })
+  );
+
+  // 9. REFERENCIAS BIBLIOGRÁFICAS
+  children.push(
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 240, after: 100 },
+      children: [new TextRun({ text: isEn ? "9. BIBLIOGRAPHIC REFERENCES (APA 7th ed.)" : "9. REFERENCIAS BIBLIOGR\u00c1FICAS (APA 7.\u00aa ed.)", bold: true, size: 28, color: "1E3A8A" })]
+    })
+  );
+  const biblioRefs = [
+    "Barab\u00e1si, A.-L. (2016). Network science. Cambridge University Press. http://networksciencebook.com",
+    "Bonacich, P. (1987). Power and centrality: A family of measures. American Journal of Sociology, 92(5), 1170\u20131182. https://doi.org/10.1086/228631",
+    "Godet, M. (1994). De la anticipation \u00e0 l\u2019action: Manuel de prospective et de strat\u00e9gie. Dunod.",
+    "Godet, M. (2001). Creating futures: Scenario planning as a strategic management tool. Economica.",
+    "Godet, M. & Durance, P. (2011). La prospective strat\u00e9gique pour les entreprises et les territoires. Dunod/UNESCO.",
+    "Kahneman, D. (2011). Thinking, fast and slow. Farrar, Straus and Giroux.",
+    "Katz, L. (1953). A new status index derived from sociometric analysis. Psychometrika, 18(1), 39\u201343. https://doi.org/10.1007/BF02289026",
+    "Kotter, J. P. (1996). Leading change. Harvard Business School Press.",
+    "Leontief, W. (1951). The structure of the American economy, 1919\u20131939: An empirical application of equilibrium analysis (2nd ed.). Oxford University Press.",
+    "Lorenz, E. N. (1963). Deterministic nonperiodic flow. Journal of the Atmospheric Sciences, 20(2), 130\u2013141.",
+    "Meadows, D. H. (1999). Leverage points: Places to intervene in a system. Sustainability Institute.",
+    "Meadows, D. H. (2008). Thinking in systems: A primer (D. Wright, Ed.). Chelsea Green Publishing.",
+    "Montibeller, G. & von Winterfeldt, D. (2015). Cognitive and motivational biases in decision and risk analysis. Risk Analysis, 35(7), 1230\u20131251. https://doi.org/10.1111/risa.12360",
+    "OECD. (2010). Glossary of key terms in evaluation and results-based management. OECD/DAC.",
+    "Richardson, G. P. (1991). Feedback thought in social science and systems theory. University of Pennsylvania Press.",
+    "Schein, E. H. (2010). Organizational culture and leadership (4th ed.). Jossey-Bass.",
+    "Schwartz, P. (1991). The art of the long view: Planning for the future in an uncertain world. Doubleday.",
+    "Senge, P. M. (1990). The fifth discipline: The art and practice of the learning organization. Doubleday/Currency.",
+    "Sterman, J. D. (2000). Business dynamics: Systems thinking and modeling for a complex world. Irwin/McGraw-Hill.",
+    "von Luxburg, U. (2007). A tutorial on spectral clustering. Statistics and Computing, 17(4), 395\u2013416. https://doi.org/10.1007/s11222-007-9033-z"
+  ];
+  biblioRefs.forEach(ref => {
+    children.push(new Paragraph({
+      spacing: { before: 50, after: 30 },
+      indent: { left: 360, hanging: 360 },
+      children: [new TextRun({ text: ref, size: 17, color: "374151" })]
+    }));
+  });
 
   // Crear el documento Word final
   const doc = new Document({
