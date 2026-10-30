@@ -84,6 +84,7 @@ def init_estado() -> None:
 
 def sidebar() -> Tuple[float, float, str, float, float, bool]:
     st.sidebar.title("🧭 Micmac extendido")
+    st.sidebar.caption("v2.4 · Signed-MICMAC Dinámico | Última actualización: 29 oct 2026")
     st.sidebar.caption("Parámetros del modelo dinámico")
     lam = st.sidebar.slider("Tasa de descuento temporal λ", me.LAMBDA_MIN, me.LAMBDA_MAX, 0.10, 0.01,
                             help="Decaimiento exponencial del impacto con el retardo: w = a·e^(−λt).")

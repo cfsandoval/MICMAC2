@@ -5,14 +5,14 @@
       "src": "server.py",
       "use": "@vercel/python",
       "config": {
-        "runtime": "python3.11",
+        "runtime": "python3.11"
       }
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/server.py",
+      "dest": "/server.py"
     }
   ]
 }

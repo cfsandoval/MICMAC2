@@ -1,8 +1,10 @@
 # Ignorar archivos locales y Python/Streamlit para el despliegue estático en Vercel
 dynamic-signed-micmac/
+scratch/
 .venv/
 __pycache__/
 *.py
 *.pyc
+*.code-workspace
 requirements.txt
 .git/

@@ -50,15 +50,16 @@ function getVarColorStyle(v) {
 let uid = 1;
 function defaults(lang = (typeof currentLang !== 'undefined' ? currentLang : 'en')) {
   const sourceVars = (lang === 'en' && typeof DEFAULT_VARS_EN !== 'undefined') ? DEFAULT_VARS_EN : DEFAULT_VARS;
-  const vars = sourceVars.map(([code, name, desc, x0]) => ({ id: 'v' + uid++, code, name, desc, x0, polar: '+' }));
+  const sourceLinks = (lang === 'en' && typeof DEFAULT_LINKS_EN !== 'undefined') ? DEFAULT_LINKS_EN : DEFAULT_LINKS;
+  const vars = sourceVars.map(([code, name, desc, x0, pol]) => ({ id: 'v' + uid++, code, name, desc, x0, polar: pol === 'neg' ? '-' : '+' }));
   const byCode = Object.fromEntries(vars.map(v => [v.code, v.id]));
   const links = {};
-  DEFAULT_LINKS.forEach(([a, b, v, concept, evidence, src]) => {
+  sourceLinks.forEach(([a, b, v, concept, evidence, src]) => {
     const k = key(byCode[a], byCode[b]);
     const t = (typeof DEFAULT_DELAYS !== 'undefined' ? DEFAULT_DELAYS[a + '>' + b] : 1.5) ?? (v ? 1.5 : 0);
     links[k] = { v, t, concept, evidence, src };
   });
-  return { vars, links, ints: [{ vid: byCode.INV, type: 'sust', mag: 2, start: 3, dur: 18 }], params: { beta: .15, lambda: .05, steps: 50, engine: 'euler', dt: 0.1 } };
+  return { vars, links, ints: [{ vid: byCode.V1 || byCode.INV, type: 'sust', mag: 2, start: 3, dur: 18 }], params: { beta: .15, lambda: .05, steps: 50, engine: 'euler', dt: 0.1 } };
 }
 
 let S = (() => {
@@ -351,7 +352,7 @@ function renderVarsNetworkNodes() {
       <!-- code -->
       <text x="8" y="16" font-family="JetBrains Mono, monospace" font-size="11.5" font-weight="700" fill="${col.htext}">${esc(v.code)}</text>
       <!-- polar toggle button (+/-) -->
-      <g class="vnet-polar-btn" data-id="${v.id}" style="cursor:pointer;" transform="translate(${VNET_NODE_W - 56}, 3)" title="Cambiar polaridad (+/−)">
+      <g class="vnet-polar-btn" data-id="${v.id}" style="cursor:pointer;" transform="translate(${VNET_NODE_W - 56}, 3)" title="${currentLang === 'en' ? 'Toggle polarity (+/−)' : 'Cambiar polaridad (+/−)'}">
         <rect width="22" height="18" rx="4" fill="rgba(0,0,0,.4)"/>
         <text class="vnet-polar-text" x="11" y="13" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="${isNeg ? '#fb7185' : '#38bdf8'}" text-anchor="middle">${v.polar === '-' ? '−' : '+'}</text>
       </g>
@@ -368,10 +369,10 @@ function renderVarsNetworkNodes() {
       <!-- interactive level controls (slider arrastrable con el ratón + botones +/-) -->
       <foreignObject x="6" y="44" width="${VNET_NODE_W - 12}" height="28" class="vnet-interactive" style="overflow:visible;">
         <div class="vnet-level-box" xmlns="http://www.w3.org/1999/xhtml">
-          <button type="button" class="vnet-btn-step" data-id="${v.id}" data-step="-5" title="Disminuir nivel base (−5)">−</button>
-          <input type="range" class="vnet-level-slider" data-id="${v.id}" min="-100" max="100" step="1" value="${v.x0}" style="accent-color:${cardBorderColor};" title="Arrastrar nivel base: ${v.x0}">
-          <button type="button" class="vnet-btn-step" data-id="${v.id}" data-step="5" title="Aumentar nivel base (+5)">+</button>
-          <span class="vnet-val-badge" data-id="${v.id}" style="color:${cardBorderColor};" title="Nivel base x₀">${valSign}</span>
+          <button type="button" class="vnet-btn-step" data-id="${v.id}" data-step="-5" title="${currentLang === 'en' ? 'Decrease baseline (−5)' : 'Disminuir nivel base (−5)'}">−</button>
+          <input type="range" class="vnet-level-slider" data-id="${v.id}" min="-100" max="100" step="1" value="${v.x0}" style="accent-color:${cardBorderColor};" title="${currentLang === 'en' ? 'Drag baseline level: ' : 'Arrastrar nivel base: '}${v.x0}">
+          <button type="button" class="vnet-btn-step" data-id="${v.id}" data-step="5" title="${currentLang === 'en' ? 'Increase baseline (+5)' : 'Aumentar nivel base (+5)'}">+</button>
+          <span class="vnet-val-badge" data-id="${v.id}" style="color:${cardBorderColor};" title="${currentLang === 'en' ? 'Baseline level x₀' : 'Nivel base x₀'}">${valSign}</span>
         </div>
       </foreignObject>
       <!-- interactive intervention controls (Magnitud & Tiempo) -->
@@ -380,19 +381,19 @@ function renderVarsNetworkNodes() {
           ${(() => {
             const myInt = S.ints.find(it => it.vid === v.id);
             if (myInt) {
-              return `<div class="vnet-int-row" title="Intervención activa en ${esc(v.code)}: Magnitud ${myInt.mag}, t=${myInt.start} a ${myInt.start + myInt.dur}">
+              return `<div class="vnet-int-row" title="${currentLang === 'en' ? `Active intervention on ${esc(v.code)}: Magnitude ${myInt.mag}, t=${myInt.start} to ${myInt.start + myInt.dur}` : `Intervención activa en ${esc(v.code)}: Magnitud ${myInt.mag}, t=${myInt.start} a ${myInt.start + myInt.dur}`}">
                 <span style="font-weight:700;">⚡</span>
                 <span style="font-size:8px;color:#94a3b8;">M:</span>
-                <input type="number" step="0.5" class="vnet-int-field vnet-int-mag" data-id="${v.id}" value="${myInt.mag}" title="Magnitud (+/-)">
+                <input type="number" step="0.5" class="vnet-int-field vnet-int-mag" data-id="${v.id}" value="${myInt.mag}" title="${currentLang === 'en' ? 'Magnitude (+/-)' : 'Magnitud (+/-)'}">
                 <span style="font-size:8px;color:#94a3b8;">t:</span>
-                <input type="number" min="1" max="100" class="vnet-int-field vnet-int-start" data-id="${v.id}" value="${myInt.start}" title="Inicio (t)">
+                <input type="number" min="1" max="100" class="vnet-int-field vnet-int-start" data-id="${v.id}" value="${myInt.start}" title="${currentLang === 'en' ? 'Start (t)' : 'Inicio (t)'}">
                 <span style="font-size:8px;color:#94a3b8;">d:</span>
-                <input type="number" min="1" max="100" class="vnet-int-field vnet-int-dur" data-id="${v.id}" value="${myInt.dur}" title="Duración (pasos)">
-                <button type="button" class="vnet-int-del" data-id="${v.id}" title="Quitar intervención">✕</button>
+                <input type="number" min="1" max="100" class="vnet-int-field vnet-int-dur" data-id="${v.id}" value="${myInt.dur}" title="${currentLang === 'en' ? 'Duration (steps)' : 'Duración (pasos)'}">
+                <button type="button" class="vnet-int-del" data-id="${v.id}" title="${currentLang === 'en' ? 'Remove intervention' : 'Quitar intervención'}">✕</button>
               </div>`;
             } else {
-              return `<button type="button" class="vnet-btn-add-int" data-id="${v.id}" title="Agregar intervención externa en magnitud y tiempo">
-                ⚡ + Intervenir (Mag & Tiempo)
+              return `<button type="button" class="vnet-btn-add-int" data-id="${v.id}" title="${currentLang === 'en' ? 'Add external intervention in magnitude and time' : 'Agregar intervención externa en magnitud y tiempo'}">
+                ${currentLang === 'en' ? '⚡ + Intervene (Mag & Time)' : '⚡ + Intervenir (Mag & Tiempo)'}
               </button>`;
             }
           })()}
@@ -870,10 +871,13 @@ $('#add-var').onclick = () => {
 
 /* ---------- Panel: Variables predefinidas ---------- */
 function renderPresetPanel() {
-  const sourceVars = (currentLang === 'en' && typeof DEFAULT_VARS_EN !== 'undefined') ? DEFAULT_VARS_EN : DEFAULT_VARS;
+  const baseVars = (currentLang === 'en' && typeof DEFAULT_VARS_EN !== 'undefined') ? DEFAULT_VARS_EN : DEFAULT_VARS;
+  const extraVars = (currentLang === 'en' && typeof PRESET_VARS_EN !== 'undefined') ? PRESET_VARS_EN : (typeof PRESET_VARS !== 'undefined' ? PRESET_VARS : []);
+  const sourceVars = [...baseVars, ...extraVars];
   const existingCodes = new Set(V().map(v => v.code));
   const cl = $('#preset-checklist');
   if (!cl) return;
+  const alreadyLbl = currentLang === 'en' ? 'Already added' : 'Ya existe';
   cl.innerHTML = sourceVars.map(([code, name, desc, x0]) => {
     const already = existingCodes.has(code);
     return `<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:#0d1420;border-radius:8px;border:1px solid ${already ? '#22304a' : '#1e3a5f'};cursor:${already ? 'default' : 'pointer'};opacity:${already ? '.45' : '1'}">
@@ -881,7 +885,7 @@ function renderPresetPanel() {
       <span>
         <b style="color:#e2e8f0;font-size:13px;">${code}</b>
         <span style="color:#94a3b8;font-size:12px;"> — ${name}</span>
-        ${already ? '<span style="color:#64748b;font-size:11px;display:block;">Ya existe</span>' : (desc ? `<span style="color:#475569;font-size:11px;display:block;">${desc.slice(0, 80)}${desc.length > 80 ? '…' : ''}</span>` : '')}
+        ${already ? `<span style="color:#64748b;font-size:11px;display:block;">${alreadyLbl}</span>` : (desc ? `<span style="color:#475569;font-size:11px;display:block;">${desc.slice(0, 80)}${desc.length > 80 ? '…' : ''}</span>` : '')}
       </span>
     </label>`;
   }).join('');
@@ -905,7 +909,9 @@ $('#preset-deselect-all').onclick = () => {
 };
 
 $('#preset-add-btn').onclick = () => {
-  const sourceVars = (currentLang === 'en' && typeof DEFAULT_VARS_EN !== 'undefined') ? DEFAULT_VARS_EN : DEFAULT_VARS;
+  const baseVars = (currentLang === 'en' && typeof DEFAULT_VARS_EN !== 'undefined') ? DEFAULT_VARS_EN : DEFAULT_VARS;
+  const extraVars = (currentLang === 'en' && typeof PRESET_VARS_EN !== 'undefined') ? PRESET_VARS_EN : (typeof PRESET_VARS !== 'undefined' ? PRESET_VARS : []);
+  const sourceVars = [...baseVars, ...extraVars];
   const selected = [...$('#preset-checklist').querySelectorAll('input[type=checkbox]:not(:disabled):checked')]
     .map(cb => cb.dataset.presetCode);
   if (!selected.length) { alert(currentLang === 'en' ? 'Select at least one variable.' : 'Selecciona al menos una variable.'); return; }
@@ -1969,7 +1975,7 @@ function renderDynMatrixView(res) {
     M = res.S_neta.map((row, i) => row.map((v, j) => (i === j ? 0 : v - res.W[i][j])));
   }
 
-  let h = `<tr><th>Fila \\ Col</th>${res.vars.map((v, i) => `<th title="${esc(v.name)}"><div class="col-hdr-box"><span class="hdr-num">${i + 1}</span><span class="hdr-code">${esc(v.code)}</span></div></th>`).join('')}</tr>`;
+  let h = `<tr><th>${currentLang === 'en' ? 'Row \\ Col' : 'Fila \\ Col'}</th>${res.vars.map((v, i) => `<th title="${esc(v.name)}"><div class="col-hdr-box"><span class="hdr-num">${i + 1}</span><span class="hdr-code">${esc(v.code)}</span></div></th>`).join('')}</tr>`;
   res.vars.forEach((a, i) => {
     h += `<tr><th><span class="hdr-num">${i + 1}</span> ${esc(a.code)}</th>`;
     res.vars.forEach((b, j) => {
@@ -2072,14 +2078,135 @@ function getVarSimTheme(v, quadKey) {
   return { theme: 'theme-slate', icon: '🧩', gauge: 'blue', unit: 'pts' };
 }
 
+function flowRunForce(iters = 140) {
+  const vars = V();
+  if (!vars.length) return;
+  if (!PD) PD = planeData();
+
+  const CARD_W = 224;
+  const CARD_H = 214;
+  const cx = 620, cy = 380;
+
+  const nodes = vars.map((v, i) => {
+    const q = PD.q ? PD.q[i] : 'auto';
+    let targetX = 520;
+    let targetY = 360;
+    if (q === 'power') { targetX = 120; }
+    else if (q === 'conflict') { targetX = 520; }
+    else if (q === 'result') { targetX = 920; }
+    else if (q === 'auto') { targetX = 520; targetY = 640; }
+
+    const cur = flowState.positions[v.id] || {
+      x: targetX + (Math.random() - 0.5) * 60,
+      y: targetY + (Math.random() - 0.5) * 80
+    };
+
+    return {
+      id: v.id,
+      q,
+      targetX,
+      targetY,
+      x: cur.x,
+      y: cur.y,
+      vx: 0,
+      vy: 0
+    };
+  });
+
+  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+
+  const links = [];
+  Object.entries(S.links).forEach(([k, link]) => {
+    if (!link || !link.v) return;
+    const [fromId, toId] = k.split('>');
+    if (nodeMap[fromId] && nodeMap[toId]) {
+      links.push({
+        source: nodeMap[fromId],
+        target: nodeMap[toId],
+        w: Math.abs(link.v)
+      });
+    }
+  });
+
+  for (let it = 0; it < iters; it++) {
+    const temp = 1.0 - (it / iters) * 0.88;
+
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i];
+        const b = nodes[j];
+        const dx = (b.x + CARD_W / 2) - (a.x + CARD_W / 2);
+        const dy = (b.y + CARD_H / 2) - (a.y + CARD_H / 2);
+        const distSq = dx * dx + dy * dy;
+        const dist = Math.sqrt(distSq) || 1;
+
+        const minDist = 270;
+        const repForce = dist < minDist 
+          ? (minDist - dist) * 1.8 * temp
+          : (50000 / Math.max(distSq, 10000)) * temp;
+
+        const fx = (dx / dist) * repForce;
+        const fy = (dy / dist) * repForce;
+
+        a.vx -= fx;
+        a.vy -= fy;
+        b.vx += fx;
+        b.vy += fy;
+      }
+    }
+
+    links.forEach(l => {
+      const a = l.source;
+      const b = l.target;
+      const dx = (b.x + CARD_W / 2) - (a.x + CARD_W / 2);
+      const dy = (b.y + CARD_H / 2) - (a.y + CARD_H / 2);
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const idealDist = 310 - l.w * 22;
+      const springForce = (dist - idealDist) * (0.022 + l.w * 0.008) * temp;
+
+      const fx = (dx / dist) * springForce;
+      const fy = (dy / dist) * springForce;
+
+      a.vx -= fx;
+      a.vy -= fy;
+      b.vx += fx;
+      b.vy += fy;
+    });
+
+    nodes.forEach(n => {
+      const dx = (n.targetX - n.x);
+      n.vx += dx * 0.038 * temp;
+
+      const dy = (cy - (n.y + CARD_H / 2));
+      n.vy += dy * 0.012 * temp;
+    });
+
+    nodes.forEach(n => {
+      const maxV = 32 * temp;
+      n.vx = Math.max(-maxV, Math.min(maxV, n.vx * 0.72));
+      n.vy = Math.max(-maxV, Math.min(maxV, n.vy * 0.72));
+      n.x += n.vx;
+      n.y += n.vy;
+    });
+  }
+
+  nodes.forEach(n => {
+    flowState.positions[n.id] = {
+      x: Math.round(n.x),
+      y: Math.round(n.y)
+    };
+  });
+}
+
 function initFlowLayout(preset = flowState.layout) {
   flowState.layout = preset;
   const vars = V();
   if (!vars.length) return;
   if (!PD) PD = planeData();
 
-  if (preset === 'causal') {
-    // Columnas según cuadrante (Flujo Godet)
+  if (preset === 'force') {
+    flowRunForce(140);
+  } else if (preset === 'causal') {
     const cols = { power: [], conflict: [], result: [], auto: [] };
     vars.forEach((v, i) => {
       const q = PD.q ? PD.q[i] : 'auto';
@@ -2088,39 +2215,42 @@ function initFlowLayout(preset = flowState.layout) {
 
     const colX = {
       power: 80,
-      conflict: 440,
-      result: 800,
-      auto: 1160
+      conflict: 450,
+      result: 820,
+      auto: 1190
     };
 
+    const CARD_H = 214;
+    const GAP_Y = 24;
+
     Object.entries(cols).forEach(([q, list]) => {
+      const totalH = list.length * CARD_H + Math.max(0, list.length - 1) * GAP_Y;
+      const startY = Math.max(60, Math.round(380 - totalH / 2));
       list.forEach((v, idx) => {
         flowState.positions[v.id] = {
-          x: colX[q],
-          y: 60 + idx * 240
+          x: colX[q] || 80,
+          y: startY + idx * (CARD_H + GAP_Y)
         };
       });
     });
   } else if (preset === 'grid') {
-    // Rejilla regular 3x3 o 4x3
     const numCols = Math.min(Math.ceil(Math.sqrt(vars.length * 1.3)), 4);
     vars.forEach((v, i) => {
       const col = i % numCols;
       const row = Math.floor(i / numCols);
       flowState.positions[v.id] = {
-        x: 80 + col * 340,
+        x: 80 + col * 330,
         y: 60 + row * 240
       };
     });
   } else if (preset === 'circle') {
-    // Distribución circular
     const n = vars.length;
-    const cx = 640, cy = 360, rx = 440, ry = 250;
+    const cx = 600, cy = 360, rx = 460, ry = 280;
     vars.forEach((v, i) => {
       const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
       flowState.positions[v.id] = {
         x: Math.round(cx + rx * Math.cos(angle) - 112),
-        y: Math.round(cy + ry * Math.sin(angle) - 50)
+        y: Math.round(cy + ry * Math.sin(angle) - 107)
       };
     });
   }
@@ -2227,10 +2357,10 @@ function renderFlowCards() {
         focusClass = `flow-node-focus-active ${trend}`;
         if (hasActiveIntNow) {
           const intSign = myInt.mag > 0 ? '+' : '';
-          focusBadge = `<span class="sim-card-focus-badge ${myInt.mag >= 0 ? 'pos' : 'neg'}" title="Intervención activa en t=${step}: ${intSign}${myInt.mag}">⚡ Int ${intSign}${myInt.mag}</span>`;
+          focusBadge = `<span class="sim-card-focus-badge ${myInt.mag >= 0 ? 'pos' : 'neg'}" title="${currentLang === 'en' ? `Active intervention at t=${step}: ${intSign}${myInt.mag}` : `Intervención activa en t=${step}: ${intSign}${myInt.mag}`}">⚡ Int ${intSign}${myInt.mag}</span>`;
         } else {
           const sSign = stepDelta > 0 ? '+' : '';
-          focusBadge = `<span class="sim-card-focus-badge ${stepDelta >= 0 ? 'pos' : 'neg'}" title="Velocidad en t=${step}: ${sSign}${stepDelta.toFixed(2)}/t | Acumulado: ${deltaSign}${delta.toFixed(1)}">⚡ Δ ${sSign}${stepDelta.toFixed(1)}/t</span>`;
+          focusBadge = `<span class="sim-card-focus-badge ${stepDelta >= 0 ? 'pos' : 'neg'}" title="${currentLang === 'en' ? `Rate at t=${step}: ${sSign}${stepDelta.toFixed(2)}/t | Cumulative: ${deltaSign}${delta.toFixed(1)}` : `Velocidad en t=${step}: ${sSign}${stepDelta.toFixed(2)}/t | Acumulado: ${deltaSign}${delta.toFixed(1)}`}">⚡ Δ ${sSign}${stepDelta.toFixed(1)}/t</span>`;
         }
       } else {
         focusClass = 'flow-node-focus-dimmed';
@@ -2243,18 +2373,18 @@ function renderFlowCards() {
     const statusCol = vStyle.status === 'fav' ? COLOR_POS : (vStyle.status === 'adv' ? COLOR_NEG : '#38bdf8');
 
     const intHtml = myInt ? `
-      <div class="sim-card-int-row" title="Intervención activa en ${esc(v.code)}: Magnitud ${myInt.mag}, t=${myInt.start} a ${myInt.start + myInt.dur}">
+      <div class="sim-card-int-row" title="${currentLang === 'en' ? `Active intervention on ${esc(v.code)}: Magnitude ${myInt.mag}, t=${myInt.start} to ${myInt.start + myInt.dur}` : `Intervención activa en ${esc(v.code)}: Magnitud ${myInt.mag}, t=${myInt.start} a ${myInt.start + myInt.dur}`}">
         <span style="font-weight:700;color:#f59e0b;font-size:12px;">⚡</span>
         <span style="font-size:9px;color:#64748b;font-weight:700;">M:</span>
-        <input type="number" step="0.5" class="sim-card-int-field sim-card-int-mag" data-id="${v.id}" value="${myInt.mag}" title="Magnitud (+/-)">
+        <input type="number" step="0.5" class="sim-card-int-field sim-card-int-mag" data-id="${v.id}" value="${myInt.mag}" title="${currentLang === 'en' ? 'Magnitude (+/-)' : 'Magnitud (+/-)'}">
         <span style="font-size:9px;color:#64748b;font-weight:700;">t:</span>
-        <input type="number" min="1" max="100" class="sim-card-int-field sim-card-int-start" data-id="${v.id}" value="${myInt.start}" title="Inicio (t)">
+        <input type="number" min="1" max="100" class="sim-card-int-field sim-card-int-start" data-id="${v.id}" value="${myInt.start}" title="${currentLang === 'en' ? 'Start (t)' : 'Inicio (t)'}">
         <span style="font-size:9px;color:#64748b;font-weight:700;">d:</span>
-        <input type="number" min="1" max="100" class="sim-card-int-field sim-card-int-dur" data-id="${v.id}" value="${myInt.dur}" title="Duración (pasos)">
-        <button type="button" class="sim-card-int-del" data-id="${v.id}" title="Eliminar intervención">✕</button>
+        <input type="number" min="1" max="100" class="sim-card-int-field sim-card-int-dur" data-id="${v.id}" value="${myInt.dur}" title="${currentLang === 'en' ? 'Duration (steps)' : 'Duración (pasos)'}">
+        <button type="button" class="sim-card-int-del" data-id="${v.id}" title="${currentLang === 'en' ? 'Remove intervention' : 'Eliminar intervención'}">✕</button>
       </div>` : `
-      <button type="button" class="sim-card-btn-add-int" data-id="${v.id}" title="Agregar intervención externa en magnitud y tiempo">
-        ⚡ + Intervenir (Mag & Tiempo)
+      <button type="button" class="sim-card-btn-add-int" data-id="${v.id}" title="${currentLang === 'en' ? 'Add external intervention in magnitude and time' : 'Agregar intervención externa en magnitud y tiempo'}">
+        ${currentLang === 'en' ? '⚡ + Intervene (Mag & Time)' : '⚡ + Intervenir (Mag & Tiempo)'}
       </button>`;
 
     return `<div class="sim-card ${simMeta.theme} ${dimmedClass} ${selectedClass} ${focusClass}" id="sc-${v.id}" data-id="${v.id}" style="transform:translate(${pos.x}px, ${pos.y}px); border-color:${vStyle.status !== 'zero' ? statusCol + '77' : 'rgba(226,232,240,0.85)'};">
@@ -2269,11 +2399,11 @@ function renderFlowCards() {
         <div class="sim-card-subtitle" title="${esc(v.desc || quadInfo.name)}">${esc(v.desc || quadInfo.name)}</div>
         
         <!-- Nivel base interactivo (x0 en t=0) -->
-        <div class="sim-card-level-box sim-card-interactive" title="Nivel base x₀ (t=0): arrastrar con el mouse o pulsar −/+">
-          <button type="button" class="sim-card-step-btn" data-id="${v.id}" data-step="-5" title="Disminuir nivel base (−5)">−</button>
-          <input type="range" class="sim-card-level-slider" data-id="${v.id}" min="-100" max="100" step="1" value="${v.x0}" style="accent-color:${statusCol};" title="Arrastrar nivel base: ${v.x0}">
-          <button type="button" class="sim-card-step-btn" data-id="${v.id}" data-step="5" title="Aumentar nivel base (+5)">+</button>
-          <span class="sim-card-val-badge" data-id="${v.id}" style="color:${statusCol};" title="Nivel base x₀">${valSign}</span>
+        <div class="sim-card-level-box sim-card-interactive" title="${currentLang === 'en' ? 'Baseline level x₀ (t=0): drag slider or click −/+' : 'Nivel base x₀ (t=0): arrastrar con el mouse o pulsar −/+'}">
+          <button type="button" class="sim-card-step-btn" data-id="${v.id}" data-step="-5" title="${currentLang === 'en' ? 'Decrease baseline (−5)' : 'Disminuir nivel base (−5)'}">−</button>
+          <input type="range" class="sim-card-level-slider" data-id="${v.id}" min="-100" max="100" step="1" value="${v.x0}" style="accent-color:${statusCol};" title="${currentLang === 'en' ? 'Drag baseline level: ' : 'Arrastrar nivel base: '}${v.x0}">
+          <button type="button" class="sim-card-step-btn" data-id="${v.id}" data-step="5" title="${currentLang === 'en' ? 'Increase baseline (+5)' : 'Aumentar nivel base (+5)'}">+</button>
+          <span class="sim-card-val-badge" data-id="${v.id}" style="color:${statusCol};" title="${currentLang === 'en' ? 'Baseline level x₀' : 'Nivel base x₀'}">${valSign}</span>
         </div>
 
         <div class="sim-card-metric-row">
@@ -2488,6 +2618,9 @@ function updateFlowStepUI() {
   renderFlowCards();
   renderFlowLinks();
   highlightFlowTableRow(flowState.activeStep);
+  if (typeof updateFlowChartCursor === 'function') {
+    updateFlowChartCursor();
+  }
 
   if (flowState.selectedVar) {
     showFlowDrawer(flowState.selectedVar);
@@ -2645,13 +2778,13 @@ function showFlowDrawer(varId) {
       dIntBox.innerHTML = `
         <div class="sim-card-int-row" style="padding:6px 8px;">
           <span style="font-weight:700;color:#f59e0b;font-size:13px;">⚡</span>
-          <span style="font-size:10px;color:#94a3b8;font-weight:700;">Magnitud:</span>
+          <span style="font-size:10px;color:#94a3b8;font-weight:700;">${currentLang === 'en' ? 'Magnitude:' : 'Magnitud:'}</span>
           <input type="number" step="0.5" id="drawer-int-mag" value="${myInt.mag}" style="width:44px;padding:2px 4px;font-size:11px;font-family:'JetBrains Mono';font-weight:700;border:1px solid #cbd5e1;border-radius:4px;text-align:center;">
-          <span style="font-size:10px;color:#94a3b8;font-weight:700;">Inicio (t):</span>
+          <span style="font-size:10px;color:#94a3b8;font-weight:700;">${currentLang === 'en' ? 'Start (t):' : 'Inicio (t):'}</span>
           <input type="number" min="1" max="100" id="drawer-int-start" value="${myInt.start}" style="width:40px;padding:2px 4px;font-size:11px;font-family:'JetBrains Mono';font-weight:700;border:1px solid #cbd5e1;border-radius:4px;text-align:center;">
-          <span style="font-size:10px;color:#94a3b8;font-weight:700;">Duración:</span>
+          <span style="font-size:10px;color:#94a3b8;font-weight:700;">${currentLang === 'en' ? 'Duration:' : 'Duración:'}</span>
           <input type="number" min="1" max="100" id="drawer-int-dur" value="${myInt.dur}" style="width:40px;padding:2px 4px;font-size:11px;font-family:'JetBrains Mono';font-weight:700;border:1px solid #cbd5e1;border-radius:4px;text-align:center;">
-          <button type="button" id="drawer-int-del" style="background:#fee2e2;border:1px solid #fca5a5;color:#b91c1c;border-radius:4px;padding:2px 6px;cursor:pointer;font-weight:700;font-size:11px;" title="Eliminar intervención">✕</button>
+          <button type="button" id="drawer-int-del" style="background:#fee2e2;border:1px solid #fca5a5;color:#b91c1c;border-radius:4px;padding:2px 6px;cursor:pointer;font-weight:700;font-size:11px;" title="${currentLang === 'en' ? 'Remove intervention' : 'Eliminar intervención'}">✕</button>
         </div>`;
 
       $('#drawer-int-mag').oninput = e => {
@@ -2698,7 +2831,7 @@ function showFlowDrawer(varId) {
     } else {
       dIntBox.innerHTML = `
         <button type="button" class="btn sm" id="drawer-btn-add-int" style="width:100%;background:rgba(245,158,11,0.15);border:1px dashed #f59e0b;color:#fbbf24;">
-          ⚡ + Intervenir esta variable (Mag & Tiempo)
+          ${currentLang === 'en' ? '⚡ + Intervene on this variable (Mag & Time)' : '⚡ + Intervenir esta variable (Mag & Tiempo)'}
         </button>`;
       $('#drawer-btn-add-int').onclick = () => {
         S.ints.push({ vid: varId, type: 'sust', mag: 2.5, start: 2, dur: 12 });
@@ -2725,9 +2858,9 @@ function showFlowDrawer(varId) {
         <span class="pill" style="background:${pillBg(l.v)};padding:1px 6px;font-size:11px;">${sgn(l.v)}</span>
       </div>
       <div style="font-size:11.5px;color:var(--txt);">${esc(l.concept) || '—'}</div>
-      <small style="color:var(--mut);font-size:10.5px;display:block;margin-top:2px;">Evidencia: ${esc(l.evidence) || '—'}</small>
+      <small style="color:var(--mut);font-size:10.5px;display:block;margin-top:2px;">${currentLang === 'en' ? 'Evidence:' : 'Evidencia:'} ${esc(l.evidence) || '—'}</small>
     </div>
-  `).join('') : `<p class="muted" style="font-size:12px;">Sin conexiones directas.</p>`;
+  `).join('') : `<p class="muted" style="font-size:12px;">${currentLang === 'en' ? 'No direct connections.' : 'Sin conexiones directas.'}</p>`;
 
   $('#flow-drawer-inputs').innerHTML = formatList(inputs, false);
   $('#flow-drawer-outputs').innerHTML = formatList(outputs, true);
@@ -3227,6 +3360,298 @@ function toggleFlowTableWidth() {
 window.toggleFlowTableWidth = toggleFlowTableWidth;
 
 /* ---------- Modal de Intervención Multi-Variable para Red Causal ---------- */
+
+/* ---------- Gráfico Multi-Línea Temporal de Comportamiento de Variables (Tab 6) ---------- */
+let flowChartViewMode = 'abs';
+let flowChartCurrentScale = null; // 'abs' | 'delta'
+const flowChartHidden = new Set();
+let flowChartFilterQuad = 'all'; // 'all' | 'power' | 'result'
+
+function setFlowChartView(mode) {
+  flowChartViewMode = mode;
+  const bAbs = $('#btn-flow-chart-abs');
+  const bDelta = $('#btn-flow-chart-delta');
+  if (bAbs) bAbs.classList.toggle('active', mode === 'abs');
+  if (bDelta) bDelta.classList.toggle('active', mode === 'delta');
+  renderFlowChart();
+}
+window.setFlowChartView = setFlowChartView;
+
+function filterFlowChartSelection(quad) {
+  flowChartFilterQuad = quad;
+  renderFlowChart();
+}
+window.filterFlowChartSelection = filterFlowChartSelection;
+
+function toggleFlowChartVar(varId) {
+  if (flowChartHidden.has(varId)) {
+    flowChartHidden.delete(varId);
+  } else {
+    flowChartHidden.add(varId);
+  }
+  renderFlowChart();
+}
+window.toggleFlowChartVar = toggleFlowChartVar;
+
+function renderFlowChart() {
+  const svg = $('#flow-chart-svg');
+  const legend = $('#flow-chart-legend');
+  if (!svg || !legend) return;
+
+  const vars = V();
+  const n = vars.length;
+  if (!n) {
+    svg.innerHTML = '';
+    legend.innerHTML = '';
+    return;
+  }
+
+  if (!SIM || !SIM.x) SIM = simulate();
+  if (!PD) PD = planeData();
+
+  const T = S.params.steps || 50;
+  const data = (flowChartViewMode === 'abs') ? SIM.x : SIM.dl;
+
+  // Filtrado por cuadrante y visibilidad
+  const isQuadMatch = i => {
+    if (flowChartFilterQuad === 'all') return true;
+    const q = PD.q ? PD.q[i] : 'auto';
+    return q === flowChartFilterQuad;
+  };
+
+  const visIndices = vars.map((v, i) => i).filter(i => isQuadMatch(i) && !flowChartHidden.has(vars[i].id));
+
+  // Dimensiones del gráfico SVG
+  const W = 960;
+  const H = 320;
+  const M = { top: 25, bottom: 35, left: 56, right: 30 };
+  const pw = W - M.left - M.right;
+  const ph = H - M.top - M.bottom;
+
+  // Escalas y rango de valores Y
+  let minY = Infinity;
+  let maxY = -Infinity;
+
+  if (visIndices.length > 0) {
+    visIndices.forEach(i => {
+      for (let t = 0; t <= T; t++) {
+        const val = (data[t] && data[t][i] !== undefined) ? data[t][i] : 0;
+        if (val < minY) minY = val;
+        if (val > maxY) maxY = val;
+      }
+    });
+  } else {
+    minY = -10;
+    maxY = 10;
+  }
+
+  if (flowChartViewMode === 'delta') {
+    minY = Math.min(minY, 0);
+    maxY = Math.max(maxY, 0);
+  }
+
+  const spanY = (maxY - minY) || 10;
+  minY -= spanY * 0.08;
+  maxY += spanY * 0.08;
+
+  const xMap = t => M.left + (t / T) * pw;
+  const yMap = val => M.top + ph - ((val - minY) / (maxY - minY)) * ph;
+  flowChartCurrentScale = { minY, maxY, T, pw, ph, M };
+
+  // Grid horizontal y etiquetas Y
+  let gridLinesHtml = '';
+  const yTicks = 5;
+  for (let k = 0; k <= yTicks; k++) {
+    const val = minY + (k / yTicks) * (maxY - minY);
+    const yPos = yMap(val);
+    gridLinesHtml += `<line x1="${M.left}" y1="${yPos.toFixed(1)}" x2="${W - M.right}" y2="${yPos.toFixed(1)}" stroke="rgba(148,163,184,0.12)" stroke-width="1" stroke-dasharray="3 3"/>`;
+    gridLinesHtml += `<text x="${M.left - 8}" y="${(yPos + 3.5).toFixed(1)}" fill="#94a3b8" font-size="10" font-family="'JetBrains Mono', monospace" text-anchor="end">${val.toFixed(1)}</text>`;
+  }
+
+  // Línea de Cero de referencia si cae en el rango
+  let zeroLineHtml = '';
+  if (minY <= 0 && maxY >= 0) {
+    const y0 = yMap(0);
+    zeroLineHtml = `<line x1="${M.left}" y1="${y0.toFixed(1)}" x2="${W - M.right}" y2="${y0.toFixed(1)}" stroke="rgba(148,163,184,0.38)" stroke-width="1.5"/>`;
+  }
+
+  // Grid vertical y marcas de tiempo t
+  let xTicksHtml = '';
+  const tStep = T <= 30 ? 5 : (T <= 60 ? 10 : 20);
+  for (let t = 0; t <= T; t += tStep) {
+    const xPos = xMap(t);
+    xTicksHtml += `<line x1="${xPos.toFixed(1)}" y1="${M.top}" x2="${xPos.toFixed(1)}" y2="${M.top + ph}" stroke="rgba(148,163,184,0.08)" stroke-width="1"/>`;
+    xTicksHtml += `<text x="${xPos.toFixed(1)}" y="${H - M.bottom + 16}" fill="#94a3b8" font-size="10" font-family="'JetBrains Mono', monospace" text-anchor="middle">t=${t}</text>`;
+  }
+
+  // Curvas de las variables visibles
+  let seriesHtml = '';
+  let dotsHtml = '';
+  const curStep = flowState.activeStep || 0;
+  const selId = flowState.selectedVar;
+
+  visIndices.forEach(i => {
+    const v = vars[i];
+    const c = varColor(i);
+    const isSelected = selId === v.id;
+    const strokeW = isSelected ? 3.5 : 2.0;
+    const opacity = selId ? (isSelected ? 1.0 : 0.22) : 0.88;
+
+    let pathD = '';
+    for (let t = 0; t <= T; t++) {
+      const val = (data[t] && data[t][i] !== undefined) ? data[t][i] : 0;
+      const x = xMap(t);
+      const y = yMap(val);
+      pathD += (t === 0 ? 'M' : 'L') + ` ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }
+
+    seriesHtml += `<path class="flow-chart-line" data-id="${v.id}" data-idx="${i}" d="${pathD}" fill="none" stroke="${c}" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}" ${isSelected ? `style="filter:drop-shadow(0 0 5px ${c});"` : ''}/>`;
+
+    // Marcador de punto en el paso activo sincronizado
+    const curVal = (data[curStep] && data[curStep][i] !== undefined) ? data[curStep][i] : 0;
+    const curDotX = xMap(curStep);
+    const curDotY = yMap(curVal);
+    dotsHtml += `<circle class="flow-chart-dot" data-idx="${i}" data-id="${v.id}" cx="${curDotX.toFixed(1)}" cy="${curDotY.toFixed(1)}" r="${isSelected ? 6 : 4}" fill="${c}" stroke="#0b1329" stroke-width="2" opacity="${opacity}"/>`;
+  });
+
+  // Cursor vertical sincronizado con el paso activo t
+  const cursorX = xMap(curStep);
+  const cursorHtml = `
+    <g id="flow-chart-cursor-group">
+      <line id="flow-chart-cursor-line" x1="${cursorX.toFixed(1)}" y1="${M.top - 5}" x2="${cursorX.toFixed(1)}" y2="${M.top + ph}" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 3" opacity="0.95"/>
+      <rect id="flow-chart-cursor-tag-bg" x="${(cursorX - 22).toFixed(1)}" y="5" width="44" height="18" rx="4" fill="#0284c7" stroke="#38bdf8" stroke-width="1"/>
+      <text id="flow-chart-cursor-tag-txt" x="${cursorX.toFixed(1)}" y="18" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle" font-family="'JetBrains Mono', monospace">t=${curStep}</text>
+    </g>
+  `;
+
+  // Hitbox invisible para interacción suave de ratón y salto en el tiempo
+  const hitboxHtml = `<rect id="flow-chart-hitbox" x="${M.left}" y="${M.top}" width="${pw}" height="${ph}" fill="transparent" style="cursor:crosshair;"/>`;
+
+  svg.innerHTML = `
+    <g class="flow-chart-grid">${gridLinesHtml}${zeroLineHtml}${xTicksHtml}</g>
+    <g class="flow-chart-series">${seriesHtml}</g>
+    <g class="flow-chart-dots">${dotsHtml}</g>
+    ${cursorHtml}
+    ${hitboxHtml}
+  `;
+
+  // Interactividad de Hover y Clic en el Hitbox
+  const hitbox = $('#flow-chart-hitbox');
+  const tooltip = $('#flow-chart-tooltip');
+
+  if (hitbox && tooltip) {
+    hitbox.onmousemove = e => {
+      const rect = svg.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const relX = (mouseX / rect.width) * W;
+      const t = clamp(Math.round(((relX - M.left) / pw) * T), 0, T);
+
+      let ttHtml = `<div style="font-weight:700;margin-bottom:6px;color:#38bdf8;font-family:'JetBrains Mono';font-size:12px;">${currentLang === 'en' ? 'Step' : 'Paso'} t = ${t} ${t === curStep ? `<span style="color:#4ade80;">(${currentLang === 'en' ? 'Active Step' : 'Paso Activo'})</span>` : ''}</div>`;
+      ttHtml += `<div style="display:grid;grid-template-columns:repeat(${Math.min(visIndices.length, 3)}, minmax(90px, 1fr));gap:6px 12px;font-size:11px;">`;
+
+      visIndices.slice(0, 15).forEach(i => {
+        const v = vars[i];
+        const c = varColor(i);
+        const val = (data[t] && data[t][i] !== undefined) ? data[t][i].toFixed(1) : '—';
+        ttHtml += `<div style="display:flex;align-items:center;gap:4px;">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${c};"></span>
+          <b>${esc(v.code)}:</b> <span style="font-family:'JetBrains Mono';">${val}</span>
+        </div>`;
+      });
+      ttHtml += '</div>';
+      ttHtml += `<div style="margin-top:6px;font-size:10px;color:rgba(255,255,255,0.6);text-align:right;">${currentLang === 'en' ? 'Click to sync simulation' : 'Clic para sincronizar simulación'}</div>`;
+
+      tooltip.innerHTML = ttHtml;
+      tooltip.style.display = 'block';
+
+      // Posicionamiento dinámico del tooltip
+      const wrapRect = svg.parentElement.getBoundingClientRect();
+      let left = (e.clientX - wrapRect.left) + 16;
+      let top = (e.clientY - wrapRect.top) - 30;
+      if (left + 240 > wrapRect.width) left -= 260;
+      if (top < 10) top = 10;
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+    };
+
+    hitbox.onmouseleave = () => {
+      tooltip.style.display = 'none';
+    };
+
+    hitbox.onclick = e => {
+      const rect = svg.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const relX = (mouseX / rect.width) * W;
+      const t = clamp(Math.round(((relX - M.left) / pw) * T), 0, T);
+      flowState.activeStep = t;
+      updateFlowStepUI();
+    };
+  }
+
+  // Renderizar chips de la leyenda interactiva
+  legend.innerHTML = vars.map((v, i) => {
+    const c = varColor(i);
+    const q = PD.q ? PD.q[i] : 'auto';
+    const isHidden = flowChartHidden.has(v.id);
+    const isQuadFiltered = !isQuadMatch(i);
+    const isSelected = selId === v.id;
+
+    let quadBadge = '';
+    if (q === 'power') quadBadge = '⚡';
+    else if (q === 'conflict') quadBadge = '🔄';
+    else if (q === 'result') quadBadge = '📊';
+
+    return `<button type="button" class="flow-chart-legend-chip ${isHidden || isQuadFiltered ? 'inactive' : 'active'} ${isSelected ? 'selected' : ''}" 
+      data-id="${v.id}" onclick="toggleFlowChartVar('${v.id}')" title="${currentLang === 'en' ? 'Click to show/hide this variable on the trajectory chart' : 'Clic para ocultar/mostrar esta variable en la trayectoria gráfica'}">
+      <span style="width:9px;height:9px;border-radius:50%;background:${c};display:inline-block;box-shadow:0 0 4px ${c};"></span>
+      <b>${esc(v.code)}</b>
+      <span>${quadBadge}</span>
+      <span style="opacity:0.75;font-size:10.5px;">${esc(v.name)}</span>
+    </button>`;
+  }).join('');
+}
+
+function updateFlowChartCursor() {
+  const step = flowState.activeStep || 0;
+  const T = S.params.steps || 50;
+  const W = 960;
+  const M = { top: 25, bottom: 35, left: 56, right: 30 };
+  const pw = W - M.left - M.right;
+  const ph = 320 - M.top - M.bottom;
+
+  const cursorX = M.left + (step / T) * pw;
+
+  const cursorLine = $('#flow-chart-cursor-line');
+  const cursorTagBg = $('#flow-chart-cursor-tag-bg');
+  const cursorTagTxt = $('#flow-chart-cursor-tag-txt');
+
+  if (cursorLine && cursorTagBg && cursorTagTxt) {
+    cursorLine.setAttribute('x1', cursorX.toFixed(1));
+    cursorLine.setAttribute('x2', cursorX.toFixed(1));
+    cursorTagBg.setAttribute('x', (cursorX - 22).toFixed(1));
+    cursorTagTxt.setAttribute('x', cursorX.toFixed(1));
+    cursorTagTxt.textContent = 't=' + step;
+  }
+
+  // Actualizar posiciones de los puntos circulares
+  if (flowChartCurrentScale && SIM && SIM.x) {
+    const { minY, maxY } = flowChartCurrentScale;
+    const data = (flowChartViewMode === 'abs') ? SIM.x : SIM.dl;
+    const yMap = val => M.top + ph - ((val - minY) / (maxY - minY)) * ph;
+    const dots = document.querySelectorAll('.flow-chart-dot');
+    if (dots.length > 0) {
+      dots.forEach(dot => {
+        const i = Number(dot.dataset.idx);
+        const val = (data[step] && data[step][i] !== undefined) ? data[step][i] : 0;
+        dot.setAttribute('cx', cursorX.toFixed(1));
+        dot.setAttribute('cy', yMap(val).toFixed(1));
+      });
+    }
+  }
+}
+window.renderFlowChart = renderFlowChart;
+window.updateFlowChartCursor = updateFlowChartCursor;
+
 function openFlowInterventionModal() {
   const modal = $('#flow-intervention-modal');
   if (!modal) return;
@@ -3250,7 +3675,7 @@ function handleFlowIntModalBackdropClick(e) {
 window.handleFlowIntModalBackdropClick = handleFlowIntModalBackdropClick;
 
 function renderFlowInterventionModalChecklist() {
-  const cl = $('#flow-modal-checklist');
+  const cl = $('#flow-int-var-checklist') || $('#flow-modal-checklist');
   if (!cl) return;
   const vars = V();
   cl.innerHTML = vars.map((v, i) => {
@@ -3276,12 +3701,12 @@ function selectFlowIntVars(mode) {
   checks.forEach(chk => {
     if (mode === 'all') chk.checked = true;
     else if (mode === 'none') chk.checked = false;
-    else if (mode === 'motrices') {
+    else if (mode === 'motrices' || mode === 'power') {
       const q = chk.dataset.quad;
-      chk.checked = (q === 'mot');
-    } else if (mode === 'objetivos') {
+      chk.checked = (q === 'mot' || q === 'power');
+    } else if (mode === 'objetivos' || mode === 'result') {
       const q = chk.dataset.quad;
-      chk.checked = (q === 'res' || q === 'out');
+      chk.checked = (q === 'res' || q === 'out' || q === 'result');
     }
   });
 }
@@ -3290,20 +3715,21 @@ window.selectFlowIntVars = selectFlowIntVars;
 function renderFlowModalActiveInts() {
   const el = $('#flow-modal-active-ints-list');
   if (!el) return;
+  const isEn = currentLang === 'en';
   if (!S.ints || S.ints.length === 0) {
-    el.innerHTML = `<span style="color:var(--mut);font-size:11.5px;">No hay intervenciones activas actualmente. Seleccione arriba las variables a intervenir.</span>`;
+    el.innerHTML = `<span style="color:var(--mut);font-size:11.5px;">${isEn ? 'No active interventions currently. Select variables above to intervene.' : 'No hay intervenciones activas actualmente. Seleccione arriba las variables a intervenir.'}</span>`;
     return;
   }
-  const items = S.ints.map((it, idx) => {
+  const items = S.ints.map((it, i) => {
     const v = V()[idx(it.vid)] || { code: it.vid };
     const sign = it.mag > 0 ? '+' : '';
-    const typeLbl = it.type === 'pulse' ? 'Impulso' : 'Sostenida';
+    const typeLbl = it.type === 'pulse' ? (isEn ? 'Impulse' : 'Impulso') : (isEn ? 'Sustained' : 'Sostenida');
     return `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:6px;padding:3px 8px;font-size:11px;color:#fcd34d;">
       ⚡ <b>${esc(v.code)}</b> (${typeLbl} ${sign}${it.mag}, t=${it.start}..${it.start + it.dur})
-      <button type="button" onclick="deleteFlowIntByIndex(${idx})" style="background:none;border:none;color:#f87171;cursor:pointer;font-weight:700;padding:0 2px;margin-left:2px;" title="Eliminar intervención">✕</button>
+      <button type="button" onclick="deleteFlowIntByIndex(${i})" style="background:none;border:none;color:#f87171;cursor:pointer;font-weight:700;padding:0 2px;margin-left:2px;" title="${isEn ? 'Remove intervention' : 'Eliminar intervención'}">✕</button>
     </span>`;
   }).join(' ');
-  el.innerHTML = `<div style="font-size:11px;color:var(--mut);margin-bottom:4px;">Intervenciones activas actuales (${S.ints.length}):</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${items}</div>`;
+  el.innerHTML = `<div style="font-size:11px;color:var(--mut);margin-bottom:4px;">${isEn ? `Current active interventions (${S.ints.length}):` : `Intervenciones activas actuales (${S.ints.length}):`}</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${items}</div>`;
 }
 
 function deleteFlowIntByIndex(idx) {
@@ -3447,7 +3873,12 @@ $('#btn-reset').onclick = () => {
 
 /* ---------- Sistema de Idiomas / i18n Switcher ---------- */
 function applyLanguage(lang) {
+  if (!lang || !I18N[lang]) lang = 'en';
+  currentLang = lang;
+  localStorage.setItem('micmac-lang', lang);
+  document.documentElement.lang = lang;
   if (typeof setLanguage === 'function') setLanguage(lang);
+  document.title = t('brand_title');
   
   // Translate static data-i18n elements (support HTML formatted text)
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -3476,18 +3907,60 @@ function applyLanguage(lang) {
   if (mEs) mEs.style.display = lang === 'es' ? 'block' : 'none';
   if (mEn) mEn.style.display = lang === 'en' ? 'block' : 'none';
 
-  // Sincronizar nombres de variables base si coinciden con los predeterminados
+  // Sincronizar nombres y descripciones de variables base y predefinidas
   if (typeof DEFAULT_VARS !== 'undefined' && typeof DEFAULT_VARS_EN !== 'undefined') {
-    const fromList = lang === 'en' ? DEFAULT_VARS : DEFAULT_VARS_EN;
-    const toList = lang === 'en' ? DEFAULT_VARS_EN : DEFAULT_VARS;
+    const esVars = [...DEFAULT_VARS, ...(typeof PRESET_VARS !== 'undefined' ? PRESET_VARS : [])];
+    const enVars = [...DEFAULT_VARS_EN, ...(typeof PRESET_VARS_EN !== 'undefined' ? PRESET_VARS_EN : [])];
+    const toList = lang === 'en' ? enVars : esVars;
+    const esByCode = Object.fromEntries(esVars.map(item => [item[0], item]));
+    const enByCode = Object.fromEntries(enVars.map(item => [item[0], item]));
+    const toByCode = Object.fromEntries(toList.map(item => [item[0], item]));
+
     S.vars.forEach(v => {
-      const matchIdx = fromList.findIndex(item => item[0] === v.code && (item[1] === v.name || toList.some(tl => tl[0] === v.code && tl[1] === v.name)));
-      if (matchIdx >= 0) {
-        v.name = toList[matchIdx][1];
-        v.desc = toList[matchIdx][2];
+      const target = toByCode[v.code];
+      const esItem = esByCode[v.code];
+      const enItem = enByCode[v.code];
+      if (target && esItem && enItem) {
+        if (v.name === esItem[1] || v.name === enItem[1]) {
+          v.name = target[1];
+        }
+        if (!v.desc || v.desc === esItem[2] || v.desc === enItem[2]) {
+          v.desc = target[2];
+        }
       }
     });
-    save();
+  }
+
+  // Sincronizar justificaciones de vínculos predeterminados (concept, evidence, src)
+  if (typeof DEFAULT_LINKS !== 'undefined' && typeof DEFAULT_LINKS_EN !== 'undefined') {
+    const codeById = Object.fromEntries(S.vars.map(v => [v.id, v.code]));
+    const esLinkMap = Object.fromEntries(DEFAULT_LINKS.map(item => [item[0] + '>' + item[1], item]));
+    const enLinkMap = Object.fromEntries(DEFAULT_LINKS_EN.map(item => [item[0] + '>' + item[1], item]));
+    const toLinkMap = lang === 'en' ? enLinkMap : esLinkMap;
+
+    Object.entries(S.links).forEach(([k, lnk]) => {
+      if (!lnk) return;
+      const [idA, idB] = k.split('>');
+      const cKey = (codeById[idA] || '') + '>' + (codeById[idB] || '');
+      const target = toLinkMap[cKey];
+      const esLnk = esLinkMap[cKey];
+      const enLnk = enLinkMap[cKey];
+      if (target && esLnk && enLnk) {
+        if (!lnk.concept || lnk.concept === esLnk[3] || lnk.concept === enLnk[3]) {
+          lnk.concept = target[3];
+        }
+        if (!lnk.evidence || lnk.evidence === esLnk[4] || lnk.evidence === enLnk[4]) {
+          lnk.evidence = target[4];
+        }
+        if (!lnk.src || lnk.src === esLnk[5] || lnk.src === enLnk[5]) {
+          lnk.src = target[5];
+        }
+      }
+    });
+  }
+  save();
+  if (typeof renderPresetPanel === 'function' && $('#preset-panel') && $('#preset-panel').style.display !== 'none') {
+    renderPresetPanel();
   }
 
   // Re-render components
@@ -3988,6 +4461,9 @@ function renderGodetStability() {
 
   // Render Gráfico SVG de Convergencia
   renderGodetChart(powersData);
+
+  // Render Plano de Cuadrantes de Vínculos Indirectos (Godet Mk)
+  renderGodetIndirectPlane(powersData, motValsByK, depValsByK, kStar);
 }
 window.renderGodetStability = renderGodetStability;
 
@@ -4036,10 +4512,10 @@ function renderGodetChart(powersData) {
   powersData.forEach(p => {
     dotsHtml += `
       <circle cx="${X(p.k)}" cy="${Y(p.spMotPrev)}" r="4.5" fill="#38bdf8" stroke="#0b1120" stroke-width="2">
-        <title>M^${p.k}: Spearman Motricidad = ${p.spMotPrev.toFixed(4)}</title>
+        <title>M^${p.k}: Spearman ${currentLang === 'en' ? 'Motricity' : 'Motricidad'} = ${p.spMotPrev.toFixed(4)}</title>
       </circle>
       <circle cx="${X(p.k)}" cy="${Y(p.spDepPrev)}" r="4.5" fill="#a78bfa" stroke="#0b1120" stroke-width="2">
-        <title>M^${p.k}: Spearman Dependencia = ${p.spDepPrev.toFixed(4)}</title>
+        <title>M^${p.k}: Spearman ${currentLang === 'en' ? 'Dependence' : 'Dependencia'} = ${p.spDepPrev.toFixed(4)}</title>
       </circle>
     `;
   });
@@ -4058,8 +4534,218 @@ function renderGodetChart(powersData) {
     ${dotsHtml}
 
     <!-- Etiqueta de Umbral -->
-    <text x="${m.l + pw - 6}" y="${Y(0.98) - 6}" text-anchor="end" fill="#34d399" font-size="10.5" font-weight="700">Umbral Godet 0.98</text>
+    <text x="${m.l + pw - 6}" y="${Y(0.98) - 6}" text-anchor="end" fill="#34d399" font-size="10.5" font-weight="700">${currentLang === 'en' ? 'Godet Threshold 0.98' : 'Umbral Godet 0.98'}</text>
   `;
+}
+
+/* =============================================
+   PLANO DE CUADRANTES DE VÍNCULOS INDIRECTOS (GODET Mk)
+   ============================================= */
+function renderGodetIndirectPlane(powersData, motValsByK, depValsByK, kStar) {
+  const svg = $('#godet-plane-svg');
+  const summaryBox = $('#godet-plane-shift-summary');
+  if (!svg) return;
+
+  const vars = V();
+  const n = vars.length;
+  if (n < 2 || !motValsByK || motValsByK.length < 2) {
+    svg.innerHTML = '<text x="380" y="280" text-anchor="middle" fill="#94a3b8">Requiere al menos 2 variables</text>';
+    return;
+  }
+
+  const isEn = currentLang === 'en';
+  const kSelVal = $('#godet-plane-k-sel')?.value || 'auto';
+  let targetK = kSelVal === 'auto' ? kStar : parseInt(kSelVal, 10);
+  if (isNaN(targetK) || targetK < 1) targetK = Math.min(kStar, motValsByK.length);
+  targetK = Math.max(1, Math.min(targetK, motValsByK.length));
+
+  const showVectors = $('#godet-plane-vectors') ? $('#godet-plane-vectors').checked : true;
+
+  // Valores M1 (directo) y Mk (indirecto)
+  const mot1 = motValsByK[0];
+  const dep1 = depValsByK[0];
+  const motK = motValsByK[targetK - 1] || motValsByK[motValsByK.length - 1];
+  const depK = depValsByK[targetK - 1] || depValsByK[depValsByK.length - 1];
+
+  // Normalización porcentual según metodología MICMAC canónica (0 a 100%)
+  const maxMotK = Math.max(...motK, 1e-9);
+  const maxDepK = Math.max(...depK, 1e-9);
+  const maxMot1 = Math.max(...mot1, 1e-9);
+  const maxDep1 = Math.max(...dep1, 1e-9);
+
+  const pctMotK = motK.map(v => (v / maxMotK) * 100);
+  const pctDepK = depK.map(v => (v / maxDepK) * 100);
+  const pctMot1 = mot1.map(v => (v / maxMot1) * 100);
+  const pctDep1 = dep1.map(v => (v / maxDep1) * 100);
+
+  // Umbrales canónicos MICMAC: media de motricidad y dependencia
+  const meanDepK = mean(pctDepK);
+  const meanMotK = mean(pctMotK);
+  const meanDep1 = mean(pctDep1);
+  const meanMot1 = mean(pctMot1);
+
+  // Dimensiones del plano
+  const W = 760, H = 540;
+  const m = { l: 65, r: 25, t: 25, b: 50 };
+  const pw = W - m.l - m.r;
+  const ph = H - m.t - m.b;
+
+  const X = v => m.l + (clamp(v, 0, 100) / 100) * pw;
+  const Y = v => m.t + ph - (clamp(v, 0, 100) / 100) * ph;
+
+  // Cuadrante según posición relativa al umbral medio
+  const getQuad = (inf, dep, ty, tx) => {
+    if (inf >= ty && dep < tx) return 'power';     // Motrices / Poder
+    if (inf >= ty && dep >= tx) return 'conflict'; // Enlace / Conflicto
+    if (inf < ty && dep >= tx) return 'result';    // Salida / Dependientes
+    return 'auto';                                 // Autónomas
+  };
+
+  const quadLabels = {
+    power: { es: 'PODER / MOTRICES', en: 'POWER / DRIVERS', col: '#38bdf8' },
+    conflict: { es: 'ENLACE / CONFLICTO', en: 'RELAY / CONFLICT', col: '#f43f5e' },
+    result: { es: 'SALIDA / DEPENDIENTES', en: 'RESULT / DEPENDENT', col: '#22c55e' },
+    auto: { es: 'AUTÓNOMAS / POCO INFL.', en: 'AUTONOMOUS / LOW INFL.', col: '#94a3b8' }
+  };
+
+  // Cuadrantes rectangulares coloreados de fondo
+  const xMid = X(meanDepK);
+  const yMid = Y(meanMotK);
+
+  const bgRects = [
+    // Power (top-left)
+    `<rect x="${m.l}" y="${m.t}" width="${xMid - m.l}" height="${yMid - m.t}" fill="#38bdf8" fill-opacity="0.08"/>
+     <text x="${m.l + 10}" y="${m.t + 20}" fill="#38bdf8" font-size="12" font-weight="700" opacity="0.85">${quadLabels.power[isEn ? 'en' : 'es']}</text>`,
+    // Conflict (top-right)
+    `<rect x="${xMid}" y="${m.t}" width="${m.l + pw - xMid}" height="${yMid - m.t}" fill="#f43f5e" fill-opacity="0.08"/>
+     <text x="${m.l + pw - 10}" y="${m.t + 20}" text-anchor="end" fill="#f43f5e" font-size="12" font-weight="700" opacity="0.85">${quadLabels.conflict[isEn ? 'en' : 'es']}</text>`,
+    // Autonomous (bottom-left)
+    `<rect x="${m.l}" y="${yMid}" width="${xMid - m.l}" height="${m.t + ph - yMid}" fill="#94a3b8" fill-opacity="0.05"/>
+     <text x="${m.l + 10}" y="${m.t + ph - 12}" fill="#94a3b8" font-size="12" font-weight="700" opacity="0.75">${quadLabels.auto[isEn ? 'en' : 'es']}</text>`,
+    // Result (bottom-right)
+    `<rect x="${xMid}" y="${yMid}" width="${m.l + pw - xMid}" height="${m.t + ph - yMid}" fill="#22c55e" fill-opacity="0.08"/>
+     <text x="${m.l + pw - 10}" y="${m.t + ph - 12}" text-anchor="end" fill="#22c55e" font-size="12" font-weight="700" opacity="0.85">${quadLabels.result[isEn ? 'en' : 'es']}</text>`
+  ].join('');
+
+  // Rejilla de porcentajes
+  let gridSvg = '';
+  for (let p = 0; p <= 100; p += 20) {
+    gridSvg += `
+      <line x1="${X(p)}" y1="${m.t}" x2="${X(p)}" y2="${m.t + ph}" stroke="rgba(148,163,255,0.08)" stroke-width="1"/>
+      <text x="${X(p)}" y="${m.t + ph + 16}" text-anchor="middle" fill="#64748b" font-size="10.5" font-family="'JetBrains Mono'">${p}%</text>
+      <line x1="${m.l}" y1="${Y(p)}" x2="${m.l + pw}" y2="${Y(p)}" stroke="rgba(148,163,255,0.08)" stroke-width="1"/>
+      <text x="${m.l - 8}" y="${Y(p) + 4}" text-anchor="end" fill="#64748b" font-size="10.5" font-family="'JetBrains Mono'">${p}%</text>
+    `;
+  }
+
+  // Líneas de umbral (media Godet)
+  const thresholdLines = `
+    <line x1="${xMid}" y1="${m.t}" x2="${xMid}" y2="${m.t + ph}" stroke="#fff" stroke-width="1.6" stroke-dasharray="5 4" opacity="0.75"/>
+    <line x1="${m.l}" y1="${yMid}" x2="${m.l + pw}" y2="${yMid}" stroke="#fff" stroke-width="1.6" stroke-dasharray="5 4" opacity="0.75"/>
+    <text x="${xMid + 6}" y="${m.t + ph - 8}" fill="#e2e8f0" font-size="10" opacity="0.85">${isEn ? 'Threshold Dep:' : 'Umbral Dep:'} ${meanDepK.toFixed(1)}%</text>
+    <text x="${m.l + 8}" y="${yMid - 6}" fill="#e2e8f0" font-size="10" opacity="0.85">${isEn ? 'Threshold Mot:' : 'Umbral Mot:'} ${meanMotK.toFixed(1)}%</text>
+  `;
+
+  // Títulos de ejes
+  const axisLabels = `
+    <text x="${m.l + pw / 2}" y="${H - 8}" text-anchor="middle" fill="#e8ecf8" font-size="12" font-weight="600">
+      ${isEn ? 'Normalized Indirect Dependence (MDI) %' : 'Dependencia Indirecta Normalizada (MDI) %'}
+    </text>
+    <text transform="translate(16 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle" fill="#e8ecf8" font-size="12" font-weight="600">
+      ${isEn ? 'Normalized Indirect Motricity (MII) %' : 'Motricidad Indirecta Normalizada (MII) %'}
+    </text>
+  `;
+
+  // Puntos y vectores M1 -> Mk
+  let vectorsSvg = '';
+  let bubblesSvg = '';
+  const shiftedVars = [];
+
+  vars.forEach((v, i) => {
+    const x1 = X(pctDep1[i]);
+    const y1 = Y(pctMot1[i]);
+    const xK = X(pctDepK[i]);
+    const yK = Y(pctMotK[i]);
+
+    const q1 = getQuad(pctMot1[i], pctDep1[i], meanMot1, meanDep1);
+    const qK = getQuad(pctMotK[i], pctDepK[i], meanMotK, meanDepK);
+
+    if (q1 !== qK) {
+      shiftedVars.push({ v, i, q1, qK, dX: pctDepK[i] - pctDep1[i], dY: pctMotK[i] - pctMot1[i] });
+    }
+
+    const dist = Math.hypot(xK - x1, yK - y1);
+    const qColor = QUAD[qK] ? QUAD[qK].color : '#38bdf8';
+
+    if (showVectors && dist > 3 && targetK > 1) {
+      // Vector de desplazamiento M1 -> Mk
+      vectorsSvg += `
+        <g opacity="0.65">
+          <!-- Punto de partida M1 -->
+          <circle cx="${x1}" cy="${y1}" r="3" fill="#64748b" stroke="#0b0f1a" stroke-width="1"/>
+          <!-- Línea con flecha a Mk -->
+          <line x1="${x1}" y1="${y1}" x2="${xK}" y2="${yK}" stroke="${qColor}" stroke-width="1.8" stroke-dasharray="3 2" marker-end="url(#godet-ar)"/>
+        </g>
+      `;
+    }
+
+    // Burbuja en posición Mk
+    bubblesSvg += `
+      <g class="godet-node" style="cursor:pointer;" 
+         onmouseenter="tip(event, '<b>${i + 1}. ${esc(v.code)}: ${esc(v.name)}</b><br>${isEn ? 'Indirect Power (k=' + targetK + ')' : 'Potencia Indirecta (k=' + targetK + ')'}<br>${isEn ? 'Motricity' : 'Motricidad'}: ${pctMotK[i].toFixed(1)}% | ${isEn ? 'Dependence' : 'Dependencia'}: ${pctDepK[i].toFixed(1)}%<br>${isEn ? 'Direct (k=1)' : 'Directa (k=1)'}: Mot ${pctMot1[i].toFixed(1)}% | Dep ${pctDep1[i].toFixed(1)}%<br><b style=\"color:${qColor}\">${quadLabels[qK][isEn ? 'en' : 'es']}</b>')"
+         onmouseleave="tip(null)">
+        <rect x="${xK - 16}" y="${yK - 10}" width="32" height="20" rx="4" fill="${qColor}" fill-opacity="0.88" stroke="#0b0f1a" stroke-width="1.5"/>
+        <text x="${xK}" y="${yK + 4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="'JetBrains Mono'" pointer-events="none">${esc(v.code)}</text>
+      </g>
+    `;
+  });
+
+  // Marcador de flecha para vectores de desplazamiento
+  const defsSvg = `
+    <defs>
+      <marker id="godet-ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M0 1.5L8 5L0 8.5z" fill="#93c5fd"/>
+      </marker>
+    </defs>
+  `;
+
+  svg.innerHTML = defsSvg + bgRects + gridSvg + thresholdLines + vectorsSvg + bubblesSvg + axisLabels;
+
+  // Llenar panel de resumen de saltos de cuadrante
+  if (summaryBox) {
+    if (shiftedVars.length === 0) {
+      summaryBox.innerHTML = `<p class="muted" style="margin:0;font-style:italic;">${isEn ? 'No variables changed quadrants between direct (M¹) and indirect (M' + targetK + '); relative structure is highly stable.' : 'Ninguna variable cambió de cuadrante entre la matriz directa (M¹) y la indirecta (M' + targetK + '); la estructura relativa es altamente estable.'}</p>`;
+    } else {
+      let html = `
+        <p style="margin:0 0 8px;color:#94a3b8;">
+          ${isEn ? '<b>' + shiftedVars.length + ' variables</b> changed strategic role when indirect impacts were integrated:' : '<b>' + shiftedVars.length + ' variables</b> cambiaron de rol estratégico al integrar los impactos indirectos:'}
+        </p>
+        <div style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;padding-right:4px;">
+      `;
+
+      shiftedVars.forEach(s => {
+        const fromName = QUAD[s.q1] ? QUAD[s.q1].short : s.q1;
+        const toName = QUAD[s.qK] ? QUAD[s.qK].short : s.qK;
+        const toCol = QUAD[s.qK] ? QUAD[s.qK].color : '#38bdf8';
+        const fromCol = QUAD[s.q1] ? QUAD[s.q1].color : '#94a3b8';
+
+        html += `
+          <div style="background:rgba(8,12,24,0.6);border:1px solid rgba(148,163,255,0.1);padding:6px 8px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <b style="color:#fff;font-family:'JetBrains Mono';">${esc(s.v.code)}</b>
+              <small class="muted" style="display:block;font-size:10px;">${esc(s.v.name)}</small>
+            </div>
+            <div style="text-align:right;font-size:10.5px;font-family:'JetBrains Mono';">
+              <span style="color:${fromCol};">${fromName}</span> → <b style="color:${toCol};">${toName}</b>
+            </div>
+          </div>
+        `;
+      });
+
+      html += '</div>';
+      summaryBox.innerHTML = html;
+    }
+  }
 }
 
 function exportGodetPowersCSV() {
@@ -4433,7 +5119,7 @@ function renderStability() {
             <td><b>${esc(t.u)}</b> → <b>${esc(t.v)}</b> → <b>${esc(t.w)}</b> <small style="color:var(--mut);display:block;font-size:11px;">${esc(t.nameU)} → ${esc(t.nameV)} → ${esc(t.nameW)}</small></td>
             <td style="text-align:center;">${formatSignPill(t.wij)}</td>
             <td style="text-align:center;">${formatSignPill(t.wjk)}</td>
-            <td style="text-align:center;font-weight:700;font-family:'JetBrains Mono';color:${t.indSign > 0 ? '#38bdf8' : '#fb7185'};">${t.indSign > 0 ? '+ (Refuerzo)' : '− (Reducción)'}</td>
+            <td style="text-align:center;font-weight:700;font-family:'JetBrains Mono';color:${t.indSign > 0 ? '#38bdf8' : '#fb7185'};">${t.indSign > 0 ? (isEn ? '+ (Reinforces)' : '+ (Refuerzo)') : (isEn ? '− (Reduces)' : '− (Reducción)')}</td>
             <td style="text-align:center;">${t.dirVal !== 0 ? formatSignPill(t.dirVal) : `<span style="color:var(--mut);font-size:11.5px;">${isEn ? '0 (Mediated only)' : '0 (Solo mediada)'}</span>`}</td>
             <td>${badgeStatus}</td>
           </tr>`;
@@ -4467,9 +5153,10 @@ function renderStability() {
         ${reciprocalPairs.map(r => {
           const isPos = r.product > 0;
           let interp = '';
-          if (r.codeA === 'COM' && r.codeB === 'CUL') interp = isEn ? 'Virtuous loop: competence fosters innovative practice, which in turn stimulates self-training.' : 'Bucle virtuoso: las competencias alimentan la cultura innovadora, la cual incentiva la autoformación docente.';
-          else if (r.codeA === 'COM' && r.codeB === 'RES') interp = isEn ? 'Mitigating loop: training reduces uncertainty; lower resistance unlocks active participation.' : 'Bucle de desbloqueo: mayor competencia mitiga el temor; una menor resistencia activa la capacitación.';
-          else if (r.codeA === 'CUL' && r.codeB === 'RES') interp = isEn ? 'Cultural neutralizing loop: collaborative culture dissolves opposition; reduced resistance protects innovation.' : 'Bucle estabilizador: la cultura colaborativa disuelve la oposición; la menor resistencia protege la innovación.';
+          if ((r.codeA === 'COM' || r.codeA === 'V3') && (r.codeB === 'CUL' || r.codeB === 'V6')) interp = isEn ? 'Virtuous loop: faculty training fosters innovative practice, which in turn stimulates peer-to-peer learning.' : 'Bucle virtuoso: la formación docente alimenta la cultura innovadora, la cual incentiva el aprendizaje entre pares.';
+          else if ((r.codeA === 'COM' || r.codeA === 'V3') && (r.codeB === 'RES' || r.codeB === 'V7')) interp = isEn ? 'Mitigating loop: training reduces uncertainty; lower resistance unlocks active classroom adoption.' : 'Bucle de desbloqueo: mayor formación mitiga el temor; una menor resistencia destraba la adopción en aula.';
+          else if ((r.codeA === 'CUL' || r.codeA === 'V6') && (r.codeB === 'RES' || r.codeB === 'V7')) interp = isEn ? 'Cultural neutralizing loop: collaborative culture dissolves opposition; reduced resistance protects innovation.' : 'Bucle estabilizador: la cultura colaborativa disuelve la oposición; la menor resistencia protege la innovación.';
+          else if (r.codeA === 'V5' && r.codeB === 'V9') interp = isEn ? 'Relevance loop: aligned curriculum boosts graduate employability, and employer feedback updates study plans.' : 'Bucle de pertinencia: el diseño curricular eleva la inserción laboral y la retroalimentación externa actualiza el currículo.';
           else interp = isPos ? (isEn ? 'Self-reinforcing positive feedback' : 'Retroalimentación positiva de auto-refuerzo') : (isEn ? 'Balancing / homeostatic feedback' : 'Retroalimentación balanceadora homeostática');
 
           return `<tr>
@@ -4491,8 +5178,8 @@ function renderStability() {
   const polBar = $('#stab-polarity-bar');
   if (polBar) {
     polBar.innerHTML = `
-      <div style="width:${pctPos}%;background:linear-gradient(90deg,#0284c7,#38bdf8);" title="${posCount} vínculos positivos (+)"></div>
-      <div style="width:${pctNeg}%;background:linear-gradient(90deg,#fb7185,#e11d48);" title="${negCount} vínculos negativos (−)"></div>
+      <div style="width:${pctPos}%;background:linear-gradient(90deg,#0284c7,#38bdf8);" title="${posCount} ${currentLang === 'en' ? 'positive links (+)' : 'vínculos positivos (+)'}"></div>
+      <div style="width:${pctNeg}%;background:linear-gradient(90deg,#fb7185,#e11d48);" title="${negCount} ${currentLang === 'en' ? 'negative links (−)' : 'vínculos negativos (−)'}"></div>
     `;
   }
   const polLegend = $('#stab-polarity-legend');
@@ -4925,7 +5612,7 @@ function renderStabilityResolventChart() {
 
         <!-- Anotación del 100% Colapso -->
         <rect x="${m.l + pw - 240}" y="${m.t + 10}" width="230" height="24" rx="6" fill="#c084fc22" stroke="#c084fc66" />
-        <text x="${m.l + pw - 125}" y="${m.t + 26}" text-anchor="middle" fill="#e9d5ff" font-size="10.5" font-weight="700">⚠️ Colapso PF: Similitud = ${(powersData[9].meanCos * 100).toFixed(1)}%</text>
+        <text x="${m.l + pw - 125}" y="${m.t + 26}" text-anchor="middle" fill="#e9d5ff" font-size="10.5" font-weight="700">⚠️ ${isEn ? 'PF Collapse: Similarity' : 'Colapso PF: Similitud'} = ${(powersData[9].meanCos * 100).toFixed(1)}%</text>
       </svg>
     `;
   }

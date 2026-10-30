@@ -7,12 +7,22 @@
 <meta name="description" content="Extended MICMAC: justified influence matrix, 4D dynamic plane, Katz-Bonacich convergent propagation, and time simulation.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=120">
+<link rel="stylesheet" href="style.css?v=122">
 </head>
 <body>
 <header class="top">
   <div class="top-bar">
-    <div class="brand"><span class="logo">◈</span><div><h1 data-i18n="brand_title">Extended MICMAC</h1><p data-i18n="brand_subtitle">Influences · Dependencies · System Dynamics</p></div></div>
+    <div class="brand">
+      <span class="logo">◈</span>
+      <div>
+        <div class="brand-head-row">
+          <h1 data-i18n="brand_title">Extended MICMAC</h1>
+          <span class="brand-version-pill" data-i18n="brand_version">v2.4 · Dynamic Signed-MICMAC</span>
+          <span class="brand-update-pill" data-i18n="brand_updated">Last updated: Oct 29, 2026</span>
+        </div>
+        <p data-i18n="brand_subtitle">Influences · Dependencies · System Dynamics</p>
+      </div>
+    </div>
     <div class="actions">
       <div class="lang-switcher-wrap" id="lang-menu" title="Select language / Seleccionar idioma">
         <span class="lang-label">
@@ -54,7 +64,7 @@
     <div class="card-head">
       <h2 data-i18n="vars_title">Variables del sistema</h2>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <button class="btn ghost" id="btn-add-preset" title="Incorporar variables predefinidas al sistema">＋ Variables predefinidas</button>
+        <button class="btn ghost" id="btn-add-preset" data-i18n="btn_add_preset" title="Incorporar variables predefinidas al sistema">＋ Variables predefinidas</button>
         <button class="btn" id="add-var" data-i18n="vars_add">+ Agregar variable</button>
       </div>
     </div>
@@ -63,15 +73,15 @@
     <!-- Panel: añadir variables predefinidas -->
     <div id="preset-panel" style="display:none;background:#131929;border:1px solid #1e2d4a;border-radius:10px;padding:16px 18px;margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <b style="color:#93c5fd;font-size:14px;">📋 Selecciona las variables predefinidas a incorporar</b>
+        <b style="color:#93c5fd;font-size:14px;" data-i18n="preset_panel_title">📋 Selecciona las variables predefinidas a incorporar</b>
         <button id="preset-close" style="background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;line-height:1;">✕</button>
       </div>
       <div id="preset-checklist" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;margin-bottom:14px;"></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <button class="btn ghost" id="preset-select-all" style="font-size:12px;padding:4px 10px;">Seleccionar todas</button>
-        <button class="btn ghost" id="preset-deselect-all" style="font-size:12px;padding:4px 10px;">Deseleccionar todas</button>
+        <button class="btn ghost" id="preset-select-all" style="font-size:12px;padding:4px 10px;" data-i18n="preset_select_all">Seleccionar todas</button>
+        <button class="btn ghost" id="preset-deselect-all" style="font-size:12px;padding:4px 10px;" data-i18n="preset_deselect_all">Deseleccionar todas</button>
         <span style="flex:1"></span>
-        <button class="btn" id="preset-add-btn" style="background:#3b82f6;">Añadir seleccionadas</button>
+        <button class="btn" id="preset-add-btn" style="background:#3b82f6;" data-i18n="preset_add_btn">Añadir seleccionadas</button>
       </div>
     </div>
 
@@ -82,25 +92,25 @@
   <div class="card" id="vars-network-card" style="margin-top:0;">
     <div class="card-head" style="flex-wrap:wrap;gap:10px;">
       <div>
-        <h2 id="vars-net-title">🕸 Red de Influencias Directas</h2>
-        <p class="muted" id="vars-net-desc" style="margin:4px 0 0;">Cada cuadro representa una variable. Las flechas muestran las relaciones de la matriz de influencias directas: <span style="color:#38bdf8;font-weight:700;">azul = refuerza (+)</span> · <span style="color:#fb7185;font-weight:700;">rojo = reduce (−)</span> · grosor según intensidad (1–3).</p>
+        <h2 id="vars-net-title" data-i18n="vars_net_title">🕸 Red de Influencias Directas</h2>
+        <p class="muted" id="vars-net-desc" style="margin:4px 0 0;" data-i18n="vars_net_desc">Cada cuadro representa una variable. Las flechas muestran las relaciones de la matriz de influencias directas: <span style="color:#38bdf8;font-weight:700;">azul = refuerza (+)</span> · <span style="color:#fb7185;font-weight:700;">rojo = reduce (−)</span> · grosor según intensidad (1–3).</p>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <select id="vnet-filter" style="width:140px;padding:4px 8px;font-size:12px;" title="Filtrar vínculos">
-          <option value="all">Todos los vínculos</option>
-          <option value="strong">Fuertes (±2, ±3)</option>
-          <option value="vstrong">Solo fuertes (±3)</option>
-          <option value="pos">Solo positivos (+)</option>
-          <option value="neg">Solo negativos (−)</option>
+          <option value="all" data-i18n="vnet_filter_all">Todos los vínculos</option>
+          <option value="strong" data-i18n="vnet_filter_strong">Fuertes (±2, ±3)</option>
+          <option value="vstrong" data-i18n="vnet_filter_vstrong">Solo fuertes (±3)</option>
+          <option value="pos" data-i18n="vnet_filter_pos">Solo positivos (+)</option>
+          <option value="neg" data-i18n="vnet_filter_neg">Solo negativos (−)</option>
         </select>
         <select id="vnet-layout" style="width:150px;padding:4px 8px;font-size:12px;" title="Distribución">
-          <option value="force">Fuerza orgánica</option>
-          <option value="circle">Circular</option>
-          <option value="grid">Rejilla</option>
+          <option value="force" data-i18n="vnet_layout_force">Fuerza orgánica</option>
+          <option value="circle" data-i18n="vnet_layout_circle">Circular</option>
+          <option value="grid" data-i18n="vnet_layout_grid">Rejilla</option>
         </select>
-        <button type="button" class="btn ghost sm" id="vnet-fit" style="padding:4px 10px;font-size:12px;" title="Ajustar al lienzo">⊡ Ajustar</button>
+        <button type="button" class="btn ghost sm" id="vnet-fit" style="padding:4px 10px;font-size:12px;" title="Ajustar al lienzo" data-i18n="vnet_fit">⊡ Ajustar</button>
         <button type="button" class="btn ghost sm" id="vnet-fullscreen" style="padding:4px 9px;font-size:12px;" title="Pantalla completa">⛶</button>
-        <button type="button" class="btn sm" id="vnet-btn-sim" onclick="switchTab('flow')" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 11px;font-weight:600;" title="Abrir Diagrama de Red con Simulación Temporal">▶ Simular en Red Causal</button>
+        <button type="button" class="btn sm" id="vnet-btn-sim" onclick="switchTab('flow')" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 11px;font-weight:600;" title="Abrir Diagrama de Red con Simulación Temporal" data-i18n="vnet_btn_sim">▶ Simular en Red Causal</button>
       </div>
     </div>
 
@@ -129,7 +139,7 @@
       </svg>
       <!-- Zoom & legend overlay -->
       <div style="position:absolute;bottom:12px;left:14px;display:flex;flex-direction:column;gap:6px;z-index:10;pointer-events:none;">
-        <div style="background:rgba(8,12,24,.82);backdrop-filter:blur(8px);border:1px solid rgba(148,163,255,.18);border-radius:8px;padding:6px 12px;font-size:11.5px;color:var(--mut);">
+        <div style="background:rgba(8,12,24,.82);backdrop-filter:blur(8px);border:1px solid rgba(148,163,255,.18);border-radius:8px;padding:6px 12px;font-size:11.5px;color:var(--mut);" data-i18n="vnet_legend_overlay">
           <span style="color:#38bdf8;">●</span> Refuerza (+) &nbsp; <span style="color:#fb7185;">●</span> Reduce (−) &nbsp;·&nbsp; Grosor = Fuerza (1–3)
         </div>
       </div>
@@ -138,15 +148,15 @@
         <span id="vnet-zoom-lbl" style="font-size:11px;font-family:'JetBrains Mono';min-width:38px;text-align:center;line-height:28px;color:var(--acc2);">100%</span>
         <button type="button" id="vnet-zoom-in" style="background:none;border:none;color:var(--txt);padding:4px 8px;font-size:14px;cursor:pointer;border-radius:6px;" title="Acercar">+</button>
       </div>
-      <div style="position:absolute;top:12px;left:14px;font-size:11px;color:rgba(148,163,255,.5);pointer-events:none;z-index:10;">💡 Arrastra variables · Rueda = zoom · Fondo = desplazar</div>
+      <div style="position:absolute;top:12px;left:14px;font-size:11px;color:rgba(148,163,255,.5);pointer-events:none;z-index:10;" data-i18n="vnet_hint_top">💡 Arrastra variables · Rueda = zoom · Fondo = desplazar</div>
     </div>
 
     <!-- Leyenda de cuadrantes -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--mut);align-items:center;">
-      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#34d399;"></span> Motriz/Palanca</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#f59e0b;"></span> Conflicto/Enlace</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#a78bfa;"></span> Resultado/Salida</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#64748b;"></span> Autónoma</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#34d399;"></span> <span data-i18n="vnet_quad_power">Motriz/Palanca</span></span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#f59e0b;"></span> <span data-i18n="vnet_quad_conflict">Conflicto/Enlace</span></span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#a78bfa;"></span> <span data-i18n="vnet_quad_result">Resultado/Salida</span></span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#64748b;"></span> <span data-i18n="vnet_quad_auto">Autónoma</span></span>
     </div>
   </div>
 </section>
@@ -180,26 +190,26 @@
     <div class="table-wrap"><table id="log"></table></div>
   </div>
   <div class="card">
-    <div class="card-head"><h2>Intervenciones y dinámica temporal (Matriz)</h2></div>
-    <p class="muted">Agregue influencias externas sobre variables y observe cómo se propagan por la matriz a lo largo del tiempo.</p>
+    <div class="card-head"><h2 data-i18n="sim_ints_title">Intervenciones y dinámica temporal (Matriz)</h2></div>
+    <p class="muted" data-i18n="sim_ints_desc">Agregue influencias externas sobre variables y observe cómo se propagan por la matriz a lo largo del tiempo.</p>
     <div id="mx-interventions"></div>
-    <h3>Impulso rápido (+20 en t=1)</h3>
+    <h3 data-i18n="sim_quick_title">Impulso rápido (+20 en t=1)</h3>
     <div class="chips" id="mx-quick"></div>
-    <h3>Parámetros del modelo</h3>
+    <h3 data-i18n="sim_params_title">Parámetros del modelo</h3>
     <div class="params">
-      <label><span>Acoplamiento β</span> <input type="range" id="mx-p-beta" min="0.02" max="0.4" step="0.01" value="0.15"><output id="mx-o-beta"></output></label>
-      <label><span>Recuperación λ</span> <input type="range" id="mx-p-lambda" min="0" max="0.3" step="0.01" value="0.05"><output id="mx-o-lambda"></output></label>
-      <label><span>Horizonte (pasos)</span> <input type="range" id="mx-p-steps" min="10" max="120" step="5" value="50"><output id="mx-o-steps"></output></label>
+      <label><span data-i18n="sim_beta_lbl">Acoplamiento β</span> <input type="range" id="mx-p-beta" min="0.02" max="0.4" step="0.01" value="0.15"><output id="mx-o-beta"></output></label>
+      <label><span data-i18n="sim_lambda_lbl">Recuperación λ</span> <input type="range" id="mx-p-lambda" min="0" max="0.3" step="0.01" value="0.05"><output id="mx-o-lambda"></output></label>
+      <label><span data-i18n="sim_steps_lbl">Horizonte (pasos)</span> <input type="range" id="mx-p-steps" min="10" max="120" step="5" value="50"><output id="mx-o-steps"></output></label>
     </div>
   </div>
   <div class="card">
-    <div class="card-head"><h2>Trayectorias</h2>
-      <div class="seg"><button id="mx-v-abs" class="active">Valor</button><button id="mx-v-delta">Δ vs. base</button></div></div>
+    <div class="card-head"><h2 data-i18n="sim_traj_title">Trayectorias</h2>
+      <div class="seg"><button id="mx-v-abs" class="active" data-i18n="sim_val_btn">Valor</button><button id="mx-v-delta" data-i18n="sim_delta_btn">Δ vs. base</button></div></div>
     <div class="chips" id="mx-legend"></div>
     <div id="mx-chart-wrap"></div>
     <div id="mx-hover-read" class="muted"></div>
   </div>
-  <div class="card"><div class="card-head"><h2>Impacto por variable</h2></div><div class="table-wrap"><table id="mx-impact"></table></div></div>
+  <div class="card"><div class="card-head"><h2 data-i18n="sim_impact_title">Impacto por variable</h2></div><div class="table-wrap"><table id="mx-impact"></table></div></div>
 </section>
 
 <!-- 3 PLANO -->
@@ -279,22 +289,22 @@
         <!-- Rango de periodos, magnitud y tipo -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;align-items:flex-end;">
           <div>
-            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:2px;">Tipo:</label>
+            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:2px;" data-i18n="sim_lbl_type">Tipo:</label>
             <select id="multi-int-type" style="width:100%;padding:4px 6px;font-size:12px;">
-              <option value="sust">Sostenida (rango)</option>
-              <option value="pulse">Impulso (paso)</option>
+              <option value="sust" data-i18n="sim_opt_sust">Sostenida (rango)</option>
+              <option value="pulse" data-i18n="sim_opt_pulse">Impulso (paso)</option>
             </select>
           </div>
           <div>
-            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:2px;">Magnitud (+/−):</label>
+            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:2px;" data-i18n="sim_lbl_mag">Magnitud (+/−):</label>
             <input type="number" id="multi-int-mag" value="3.0" step="0.5" style="width:100%;padding:4px 6px;font-size:12px;font-family:'JetBrains Mono';font-weight:700;">
           </div>
           <div>
-            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:2px;">Inicio (t):</label>
+            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:2px;" data-i18n="sim_lbl_start">Inicio (t):</label>
             <input type="number" id="multi-int-start" min="1" max="100" value="2" style="width:100%;padding:4px 6px;font-size:12px;font-family:'JetBrains Mono';font-weight:700;">
           </div>
           <div id="multi-int-dur-box">
-            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:2px;">Duración (pasos):</label>
+            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:2px;" data-i18n="sim_lbl_dur">Duración (pasos):</label>
             <input type="number" id="multi-int-dur" min="1" max="100" value="15" style="width:100%;padding:4px 6px;font-size:12px;font-family:'JetBrains Mono';font-weight:700;">
           </div>
           <div style="display:flex;gap:6px;">
@@ -395,9 +405,9 @@
           <span data-i18n="dyn_lbl_crit">Criterio de umbrales</span>
         </span>
         <select id="dyn-criterio">
-          <option value="mediana">Mediana</option>
-          <option value="media">Media aritmética</option>
-          <option value="moda">Moda</option>
+          <option value="mediana" data-i18n="pl_thr_median">Mediana</option>
+          <option value="media" data-i18n="pl_thr_mean">Media aritmética</option>
+          <option value="moda" data-i18n="pl_thr_mode">Moda</option>
         </select>
       </label>
       <label>
@@ -451,6 +461,130 @@
     <div class="card-head"><h2 data-i18n="dyn_report_title">Informe Ejecutivo Automatizado para la Toma de Decisiones</h2></div>
     <div id="dyn-report" class="muted" style="line-height:1.7;color:var(--txt)"></div>
   </div>
+
+  <div class="card" id="dyn-academic-card">
+    <div class="card-head">
+      <h2 data-i18n="dyn_academic_title">📚 Fundamentación Teórico-Matemática del Modelo 4D Dynamic Signed-MICMAC y Referencias Bibliográficas</h2>
+    </div>
+    <div id="dyn-academic-body" data-i18n="dyn_academic_html">
+<div style="display:flex;flex-direction:column;gap:16px;font-size:13px;line-height:1.7;color:var(--txt);">
+  <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(56,189,248,0.25);border-left:4px solid #38bdf8;border-radius:10px;padding:14px 16px;">
+    <h3 style="margin:0 0 8px;color:#38bdf8;font-size:15px;">I. Superación de las Tres Limitaciones del MICMAC Clásico (Godet, 1994, 2001)</h3>
+    <p style="margin:0 0 10px;">
+      El análisis estructural prospectivo clásico <b>MICMAC</b> (<i>Matrice d'Impacts Croisés Multiplication Appliquée à un Classement</i>), formulado por <b>Michel Godet (1994, 2001; Godet &amp; Durance, 2011)</b> en el LIPSOR (CNAM, París), clasifica las variables elevando una matriz de intensidades sin signo <code>A ∈ {0, 1, 2, 3}<sup>n×n</sup></code> a potencias sucesivas <code>A², A³, ..., A<sup>k</sup></code>. Pese a su enorme valor histórico, adolece de tres limitaciones algebraicas y sistémicas que el modelo <b>4D Dynamic Signed-MICMAC</b> resuelve formalmente:
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px;">
+      <div style="background:rgba(8,12,24,0.75);padding:12px;border-radius:8px;border:1px solid rgba(148,163,255,0.14);">
+        <b style="color:#60a5fa;display:block;margin-bottom:4px;">1. Degeneración Espectral de Perron-Frobenius</b>
+        <span style="font-size:12px;color:#cbd5e1;">
+          Por el teorema de <b>Perron (1907)</b> y <b>Frobenius (1912)</b>, para toda matriz primitiva no negativa <code>A</code>, al crecer <code>k → ∞</code> la potencia normalizada <code>A<sup>k</sup> / ρ(A)<sup>k</sup></code> converge a una matriz de rango 1 (<code>u · v<sup>T</sup></code>). En consecuencia, todas las filas se vuelven colineales al autovector dominante y el método de Godet pierde la especificidad estructural de los caminos de orden intermedio (<b>Bonacich, 1987; Barabási, 2016</b>).
+        </span>
+      </div>
+      <div style="background:rgba(8,12,24,0.75);padding:12px;border-radius:8px;border:1px solid rgba(148,163,255,0.14);">
+        <b style="color:#fbbf24;display:block;margin-bottom:4px;">2. Ceguera ante la Polaridad y Bucles Inhibitorios</b>
+        <span style="font-size:12px;color:#cbd5e1;">
+          Al operar exclusivamente con valores absolutos <code>|W|</code>, el MICMAC clásico asume implícitamente que toda influencia causal suma. Ignora la teoría de grafos con signo (<b>Harary, 1953; Cartwright &amp; Harary, 1956</b>) y confunde una variable con alto empuje neto con otra cuyos efectos positivos son neutralizados por bucles negativos de resistencia (arquetipo <i>Fixes that Fail</i> o «Soluciones que Fracasan» de <b>Senge, 1990; Meadows, 2008</b>).
+        </span>
+      </div>
+      <div style="background:rgba(8,12,24,0.75);padding:12px;border-radius:8px;border:1px solid rgba(148,163,255,0.14);">
+        <b style="color:#34d399;display:block;margin-bottom:4px;">3. Atemporalidad y Ausencia de Retardos</b>
+        <span style="font-size:12px;color:#cbd5e1;">
+          En la formulación estática de Godet, un vínculo que tarda 6 meses en operar pesa exactamente igual que una reforma estructural que requiere 5 años de maduración. En dinámica de sistemas (<b>Forrester, 1961; Richardson, 1991; Sterman, 2000</b>), los retardos materiales e informacionales determinan la amortiguación y la aparición de oscilaciones.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(167,139,250,0.25);border-left:4px solid #a78bfa;border-radius:10px;padding:14px 16px;">
+    <h3 style="margin:0 0 8px;color:#c4b5fd;font-size:15px;">II. Formulación Matemática Exacta del Operador Resolvente 4D</h3>
+    <p style="margin:0 0 10px;">
+      Sea un sistema de <code>n</code> variables con matriz de impactos directos signados <code>A = [a<sub>ij</sub>] ∈ [−3, +3]<sup>n×n</sup></code> (donde <code>a<sub>ii</sub> = 0</code>) y matriz de retardos de implementación <code>T = [t<sub>ij</sub>] ∈ ℝ<sub>+</sub><sup>n×n</sup></code>. El modelo ejecuta cuatro etapas analíticas acopladas:
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">
+      <div style="background:rgba(8,12,24,0.8);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+        <b style="color:#38bdf8;font-size:12.5px;">Paso 1 · Descuento Temporal Exponencial (Sterman, 2000):</b>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e2e8f0;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;margin:6px 0;">
+          W<sub>ij</sub>(λ) = A<sub>ij</sub> · exp(−λ · t<sub>ij</sub>)
+        </div>
+        <span style="font-size:11.5px;color:#94a3b8;">Donde <code>λ ≥ 0</code> es la tasa continua de fricción temporal e incertidumbre institucional.</span>
+      </div>
+      <div style="background:rgba(8,12,24,0.8);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+        <b style="color:#a78bfa;font-size:12.5px;">Paso 2 · Radio Espectral y Factor Convergente α (Katz, 1953):</b>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e2e8f0;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;margin:6px 0;">
+          ρ(|W|) = max |μ<sub>k</sub>(|W|)|  ;  α = r / ρ(|W|)  (0 &lt; r &lt; 1)
+        </div>
+        <span style="font-size:11.5px;color:#94a3b8;">Garantiza la convergencia absoluta de la serie de Neumann <code>∑ α<sup>k</sup> W<sup>k</sup></code> bajo <code>α · ρ(|W|) &lt; 1</code>.</span>
+      </div>
+      <div style="background:rgba(8,12,24,0.8);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+        <b style="color:#34d399;font-size:12.5px;">Paso 3 · Resolvente Bruta de Leontief (Leontief, 1951):</b>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e2e8f0;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;margin:6px 0;">
+          S<sup>bruta</sup> = (I − α·|W|)<sup>−1</sup> · |W| = ∑<sub>k=1</sub><sup>∞</sup> α<sup>k−1</sup> |W|<sup>k</sup>
+        </div>
+        <span style="font-size:11.5px;color:#94a3b8;">Cuantifica el volumen total de actividad bruta movilizada sin cancelación de signos.</span>
+      </div>
+      <div style="background:rgba(8,12,24,0.8);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+        <b style="color:#f472b6;font-size:12.5px;">Paso 4 · Resolvente Signada de Katz-Bonacich (Bonacich, 1987):</b>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e2e8f0;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;margin:6px 0;">
+          S<sup>neta</sup> = (I − α·W)<sup>−1</sup> · W = ∑<sub>k=1</sub><sup>∞</sup> α<sup>k−1</sup> W<sup>k</sup>
+        </div>
+        <span style="font-size:11.5px;color:#94a3b8;">Integra algebraicamente trayectorias de refuerzo (+) e inhibición (−) de todos los órdenes.</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(52,211,153,0.25);border-left:4px solid #34d399;border-radius:10px;padding:14px 16px;">
+    <h3 style="margin:0 0 8px;color:#6ee7b7;font-size:15px;">III. Las Cuatro Dimensiones (4D) del Plano Estructural Dinámico</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
+      <div style="background:rgba(8,12,24,0.75);padding:11px 13px;border-radius:8px;">
+        <b style="color:#38bdf8;">1ª y 2ª Dimensión · Ejes Cartesiano (M<sub>i</sub><sup>neta</sup> vs. D<sub>i</sub><sup>neta</sup>) y Tamaño (M<sub>i</sub><sup>bruta</sup>):</b>
+        <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">
+          La <b>Motricidad Neta Efectiva</b> <code>M<sub>i</sub><sup>neta</sup> = ∑<sub>j≠i</sub> |S<sub>ij</sub><sup>neta</sup>|</code> (Eje Y) y la <b>Dependencia Neta Efectiva</b> <code>D<sub>j</sub><sup>neta</sup> = ∑<sub>i≠j</sub> |S<sub>ij</sub><sup>neta</sup>|</code> (Eje X) posicionan cada variable según el impacto real que sobrevive tras la interferencia de bucles opuestos, mientras el diámetro del nodo refleja su <b>Motricidad Bruta</b> <code>M<sub>i</sub><sup>bruta</sup> = ∑<sub>j≠i</sub> S<sub>ij</sub><sup>bruta</sup></code> (<b>Bonacich, 1987; Meadows, 1999</b>).
+        </p>
+      </div>
+      <div style="background:rgba(8,12,24,0.75);padding:11px 13px;border-radius:8px;">
+        <b style="color:#34d399;">3ª Dimensión · Color del Nodo: Auto-Bucle Dinámico (F<sub>i</sub> = S<sub>ii</sub><sup>neta</sup>):</b>
+        <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">
+          La diagonal principal <code>F<sub>i</sub> = S<sub>ii</sub><sup>neta</sup></code> mide la energía que parte de la variable <code>i</code> y retorna a sí misma a través de ciclos cerrados de longitud <code>k ≥ 2</code>:
+          <br>• <b>F<sub>i</sub> &gt; 0 (Verde / Amplificador):</b> Ciclo reforzador o «bola de nieve» (<i>Virtuous/Vicious Cycle</i>, <b>Senge, 1990; Forrester, 1961</b>).
+          <br>• <b>F<sub>i</sub> &lt; 0 (Rosa / Regulador):</b> Bucle negativo homeostático que absorbe perturbaciones (<b>Sterman, 2000</b>).
+        </p>
+      </div>
+      <div style="background:rgba(8,12,24,0.75);padding:11px 13px;border-radius:8px;">
+        <b style="color:#fbbf24;">4ª Dimensión · Anillo Exterior: Índice de Ambigüedad Causal (Ω<sub>i</sub>):</b>
+        <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">
+          Definido como <code>Ω<sub>i</sub> = (1 − M<sub>i</sub><sup>neta</sup> / M<sub>i</sub><sup>bruta</sup>) × 100%</code>. Mide la fracción de fuerza motriz que se autodestruye por trayectorias de signo opuesto. Permite distinguir entre <b>Palancas Maestras Consistentes</b> (alta <code>M<sub>i</sub><sup>neta</sup></code>, bajo <code>Ω<sub>i</sub></code>) y <b>Trampas de Política / Espejismos</b> (alta <code>M<sub>i</sub><sup>bruta</sup></code> clásica pero elevado <code>Ω<sub>i</sub> &gt; 30%</code>, <b>Meadows, 2008; Kotter, 1996; Schein, 2010</b>).
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(148,163,255,0.2);border-radius:10px;padding:14px 16px;">
+    <h3 style="margin:0 0 8px;color:#93c5fd;font-size:15px;">IV. Referencias Bibliográficas Fundamentales (APA 7.ª ed.)</h3>
+    <ul style="margin:0;padding-left:18px;font-size:12px;color:#cbd5e1;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:6px 18px;">
+      <li><b>Barabási, A.-L. (2016).</b> <i>Network science</i>. Cambridge University Press.</li>
+      <li><b>Bonacich, P. (1987).</b> Power and centrality: A family of measures. <i>American Journal of Sociology</i>, 92(5), 1170–1182. https://doi.org/10.1086/228631</li>
+      <li><b>Cartwright, D., &amp; Harary, F. (1956).</b> Structural balance: A generalization of Heider's theory. <i>Psychological Review</i>, 63(5), 277–293.</li>
+      <li><b>Forrester, J. W. (1961).</b> <i>Industrial dynamics</i>. MIT Press.</li>
+      <li><b>Frobenius, G. (1912).</b> Über Matrizen aus nicht negativen Elementen. <i>Sitzungsberichte der Königlich Preussischen Akademie der Wissenschaften</i>, 456–477.</li>
+      <li><b>Godet, M. (1994).</b> <i>From anticipation to action: A handbook of strategic prospective</i>. UNESCO Publishing.</li>
+      <li><b>Godet, M. (2001).</b> <i>Creating futures: Scenario planning as a strategic management tool</i>. Economica.</li>
+      <li><b>Godet, M., &amp; Durance, P. (2011).</b> <i>La prospectiva estratégica para las empresas y los territorios</i>. Dunod / UNESCO.</li>
+      <li><b>Harary, F. (1953).</b> On the notion of balance of a signed graph. <i>Michigan Mathematical Journal</i>, 2(2), 143–146.</li>
+      <li><b>Katz, L. (1953).</b> A new status index derived from sociometric analysis. <i>Psychometrika</i>, 18(1), 39–43. https://doi.org/10.1007/BF02289026</li>
+      <li><b>Kotter, J. P. (1996).</b> <i>Leading change</i>. Harvard Business School Press.</li>
+      <li><b>Leontief, W. (1951).</b> <i>The structure of the American economy, 1919–1939</i> (2nd ed.). Oxford University Press.</li>
+      <li><b>Meadows, D. H. (1999).</b> <i>Leverage points: Places to intervene in a system</i>. The Sustainability Institute.</li>
+      <li><b>Meadows, D. H. (2008).</b> <i>Thinking in systems: A primer</i>. Chelsea Green Publishing.</li>
+      <li><b>Perron, O. (1907).</b> Zur Theorie der Matrices. <i>Mathematische Annalen</i>, 64(2), 248–263.</li>
+      <li><b>Richardson, G. P. (1991).</b> <i>Feedback thought in social science and systems theory</i>. University of Pennsylvania Press.</li>
+      <li><b>Schein, E. H. (2010).</b> <i>Organizational culture and leadership</i> (4th ed.). Jossey-Bass.</li>
+      <li><b>Senge, P. M. (1990).</b> <i>The fifth discipline: The art and practice of the learning organization</i>. Doubleday/Currency.</li>
+      <li><b>Sterman, J. D. (2000).</b> <i>Business dynamics: Systems thinking and modeling for a complex world</i>. Irwin/McGraw-Hill.</li>
+    </ul>
+  </div>
+</div>
+</div>
+  </div>
 </section>
 
 <!-- 6 DIAGRAMA SISTÉMICO DE RED CAUSAL -->
@@ -482,12 +616,12 @@
         <button type="button" class="btn ghost sm" id="flow-btn-reset" data-i18n="flow_btn_reset" title="Volver al inicio (t=0)">⏮ t=0</button>
         
         <button type="button" class="btn sm" id="flow-btn-open-int-modal" onclick="openFlowInterventionModal()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;display:inline-flex;align-items:center;gap:6px;font-weight:600;padding:7px 13px;" title="Configurar intervenciones sobre una o varias variables y partir la simulación">
-          <span>⚡ Intervenir Variables</span>
+          <span data-i18n="flow_btn_intervene_vars">⚡ Intervenir Variables</span>
         </button>
 
         <button type="button" class="btn sm active" id="flow-btn-focus-changes" onclick="toggleFlowFocusChanges()" style="background:rgba(245,158,11,0.22);border:1px solid #f59e0b;color:#fcd34d;display:inline-flex;align-items:center;gap:6px;font-weight:600;padding:7px 12px;" title="Destacar únicamente las variables que están cambiando y los vínculos de impacto activo en cada paso temporal">
           <span id="flow-focus-icon">💡</span>
-          <span id="flow-focus-txt">Solo cambios destacados</span>
+          <span id="flow-focus-txt" data-i18n="flow_focus_changes_on">Solo cambios destacados</span>
         </button>
 
         <div style="display:flex;align-items:center;gap:8px;background:rgba(8,12,24,.6);padding:4px 10px;border-radius:8px;border:1px solid var(--line);">
@@ -522,10 +656,11 @@
 
         <div style="display:flex;align-items:center;gap:6px;">
           <span style="font-size:12px;color:var(--mut);" data-i18n="flow_btn_layout">Auto-ordenar:</span>
-          <select id="flow-layout-select" style="width:170px;padding:4px 8px;font-size:12px;">
-            <option value="causal" data-i18n="flow_layout_causal">Flujo Causal (Cuadrantes)</option>
+          <select id="flow-layout-select" style="width:190px;padding:4px 8px;font-size:12px;">
+            <option value="causal" selected data-i18n="flow_layout_causal">Flujo Causal (Cuadrantes)</option>
+            <option value="force" data-i18n="flow_layout_force">Fuerza Orgánica (Red)</option>
+            <option value="circle" data-i18n="flow_layout_circle">Bucle Circular (Causal Loop)</option>
             <option value="grid" data-i18n="flow_layout_grid">Rejilla Estructurada (3x3)</option>
-            <option value="circle" data-i18n="flow_layout_circle">Bucle Circular</option>
           </select>
         </div>
 
@@ -577,14 +712,14 @@
         <div class="flow-floating-hud" id="flow-floating-hud">
           <button type="button" class="btn sm" id="flow-hud-play" onclick="$('#flow-btn-play').click()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;display:inline-flex;align-items:center;gap:6px;font-weight:600;padding:6px 12px;border-radius:8px;" title="Iniciar o pausar simulación">
             <span id="flow-hud-play-icon">▶</span>
-            <span id="flow-hud-play-text">Iniciar</span>
+            <span id="flow-hud-play-text" data-i18n="flow_hud_start">Iniciar</span>
           </button>
           <button type="button" class="btn sm danger" id="flow-hud-stop" onclick="$('#flow-btn-stop').click()" style="display:inline-flex;align-items:center;gap:6px;font-weight:600;padding:6px 12px;border-radius:8px;background:rgba(239,68,68,0.22);border:1px solid #ef4444;color:#fca5a5;" title="Detener simulación">
             <span>⏹</span>
-            <span>Detener</span>
+            <span data-i18n="flow_hud_stop">Detener</span>
           </button>
           <button type="button" class="btn sm ghost" onclick="openFlowInterventionModal()" style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:5px 10px;border-color:rgba(124,140,255,0.4);" title="Intervenir una o varias variables">
-            <span>⚡ Intervenir</span>
+            <span data-i18n="flow_hud_intervene">⚡ Intervenir</span>
           </button>
           <span class="flow-hud-step-pill" id="flow-hud-step-pill">t = 0</span>
         </div>
@@ -604,18 +739,18 @@
           <div class="flow-drawer-body">
             <div style="display:flex;gap:8px;margin-bottom:12px;">
               <div style="flex:1;background:rgba(8,12,24,.6);padding:8px;border-radius:8px;border:1px solid var(--line);">
-                <div style="font-size:11px;color:var(--mut);">Valor t = <span id="flow-drawer-t">0</span></div>
+                <div style="font-size:11px;color:var(--mut);"><span data-i18n="flow_drawer_val_lbl">Valor t = </span><span id="flow-drawer-t">0</span></div>
                 <div id="flow-drawer-val" style="font-size:18px;font-weight:700;font-family:'JetBrains Mono';"></div>
               </div>
               <div style="flex:1;background:rgba(8,12,24,.6);padding:8px;border-radius:8px;border:1px solid var(--line);">
-                <div style="font-size:11px;color:var(--mut);">Δ vs Base (t=0)</div>
+                <div style="font-size:11px;color:var(--mut);" data-i18n="flow_drawer_delta_lbl">Δ vs Base (t=0)</div>
                 <div id="flow-drawer-delta" style="font-size:18px;font-weight:700;font-family:'JetBrains Mono';"></div>
               </div>
             </div>
 
             <div id="flow-drawer-desc" style="font-size:12px;color:var(--txt);margin-bottom:10px;padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;"></div>
 
-            <div class="flow-drawer-section-title">Nivel Base de la Variable (x₀ en t=0)</div>
+            <div class="flow-drawer-section-title" data-i18n="flow_drawer_base_title">Nivel Base de la Variable (x₀ en t=0)</div>
             <div class="sim-card-level-box" style="margin-bottom:12px;background:rgba(8,12,24,.7);border:1px solid var(--line);padding:5px 8px;">
               <button type="button" class="sim-card-step-btn" id="flow-drawer-step-minus" title="Disminuir nivel base (−5)" style="background:rgba(255,255,255,0.08);color:#fff;border-color:var(--line);">−5</button>
               <input type="range" id="flow-drawer-slider" min="-100" max="100" step="1" value="0" style="flex:1;">
@@ -623,7 +758,7 @@
               <span id="flow-drawer-x0-badge" style="font-family:'JetBrains Mono';font-weight:700;min-width:36px;text-align:right;">0</span>
             </div>
 
-            <div class="flow-drawer-section-title">Intervención (Magnitud & Tiempo)</div>
+            <div class="flow-drawer-section-title" data-i18n="flow_drawer_int_title">Intervención (Magnitud & Tiempo)</div>
             <div id="flow-drawer-int-box" style="margin-bottom:12px;"></div>
 
             <button type="button" class="btn sm" id="flow-drawer-inject-btn" style="width:100%;margin-bottom:12px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;" data-i18n="flow_drawer_inject">+ Inyectar Perturbación Rápida (+20)</button>
@@ -651,7 +786,7 @@
               <span data-i18n="flow_table_title">Registro por Iteración</span>
             </b>
             <div style="display:flex;gap:4px;align-items:center;">
-              <button type="button" class="btn ghost sm" id="btn-toggle-table-width" onclick="toggleFlowTableWidth()" style="padding:2px 7px;font-size:11px;" title="Alternar ancho para ver todas las variables con holgura">↔ Ancho</button>
+              <button type="button" class="btn ghost sm" id="btn-toggle-table-width" onclick="toggleFlowTableWidth()" style="padding:2px 7px;font-size:11px;" title="Alternar ancho para ver todas las variables con holgura" data-i18n="flow_btn_width">↔ Ancho</button>
               <button type="button" class="btn ghost sm" id="btn-export-flow-csv" onclick="exportFlowTrajectoriesCSV()" title="Descargar datos en CSV" style="padding:2px 8px;font-size:11px;">
                 <span>⬇ CSV</span>
               </button>
@@ -676,6 +811,41 @@
           <table id="flow-trajectory-table"></table>
         </div>
       </div>
+    </div><!-- Gráfico de Líneas Sincronizado: Comportamiento Temporal de cada Variable -->
+    <div class="card" id="flow-chart-card" style="margin-top:18px;">
+      <div class="card-head" style="flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:20px;">📈</span>
+            <h3 style="margin:0;font-size:15px;color:#fff;text-transform:none;letter-spacing:normal;" data-i18n="flow_chart_title">Comportamiento Dinámico de cada Variable en el Tiempo (t = 0 .. T)</h3>
+            <span class="pill" id="flow-chart-active-pill" style="background:rgba(56,189,248,0.18);border:1px solid #38bdf8;color:#38bdf8;font-weight:700;font-size:11.5px;padding:3px 9px;">Paso t = 0</span>
+          </div>
+          <p class="muted" style="margin:4px 0 0;font-size:12.5px;" data-i18n="flow_chart_desc">
+            Visualización gráfica de la trayectoria temporal de las variables. El cursor vertical se sincroniza en tiempo real con la animación y el control de paso t del diagrama superior.
+          </p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div class="seg" id="flow-chart-view-seg" style="font-size:12px;">
+            <button type="button" class="active" id="btn-flow-chart-abs" onclick="setFlowChartView('abs')" data-i18n="flow_chart_mode_abs">Nivel Absoluto x(t)</button>
+            <button type="button" id="btn-flow-chart-delta" onclick="setFlowChartView('delta')" data-i18n="flow_chart_mode_delta">Cambio Acumulado Δx(t)</button>
+          </div>
+          <button type="button" class="btn ghost sm" onclick="filterFlowChartSelection('all')" data-i18n="flow_chart_all">Ver Todas</button>
+          <button type="button" class="btn ghost sm" onclick="filterFlowChartSelection('power')" data-i18n="flow_chart_power">Solo Motrices</button>
+          <button type="button" class="btn ghost sm" onclick="filterFlowChartSelection('result')" data-i18n="flow_chart_result">Solo Resultados</button>
+        </div>
+      </div>
+
+      <!-- Canvas SVG del Gráfico de Líneas -->
+      <div style="position:relative;width:100%;background:rgba(8,12,24,0.7);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:10px;overflow:hidden;">
+        <div id="flow-chart-canvas-wrap" style="width:100%;height:320px;position:relative;">
+          <svg id="flow-chart-svg" viewBox="0 0 960 320" style="width:100%;height:320px;display:block;cursor:crosshair;overflow:visible;"></svg>
+        </div>
+        <!-- Hover tooltip -->
+        <div id="flow-chart-tooltip" style="position:absolute;display:none;background:rgba(15,23,42,0.96);border:1px solid #38bdf8;border-radius:8px;padding:8px 12px;font-size:11.5px;color:#fff;pointer-events:none;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,0.65);backdrop-filter:blur(8px);"></div>
+      </div>
+
+      <!-- Leyenda interactiva de chips de variables -->
+      <div id="flow-chart-legend" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;margin-top:14px;"></div>
     </div>
   </div>
 </section>
@@ -704,7 +874,7 @@
         </div>
         <button type="button" class="btn ghost sm" onclick="exportGodetPowersCSV()" title="Descargar datos de convergencia y ranking en CSV">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span>Exportar CSV</span>
+          <span data-i18n="godet_btn_csv">Exportar CSV</span>
         </button>
         <button type="button" class="btn primary sm" onclick="renderGodetStability()" data-i18n="godet_btn_recalc">⟳ Recalcular Potencias</button>
       </div>
@@ -737,13 +907,13 @@
     <!-- Gráfico SVG de Convergencia de Potencias de Godet -->
     <div class="card" style="margin-top:16px;background:rgba(8,12,24,0.4);border:1px solid var(--line);">
       <div class="card-head" style="padding:10px 14px;flex-wrap:wrap;gap:10px;">
-        <h4 style="margin:0;font-size:13.5px;display:flex;align-items:center;gap:6px;">
+        <h4 style="margin:0;font-size:13.5px;display:flex;align-items:center;gap:6px;" data-i18n="godet_chart_title">
           <span>📈</span> Curva de Convergencia del Coeficiente de Spearman (k = 1 a 7)
         </h4>
         <div style="display:flex;gap:12px;font-size:11.5px;flex-wrap:wrap;">
-          <span style="display:flex;align-items:center;gap:5px;color:#38bdf8;"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#38bdf8;"></span> Motricidad (ρₛ vs k-1)</span>
-          <span style="display:flex;align-items:center;gap:5px;color:#a78bfa;"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#a78bfa;"></span> Dependencia (ρₛ vs k-1)</span>
-          <span style="display:flex;align-items:center;gap:5px;color:#34d399;"><span style="display:inline-block;width:12px;height:2px;background:#34d399;border-top:1px dashed #34d399;"></span> Umbral Godet (0.98)</span>
+          <span style="display:flex;align-items:center;gap:5px;color:#38bdf8;"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#38bdf8;"></span> <span data-i18n="godet_leg_mot">Motricidad (ρₛ vs k-1)</span></span>
+          <span style="display:flex;align-items:center;gap:5px;color:#a78bfa;"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#a78bfa;"></span> <span data-i18n="godet_leg_dep">Dependencia (ρₛ vs k-1)</span></span>
+          <span style="display:flex;align-items:center;gap:5px;color:#34d399;"><span style="display:inline-block;width:12px;height:2px;background:#34d399;border-top:1px dashed #34d399;"></span> <span data-i18n="godet_leg_thr">Umbral Godet (0.98)</span></span>
         </div>
       </div>
       <div style="padding:10px 14px;overflow-x:auto;">
@@ -753,7 +923,7 @@
 
     <!-- Tabla 1: Matriz de Convergencia por Potencias -->
     <div style="margin-top:20px;">
-      <h3 style="font-size:14.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+      <h3 style="font-size:14.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;" data-i18n="godet_tbl1_title">
         <span>🔢</span> 1. Tabla de Convergencia Jerárquica por Potencias Matriciales (Mᵏ)
       </h3>
       <div class="table-wrap" style="overflow-x:auto;">
@@ -763,17 +933,94 @@
       </div>
     </div>
 
+    <!-- 2. Plano de Cuadrantes de Vínculos Indirectos (Metodología Godet Mk) -->
+    <div class="card" style="margin-top:24px;border:1px solid rgba(56,189,248,0.3);background:rgba(8,12,24,0.55);">
+      <div class="card-head" style="flex-wrap:wrap;gap:12px;padding:12px 16px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:20px;">✨</span>
+            <h3 style="margin:0;font-size:15px;" data-i18n="godet_plane_title">2. Plano de Cuadrantes de Vínculos Indirectos (Metodología Michel Godet Mᵏ)</h3>
+            <span class="pill" style="background:rgba(56,189,248,0.18);border:1px solid #38bdf8;color:#38bdf8;font-weight:700;font-size:11px;">Mᵏ vs M¹</span>
+          </div>
+          <p class="muted" data-i18n="godet_plane_desc" style="margin:4px 0 0;font-size:12px;">
+            Visualización canónica de la Matriz de Influencias Indirectas (MII) y Dependencias Indirectas (MDI). Los vectores señalan el desplazamiento estructural desde la posición directa (M¹) hasta la potencia estabilizada (Mᵏ).
+          </p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:6px;background:rgba(15,23,42,0.6);padding:4px 10px;border-radius:8px;border:1px solid var(--line);">
+            <span style="font-size:11.5px;color:var(--mut);" data-i18n="godet_plane_lbl_k">Potencia Indirecta (k):</span>
+            <select id="godet-plane-k-sel" onchange="renderGodetStability()" style="font-size:12px;padding:3px 8px;border-radius:6px;background:var(--card-bg, #0f172a);color:var(--txt);border:1px solid var(--line);">
+              <option value="auto" selected data-i18n="godet_plane_k_auto">k* (Estabilización ρ ≥ 0.98)</option>
+              <option value="2">k = 2 (Caminos de 2 pasos)</option>
+              <option value="3">k = 3 (Caminos de 3 pasos)</option>
+              <option value="4">k = 4 (Caminos de 4 pasos)</option>
+              <option value="5">k = 5 (Caminos de 5 pasos)</option>
+            </select>
+          </div>
+          <label class="check" style="font-size:12px;margin:0;">
+            <input type="checkbox" id="godet-plane-vectors" checked onchange="renderGodetStability()">
+            <span data-i18n="godet_plane_show_vectors">Mostrar vectores de desplazamiento (M¹ → Mᵏ)</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;padding:12px 16px;align-items:start;">
+        <!-- SVG Container -->
+        <div style="background:rgba(11,16,32,0.8);border-radius:10px;border:1px solid rgba(148,163,255,0.12);padding:8px;overflow-x:auto;">
+          <div id="godet-plane-wrap" style="min-width:560px;">
+            <svg id="godet-plane-svg" viewBox="0 0 760 560" style="width:100%;height:auto;display:block;"></svg>
+          </div>
+        </div>
+
+        <!-- Lateral Panel: Cambios Estratégicos y Cuadrantes -->
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="card" style="margin:0;background:rgba(15,23,42,0.6);border:1px solid var(--line);padding:10px 12px;">
+            <h4 style="margin:0 0 6px;font-size:12.5px;color:#38bdf8;display:flex;align-items:center;gap:6px;" data-i18n="godet_plane_summary_title">
+              🔄 Reordenamiento Estructural (Godet)
+            </h4>
+            <div id="godet-plane-shift-summary" style="font-size:11.5px;line-height:1.5;">
+              <!-- Llenado dinámicamente con variables que cambian de cuadrante -->
+            </div>
+          </div>
+
+          <div class="card" style="margin:0;background:rgba(15,23,42,0.6);border:1px solid var(--line);padding:10px 12px;">
+            <h4 style="margin:0 0 6px;font-size:12.5px;color:#cbd5e1;display:flex;align-items:center;gap:6px;" data-i18n="godet_plane_quad_legend">
+              📊 Cuadrantes Canónicos MICMAC
+            </h4>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
+              <div style="padding:6px;background:rgba(56,189,248,0.12);border-left:3px solid #38bdf8;border-radius:4px;">
+                <b style="color:#38bdf8;">Poder / Motrices</b><br>
+                <span class="muted" style="font-size:10px;">Alta motricidad, baja dep.</span>
+              </div>
+              <div style="padding:6px;background:rgba(244,63,94,0.12);border-left:3px solid #f43f5e;border-radius:4px;">
+                <b style="color:#f43f5e;">Conflicto / Enlace</b><br>
+                <span class="muted" style="font-size:10px;">Alta motricidad y dependencia.</span>
+              </div>
+              <div style="padding:6px;background:rgba(148,163,184,0.12);border-left:3px solid #94a3b8;border-radius:4px;">
+                <b style="color:#cbd5e1;">Autónomas</b><br>
+                <span class="muted" style="font-size:10px;">Baja motricidad y dependencia.</span>
+              </div>
+              <div style="padding:6px;background:rgba(34,197,94,0.12);border-left:3px solid #22c55e;border-radius:4px;">
+                <b style="color:#22c55e;">Salida / Resultado</b><br>
+                <span class="muted" style="font-size:10px;">Baja motricidad, alta dep.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Tabla 2: Seguimiento Variable por Variable de Rankings a través de las Potencias -->
     <div style="margin-top:24px;">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
-        <h3 style="font-size:14.5px;margin:0;display:flex;align-items:center;gap:6px;">
-          <span>🎯</span> 2. Trayectoria y Evolución del Ranking de cada Variable (M¹ a M⁵)
+        <h3 style="font-size:14.5px;margin:0;display:flex;align-items:center;gap:6px;" data-i18n="godet_tbl2_title">
+          <span>🎯</span> 3. Trayectoria y Evolución del Ranking de cada Variable (M¹ a M⁵)
         </h3>
         <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:12px;color:var(--mut);">Visualizar ranking de:</span>
+          <span style="font-size:12px;color:var(--mut);" data-i18n="godet_lbl_view_rank">Visualizar ranking de:</span>
           <div class="toggle-group" style="display:inline-flex;background:rgba(15,23,42,0.6);border:1px solid var(--line);border-radius:6px;padding:2px;">
-            <button type="button" class="btn sm active" id="btn-godet-view-mot" onclick="setGodetRankView('mot')" style="padding:3px 10px;font-size:11.5px;">Motricidad (Influencia)</button>
-            <button type="button" class="btn sm ghost" id="btn-godet-view-dep" onclick="setGodetRankView('dep')" style="padding:3px 10px;font-size:11.5px;">Dependencia (Sensibilidad)</button>
+            <button type="button" class="btn sm active" id="btn-godet-view-mot" onclick="setGodetRankView('mot')" style="padding:3px 10px;font-size:11.5px;" data-i18n="godet_btn_view_mot">Motricidad (Influencia)</button>
+            <button type="button" class="btn sm ghost" id="btn-godet-view-dep" onclick="setGodetRankView('dep')" style="padding:3px 10px;font-size:11.5px;" data-i18n="godet_btn_view_dep">Dependencia (Sensibilidad)</button>
           </div>
         </div>
       </div>
@@ -787,43 +1034,43 @@
     <!-- Cuadro Pedagógico Crítico: Por qué Godet no es suficiente -->
     <div class="card" style="margin-top:24px;border:1px solid rgba(245,158,11,0.35);background:linear-gradient(180deg,rgba(245,158,11,0.06),rgba(15,23,42,0.85));">
       <div class="card-head">
-        <h4 style="margin:0;color:#fcd34d;display:flex;align-items:center;gap:8px;">
+        <h4 style="margin:0;color:#fcd34d;display:flex;align-items:center;gap:8px;" data-i18n="godet_crit_title">
           <span>⚠️</span> Interpretación Crítica: ¿Por qué la Estabilidad de Godet NO es suficiente para comprender el sistema?
         </h4>
       </div>
       <div style="padding:6px 14px 14px;font-size:12.5px;line-height:1.65;color:#e2e8f0;">
-        <p style="margin:0 0 10px;">
+        <p style="margin:0 0 10px;" data-i18n="godet_crit_intro">
           El método de Michel Godet confirma si la <b>clasificación relativa de prioridades</b> se congela al encadenar efectos indirectos. Si Spearman alcanza <code>ρₛ ≥ 0.98</code>, las variables identificadas como palancas clave no cambiarán su posición por seguir iterando.
         </p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin:10px 0;">
           <div style="background:rgba(8,12,24,0.6);padding:10px 12px;border-radius:8px;border-left:3px solid #ef4444;">
-            <b style="color:#fca5a5;">1. Confunde orden con estabilidad real:</b>
-            <p style="margin:4px 0 0;font-size:11.5px;color:#94a3b8;">
+            <b style="color:#fca5a5;" data-i18n="godet_crit_1_t">1. Confunde orden con estabilidad real:</b>
+            <p style="margin:4px 0 0;font-size:11.5px;color:#94a3b8;" data-i18n="godet_crit_1_p">
               Cinco variables pueden colapsar o explotar numéricamente hacia el infinito conservando intacto su orden relativo (ρₛ = 1.0). Godet no evalúa si el sistema real converge o diverge.
             </p>
           </div>
           <div style="background:rgba(8,12,24,0.6);padding:10px 12px;border-radius:8px;border-left:3px solid #f59e0b;">
-            <b style="color:#fcd34d;">2. Ignora los signos (+ y −):</b>
-            <p style="margin:4px 0 0;font-size:11.5px;color:#94a3b8;">
+            <b style="color:#fcd34d;" data-i18n="godet_crit_2_t">2. Ignora los signos (+ y −):</b>
+            <p style="margin:4px 0 0;font-size:11.5px;color:#94a3b8;" data-i18n="godet_crit_2_p">
               Godet solo suma magnitudes positivas. No distingue entre bucles negativos autorreguladores (frenos homeostáticos) y bucles positivos desestabilizadores (círculos viciosos).
             </p>
           </div>
           <div style="background:rgba(8,12,24,0.6);padding:10px 12px;border-radius:8px;border-left:3px solid #c084fc;">
-            <b style="color:#d8b4fe;">3. Colapso de Perron-Frobenius:</b>
-            <p style="margin:4px 0 0;font-size:11.5px;color:#94a3b8;">
+            <b style="color:#d8b4fe;" data-i18n="godet_crit_3_t">3. Colapso de Perron-Frobenius:</b>
+            <p style="margin:4px 0 0;font-size:11.5px;color:#94a3b8;" data-i18n="godet_crit_3_p">
               Al multiplicar Mᵏ sin factor de atenuación, todas las filas convergen forzosamente hacia el autovector dominante u·vᵀ, destruyendo las identidades causales sutiles de cada variable.
             </p>
           </div>
           <div style="background:rgba(8,12,24,0.6);padding:10px 12px;border-radius:8px;border-left:3px solid #38bdf8;">
-            <b style="color:#7dd3fc;">4. Atemporalidad (Carece de tiempo real):</b>
-            <p style="margin:4px 0 0;font-size:11.5px;color:#94a3b8;">
+            <b style="color:#7dd3fc;" data-i18n="godet_crit_4_t">4. Atemporalidad (Carece de tiempo real):</b>
+            <p style="margin:4px 0 0;font-size:11.5px;color:#94a3b8;" data-i18n="godet_crit_4_p">
               La potencia k es un paso algebraico abstracto. No modela fricción, inercias institucionales ni el calendario cronológico en el que se manifestarán los resultados.
             </p>
           </div>
         </div>
         <div style="margin-top:12px;display:flex;justify-content:flex-end;">
           <button type="button" class="btn primary sm" onclick="switchTab('stability')" style="display:inline-flex;align-items:center;gap:6px;">
-            <span>👉 Explorar Estabilidad Avanzada (Katz-Bonacich, Tríadas y Redes)</span>
+            <span data-i18n="godet_crit_btn">👉 Explorar Estabilidad Avanzada (Katz-Bonacich, Tríadas y Redes)</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
         </div>
@@ -856,37 +1103,37 @@
       <div class="kpi-card clickable" onclick="openStabilityModal('density')" title="Clic para ver explicación e interpretación técnica de la Tasa de Relleno (d)">
         <b id="stab-kpi-density">—</b>
         <span data-i18n="kpi_stab_density">Tasa de Relleno (d)</span>
-        <span style="font-size:9.5px;font-weight:700;color:#93c5fd;background:rgba(59,130,246,0.22);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:3px;border:1px solid rgba(59,130,246,0.4);">🏛️ Godet (Clásico)</span>
+        <span style="font-size:9.5px;font-weight:700;color:#93c5fd;background:rgba(59,130,246,0.22);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:3px;border:1px solid rgba(59,130,246,0.4);" data-i18n="badge_godet_classic">🏛️ Godet (Clásico)</span>
         <small class="info-pill">ⓘ</small>
       </div>
       <div class="kpi-card clickable" onclick="openStabilityModal('rho')" title="Clic para ver definición e interpretación del Radio Espectral ρ(|W|)">
         <b id="stab-kpi-rho">—</b>
         <span data-i18n="kpi_stab_rho">Radio espectral ρ(|W|)</span>
-        <span style="font-size:9.5px;font-weight:700;color:#34d399;background:rgba(5,150,105,0.22);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:3px;border:1px solid rgba(5,150,105,0.4);">🚀 Nueva Propuesta</span>
+        <span style="font-size:9.5px;font-weight:700;color:#34d399;background:rgba(5,150,105,0.22);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:3px;border:1px solid rgba(5,150,105,0.4);" data-i18n="badge_new_proposal">🚀 Nueva Propuesta</span>
         <small class="info-pill">ⓘ</small>
       </div>
       <div class="kpi-card clickable" onclick="openStabilityModal('triads')" title="Clic para ver consistencia lógica y transitividad en tríadas causales">
         <b id="stab-kpi-trans" style="color:#22c55e">—</b>
         <span data-i18n="kpi_stab_trans">Transitividad en Tríadas</span>
-        <span style="font-size:9.5px;font-weight:700;color:#34d399;background:rgba(5,150,105,0.22);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:3px;border:1px solid rgba(5,150,105,0.4);">🚀 Nueva Propuesta</span>
+        <span style="font-size:9.5px;font-weight:700;color:#34d399;background:rgba(5,150,105,0.22);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:3px;border:1px solid rgba(5,150,105,0.4);" data-i18n="badge_new_proposal">🚀 Nueva Propuesta</span>
         <small class="info-pill">ⓘ</small>
       </div>
       <div class="kpi-card clickable" onclick="openStabilityModal('asym')" title="Clic para ver definición del Índice de Asimetría y Direccionalidad">
         <b id="stab-kpi-asym" style="color:#38bdf8">—</b>
         <span data-i18n="kpi_stab_asym">Índice de Asimetría (I_asym)</span>
-        <span style="font-size:9.5px;font-weight:700;color:#34d399;background:rgba(5,150,105,0.22);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:3px;border:1px solid rgba(5,150,105,0.4);">🚀 Nueva Propuesta</span>
+        <span style="font-size:9.5px;font-weight:700;color:#34d399;background:rgba(5,150,105,0.22);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:3px;border:1px solid rgba(5,150,105,0.4);" data-i18n="badge_new_proposal">🚀 Nueva Propuesta</span>
         <small class="info-pill">ⓘ</small>
       </div>
       <div class="kpi-card clickable" onclick="openStabilityModal('loops')" title="Clic para ver clasificación de Bucles Recíprocos de 2 Ciclos">
         <b id="stab-kpi-loops" style="color:#f59e0b">—</b>
         <span data-i18n="kpi_stab_loops">Bucles de 2 Ciclos</span>
-        <span style="font-size:9.5px;font-weight:700;color:#34d399;background:rgba(5,150,105,0.22);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:3px;border:1px solid rgba(5,150,105,0.4);">🚀 Nueva Propuesta</span>
+        <span style="font-size:9.5px;font-weight:700;color:#34d399;background:rgba(5,150,105,0.22);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:3px;border:1px solid rgba(5,150,105,0.4);" data-i18n="badge_new_proposal">🚀 Nueva Propuesta</span>
         <small class="info-pill">ⓘ</small>
       </div>
       <div class="kpi-card clickable" onclick="openStabilityModal('quality')" title="Clic para ver estándares de Calidad Documental y Evidencia">
         <b id="stab-kpi-quality" style="color:#22c55e">—</b>
         <span data-i18n="kpi_stab_quality">Calidad Documental</span>
-        <span style="font-size:9.5px;font-weight:700;color:#34d399;background:rgba(5,150,105,0.22);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:3px;border:1px solid rgba(5,150,105,0.4);">🚀 Nueva Propuesta</span>
+        <span style="font-size:9.5px;font-weight:700;color:#34d399;background:rgba(5,150,105,0.22);padding:2px 6px;border-radius:4px;display:inline-block;margin-top:3px;border:1px solid rgba(5,150,105,0.4);" data-i18n="badge_new_proposal">🚀 Nueva Propuesta</span>
         <small class="info-pill">ⓘ</small>
       </div>
     </div>
@@ -898,15 +1145,15 @@
       <div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:20px;">⚖️</span>
-          <h2 style="color:#fff;margin:0;font-size:16px;">Distinción Metodológica: Propuesta Tradicional de Michel Godet vs. Nuevas Propuestas del MICMAC Extendido</h2>
+          <h2 style="color:#fff;margin:0;font-size:16px;" data-i18n="stab_comp_title">Distinción Metodológica: Propuesta Tradicional de Michel Godet vs. Nuevas Propuestas del MICMAC Extendido</h2>
         </div>
-        <p class="muted" style="margin:4px 0 0;font-size:12px;">
+        <p class="muted" style="margin:4px 0 0;font-size:12px;" data-i18n="stab_comp_desc">
           Comparativa analítica entre la formulación prospectiva clásica (Godet / LIPSOR) y las innovaciones matemáticas desarrolladas en este sistema (Teoría Espectral, Katz-Bonacich y Dinámica Continua de Euler).
         </p>
       </div>
     </div>
 
-    <div class="table-wrap" id="wrap-godet-comparison" style="margin-top:12px;overflow-x:auto;">
+    <div class="table-wrap" id="wrap-godet-comparison" style="margin-top:12px;overflow-x:auto;" data-i18n="stab_comp_table_html">
       <table style="width:100%;font-size:12px;border-collapse:collapse;">
         <thead>
           <tr style="background:#0b1120;border-bottom:2px solid var(--line);">
@@ -987,7 +1234,7 @@
       <div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <h2 data-i18n="stab_res_vs_pf_title" style="margin:0;">⚡ Resolvente de Katz-Bonacich vs. Colapso de Perron-Frobenius</h2>
-          <span class="pill" style="background:#05966922;color:#34d399;border:1px solid #05966955;font-size:11px;font-weight:700;">🚀 Nueva Propuesta Metodológica</span>
+          <span class="pill" style="background:#05966922;color:#34d399;border:1px solid #05966955;font-size:11px;font-weight:700;" data-i18n="badge_new_method">🚀 Nueva Propuesta Metodológica</span>
         </div>
         <p class="muted" data-i18n="stab_res_vs_pf_desc" style="margin:4px 0 0;">
           Evaluación rigurosa de la convergencia asintótica: contraste entre el valor real obtenido, la calibración óptima (α·ρ = 0.80) y la frontera singular de colapso de Perron-Frobenius (α·ρ = 1.00).
@@ -998,7 +1245,7 @@
           <button type="button" class="active" id="btn-res-mode-spectral" onclick="setResolventChartMode('spectral')" data-i18n="stab_btn_mode_spectral">📈 Curva Espectral (α·ρ)</button>
           <button type="button" class="ghost" id="btn-res-mode-powers" onclick="setResolventChartMode('powers')" data-i18n="stab_btn_mode_powers">🔄 Potencias (k = 1..10)</button>
         </div>
-        <button type="button" class="btn ghost sm" onclick="openStabilityModal('convergence')" title="Ver formulación analítica de Katz-Bonacich vs Perron-Frobenius">ⓘ Fundamento Teórico</button>
+        <button type="button" class="btn ghost sm" onclick="openStabilityModal('convergence')" title="Ver formulación analítica de Katz-Bonacich vs Perron-Frobenius" data-i18n="stab_btn_theory">ⓘ Fundamento Teórico</button>
       </div>
     </div>
 
@@ -1011,10 +1258,10 @@
         <span style="font-size:12px;color:var(--mut);" id="stab-alpha-calc-txt">(α = 0.145)</span>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;">
-        <span class="chip" style="cursor:pointer;" onclick="setStabAlpha(0.50)">Conservador (0.50)</span>
-        <span class="chip on" id="chip-opt-080" style="cursor:pointer;border-color:#34d399;color:#34d399;" onclick="setStabAlpha(0.80)">★ Óptimo (0.80)</span>
-        <span class="chip" style="cursor:pointer;border-color:#f59e0b;color:#f59e0b;" onclick="setStabAlpha(0.90)">Sensible (0.90)</span>
-        <span class="chip" style="cursor:pointer;border-color:#ef4444;color:#ef4444;" onclick="setStabAlpha(0.97)">Límite (0.97)</span>
+        <span class="chip" style="cursor:pointer;" onclick="setStabAlpha(0.50)" data-i18n="stab_chip_cons">Conservador (0.50)</span>
+        <span class="chip on" id="chip-opt-080" style="cursor:pointer;border-color:#34d399;color:#34d399;" onclick="setStabAlpha(0.80)" data-i18n="stab_chip_opt">★ Óptimo (0.80)</span>
+        <span class="chip" style="cursor:pointer;border-color:#f59e0b;color:#f59e0b;" onclick="setStabAlpha(0.90)" data-i18n="stab_chip_sens">Sensible (0.90)</span>
+        <span class="chip" style="cursor:pointer;border-color:#ef4444;color:#ef4444;" onclick="setStabAlpha(0.97)" data-i18n="stab_chip_lim">Límite (0.97)</span>
       </div>
     </div>
 
@@ -1060,9 +1307,9 @@
     <div class="card-head" style="flex-wrap:wrap;gap:10px;">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <h2 data-i18n="stab_powers_title" style="margin:0;">1 · Estabilidad del Ranking Jerárquico por Potencias de la Matriz (Método Godet)</h2>
-        <span class="pill" style="background:#3b82f622;color:#60a5fa;border:1px solid #3b82f655;font-size:11px;font-weight:700;">🏛️ Método Clásico de Michel Godet</span>
+        <span class="pill" style="background:#3b82f622;color:#60a5fa;border:1px solid #3b82f655;font-size:11px;font-weight:700;" data-i18n="badge_godet_method">🏛️ Método Clásico de Michel Godet</span>
       </div>
-      <button type="button" class="btn ghost sm" onclick="openStabilityModal('powers')" style="padding:3px 8px;font-size:11.5px;">ⓘ ¿Cómo interpretar potencias A^k?</button>
+      <button type="button" class="btn ghost sm" onclick="openStabilityModal('powers')" style="padding:3px 8px;font-size:11.5px;" data-i18n="stab_btn_how_ak">ⓘ ¿Cómo interpretar potencias A^k?</button>
     </div>
     <p class="muted" data-i18n="stab_powers_desc">
       Evalúa la convergencia de la clasificación MICMAC elevando la matriz a potencias sucesivas (A^k). Si la correlación de Spearman se estabiliza a partir de k=3..5, la jerarquía de cuadrantes es estructuralmente robusta.
@@ -1075,14 +1322,14 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:16px;">
       <div style="background:rgba(8,12,24,.6);border:1px solid var(--line);border-radius:10px;padding:12px 14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <b style="color:#38bdf8;font-size:12.5px;">📈 Parámetros Espectrales y Límite de Estabilidad</b>
+          <b style="color:#38bdf8;font-size:12.5px;" data-i18n="stab_spec_box_title">📈 Parámetros Espectrales y Límite de Estabilidad</b>
           <button type="button" class="info-icon-btn" onclick="openStabilityModal('rho')" title="Ver definición del Radio Espectral y Fricción">ⓘ</button>
         </div>
         <div id="stab-spectral-details" style="font-size:12px;color:var(--txt);line-height:1.6;"></div>
       </div>
       <div style="background:rgba(8,12,24,.6);border:1px solid var(--line);border-radius:10px;padding:12px 14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <b style="color:#34d399;font-size:12.5px;">🛡️ Diagnóstico de Convergencia Katz-Bonacich / Leontief</b>
+          <b style="color:#34d399;font-size:12.5px;" data-i18n="stab_conv_box_title">🛡️ Diagnóstico de Convergencia Katz-Bonacich / Leontief</b>
           <button type="button" class="info-icon-btn" onclick="openStabilityModal('convergence')" title="Ver formulación del Resolvente de Katz-Bonacich">ⓘ</button>
         </div>
         <div id="stab-convergence-details" style="font-size:12px;color:var(--txt);line-height:1.6;"></div>
@@ -1096,19 +1343,19 @@
       <div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <h2 data-i18n="stab_triads_title" style="margin:0;">2 · Consistencia Lógica y Transitividad Causal de los Juicios Pareados</h2>
-          <span class="pill" style="background:#05966922;color:#34d399;border:1px solid #05966955;font-size:11px;font-weight:700;">🚀 Nueva Propuesta Metodológica</span>
+          <span class="pill" style="background:#05966922;color:#34d399;border:1px solid #05966955;font-size:11px;font-weight:700;" data-i18n="badge_new_method">🚀 Nueva Propuesta Metodológica</span>
         </div>
         <p class="muted" data-i18n="stab_triads_desc" style="margin:4px 0 0;">
           Comprueba si las cadenas causales indirectas de dos pasos (i → j → k) concuerdan en signo con los juicios directos emitidos (i → k) o si existen contradicciones lógicas en el panel experto.
         </p>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button type="button" class="btn ghost sm" onclick="openStabilityModal('triads')" style="padding:4px 8px;font-size:11.5px;">ⓘ ¿Qué son Tríadas?</button>
+        <button type="button" class="btn ghost sm" onclick="openStabilityModal('triads')" style="padding:4px 8px;font-size:11.5px;" data-i18n="stab_btn_what_triads">ⓘ ¿Qué son Tríadas?</button>
         <select id="stab-triads-filter" style="width:170px;padding:4px 8px;font-size:12px;">
-          <option value="all">Todas las tríadas</option>
-          <option value="closed" selected>Tríadas cerradas (i→k directo)</option>
-          <option value="open">Tríadas mediadas (abiertas)</option>
-          <option value="violations">Contradicciones / Paradojas</option>
+          <option value="all" data-i18n="stab_triad_opt_all">Todas las tríadas</option>
+          <option value="closed" selected data-i18n="stab_triad_opt_closed">Tríadas cerradas (i→k directo)</option>
+          <option value="open" data-i18n="stab_triad_opt_open">Tríadas mediadas (abiertas)</option>
+          <option value="violations" data-i18n="stab_triad_opt_viol">Contradicciones / Paradojas</option>
         </select>
       </div>
     </div>
@@ -1123,11 +1370,11 @@
     <div class="card-head" style="flex-wrap:wrap;gap:10px;">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <h2 data-i18n="stab_asym_title" style="margin:0;">3 · Direccionalidad, Asimetría y Bucles de Retroalimentación de 2 Ciclos</h2>
-        <span class="pill" style="background:#05966922;color:#34d399;border:1px solid #05966955;font-size:11px;font-weight:700;">🚀 Nueva Propuesta Metodológica</span>
+        <span class="pill" style="background:#05966922;color:#34d399;border:1px solid #05966955;font-size:11px;font-weight:700;" data-i18n="badge_new_method">🚀 Nueva Propuesta Metodológica</span>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button type="button" class="btn ghost sm" onclick="openStabilityModal('asym')" style="padding:4px 8px;font-size:11.5px;">ⓘ Asimetría</button>
-        <button type="button" class="btn ghost sm" onclick="openStabilityModal('loops')" style="padding:4px 8px;font-size:11.5px;">ⓘ Bucles de 2 Ciclos</button>
+        <button type="button" class="btn ghost sm" onclick="openStabilityModal('asym')" style="padding:4px 8px;font-size:11.5px;" data-i18n="stab_btn_info_asym">ⓘ Asimetría</button>
+        <button type="button" class="btn ghost sm" onclick="openStabilityModal('loops')" style="padding:4px 8px;font-size:11.5px;" data-i18n="stab_btn_info_loops">ⓘ Bucles de 2 Ciclos</button>
       </div>
     </div>
     <p class="muted" data-i18n="stab_asym_desc">
@@ -1141,7 +1388,7 @@
     <!-- Polaridad y Calidad de Evidencia -->
     <div style="margin-top:16px;background:rgba(8,12,24,.6);border:1px solid var(--line);border-radius:10px;padding:12px 14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
-        <b style="color:var(--txt);font-size:12.5px;">⚖️ Balance de Polaridad de los Juicios Expertos</b>
+        <b style="color:var(--txt);font-size:12.5px;" data-i18n="stab_pol_balance_title">⚖️ Balance de Polaridad de los Juicios Expertos</b>
         <span id="stab-polarity-badge" style="font-size:11.5px;color:var(--mut);"></span>
       </div>
       <div id="stab-polarity-bar" style="height:14px;border-radius:7px;background:rgba(255,255,255,0.08);overflow:hidden;display:flex;margin-bottom:8px;"></div>
@@ -1165,7 +1412,7 @@
     <div class="card method">
       <h2>Metodología de cálculo</h2>
       <p class="muted">Descripción de todos los procedimientos usados por la aplicación. Cada fórmula corresponde exactamente a lo implementado en <code>app.js</code>.</p>
-      <nav class="toc"><a href="#m1">1 Enfoque</a><a href="#m2">2 Matriz</a><a href="#m3">3 Influencia y dependencia</a><a href="#m4">4 Indirecta (MICMAC)</a><a href="#m5">5 Cuadrantes</a><a href="#m6">6 Visualización</a><a href="#m7">7 Simulación</a><a href="#m8">8 Justificación</a><a href="#m9">9 Límites</a><a href="#m10">10 Referencias</a></nav>
+      <nav class="toc"><a href="#m1">1 Enfoque</a><a href="#m2">2 Matriz</a><a href="#m3">3 Influencia y dependencia</a><a href="#m4">4 Indirecta (MICMAC)</a><a href="#m5">5 Cuadrantes</a><a href="#m6">6 Visualización</a><a href="#m7">7 Simulación</a><a href="#m8">8 Justificación</a><a href="#m9">9 Límites</a><a href="#m10">10 Referencias</a><a href="#m11">11 Signed-MICMAC 4D</a></nav>
     </div>
 
     <div class="card method" id="m1"><h3>1 · Enfoque general</h3>
@@ -1236,6 +1483,126 @@
       <li>Schein, E. — <i>Organizational Culture and Leadership</i>.</li>
       <li>Tinto, V. — modelo de integración y permanencia estudiantil.</li>
       <li>Linstone &amp; Turoff — técnica Delphi para calificación experta.</li></ul></div>
+    <div class="card method" id="m11"><h3>11 · Modelo 4D Dynamic Signed-MICMAC y Bibliografía Científica</h3>
+      
+<div style="display:flex;flex-direction:column;gap:16px;font-size:13px;line-height:1.7;color:var(--txt);">
+  <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(56,189,248,0.25);border-left:4px solid #38bdf8;border-radius:10px;padding:14px 16px;">
+    <h3 style="margin:0 0 8px;color:#38bdf8;font-size:15px;">I. Superación de las Tres Limitaciones del MICMAC Clásico (Godet, 1994, 2001)</h3>
+    <p style="margin:0 0 10px;">
+      El análisis estructural prospectivo clásico <b>MICMAC</b> (<i>Matrice d'Impacts Croisés Multiplication Appliquée à un Classement</i>), formulado por <b>Michel Godet (1994, 2001; Godet &amp; Durance, 2011)</b> en el LIPSOR (CNAM, París), clasifica las variables elevando una matriz de intensidades sin signo <code>A ∈ {0, 1, 2, 3}<sup>n×n</sup></code> a potencias sucesivas <code>A², A³, ..., A<sup>k</sup></code>. Pese a su enorme valor histórico, adolece de tres limitaciones algebraicas y sistémicas que el modelo <b>4D Dynamic Signed-MICMAC</b> resuelve formalmente:
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px;">
+      <div style="background:rgba(8,12,24,0.75);padding:12px;border-radius:8px;border:1px solid rgba(148,163,255,0.14);">
+        <b style="color:#60a5fa;display:block;margin-bottom:4px;">1. Degeneración Espectral de Perron-Frobenius</b>
+        <span style="font-size:12px;color:#cbd5e1;">
+          Por el teorema de <b>Perron (1907)</b> y <b>Frobenius (1912)</b>, para toda matriz primitiva no negativa <code>A</code>, al crecer <code>k → ∞</code> la potencia normalizada <code>A<sup>k</sup> / ρ(A)<sup>k</sup></code> converge a una matriz de rango 1 (<code>u · v<sup>T</sup></code>). En consecuencia, todas las filas se vuelven colineales al autovector dominante y el método de Godet pierde la especificidad estructural de los caminos de orden intermedio (<b>Bonacich, 1987; Barabási, 2016</b>).
+        </span>
+      </div>
+      <div style="background:rgba(8,12,24,0.75);padding:12px;border-radius:8px;border:1px solid rgba(148,163,255,0.14);">
+        <b style="color:#fbbf24;display:block;margin-bottom:4px;">2. Ceguera ante la Polaridad y Bucles Inhibitorios</b>
+        <span style="font-size:12px;color:#cbd5e1;">
+          Al operar exclusivamente con valores absolutos <code>|W|</code>, el MICMAC clásico asume implícitamente que toda influencia causal suma. Ignora la teoría de grafos con signo (<b>Harary, 1953; Cartwright &amp; Harary, 1956</b>) y confunde una variable con alto empuje neto con otra cuyos efectos positivos son neutralizados por bucles negativos de resistencia (arquetipo <i>Fixes that Fail</i> o «Soluciones que Fracasan» de <b>Senge, 1990; Meadows, 2008</b>).
+        </span>
+      </div>
+      <div style="background:rgba(8,12,24,0.75);padding:12px;border-radius:8px;border:1px solid rgba(148,163,255,0.14);">
+        <b style="color:#34d399;display:block;margin-bottom:4px;">3. Atemporalidad y Ausencia de Retardos</b>
+        <span style="font-size:12px;color:#cbd5e1;">
+          En la formulación estática de Godet, un vínculo que tarda 6 meses en operar pesa exactamente igual que una reforma estructural que requiere 5 años de maduración. En dinámica de sistemas (<b>Forrester, 1961; Richardson, 1991; Sterman, 2000</b>), los retardos materiales e informacionales determinan la amortiguación y la aparición de oscilaciones.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(167,139,250,0.25);border-left:4px solid #a78bfa;border-radius:10px;padding:14px 16px;">
+    <h3 style="margin:0 0 8px;color:#c4b5fd;font-size:15px;">II. Formulación Matemática Exacta del Operador Resolvente 4D</h3>
+    <p style="margin:0 0 10px;">
+      Sea un sistema de <code>n</code> variables con matriz de impactos directos signados <code>A = [a<sub>ij</sub>] ∈ [−3, +3]<sup>n×n</sup></code> (donde <code>a<sub>ii</sub> = 0</code>) y matriz de retardos de implementación <code>T = [t<sub>ij</sub>] ∈ ℝ<sub>+</sub><sup>n×n</sup></code>. El modelo ejecuta cuatro etapas analíticas acopladas:
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">
+      <div style="background:rgba(8,12,24,0.8);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+        <b style="color:#38bdf8;font-size:12.5px;">Paso 1 · Descuento Temporal Exponencial (Sterman, 2000):</b>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e2e8f0;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;margin:6px 0;">
+          W<sub>ij</sub>(λ) = A<sub>ij</sub> · exp(−λ · t<sub>ij</sub>)
+        </div>
+        <span style="font-size:11.5px;color:#94a3b8;">Donde <code>λ ≥ 0</code> es la tasa continua de fricción temporal e incertidumbre institucional.</span>
+      </div>
+      <div style="background:rgba(8,12,24,0.8);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+        <b style="color:#a78bfa;font-size:12.5px;">Paso 2 · Radio Espectral y Factor Convergente α (Katz, 1953):</b>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e2e8f0;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;margin:6px 0;">
+          ρ(|W|) = max |μ<sub>k</sub>(|W|)|  ;  α = r / ρ(|W|)  (0 &lt; r &lt; 1)
+        </div>
+        <span style="font-size:11.5px;color:#94a3b8;">Garantiza la convergencia absoluta de la serie de Neumann <code>∑ α<sup>k</sup> W<sup>k</sup></code> bajo <code>α · ρ(|W|) &lt; 1</code>.</span>
+      </div>
+      <div style="background:rgba(8,12,24,0.8);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+        <b style="color:#34d399;font-size:12.5px;">Paso 3 · Resolvente Bruta de Leontief (Leontief, 1951):</b>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e2e8f0;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;margin:6px 0;">
+          S<sup>bruta</sup> = (I − α·|W|)<sup>−1</sup> · |W| = ∑<sub>k=1</sub><sup>∞</sup> α<sup>k−1</sup> |W|<sup>k</sup>
+        </div>
+        <span style="font-size:11.5px;color:#94a3b8;">Cuantifica el volumen total de actividad bruta movilizada sin cancelación de signos.</span>
+      </div>
+      <div style="background:rgba(8,12,24,0.8);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+        <b style="color:#f472b6;font-size:12.5px;">Paso 4 · Resolvente Signada de Katz-Bonacich (Bonacich, 1987):</b>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e2e8f0;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;margin:6px 0;">
+          S<sup>neta</sup> = (I − α·W)<sup>−1</sup> · W = ∑<sub>k=1</sub><sup>∞</sup> α<sup>k−1</sup> W<sup>k</sup>
+        </div>
+        <span style="font-size:11.5px;color:#94a3b8;">Integra algebraicamente trayectorias de refuerzo (+) e inhibición (−) de todos los órdenes.</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(52,211,153,0.25);border-left:4px solid #34d399;border-radius:10px;padding:14px 16px;">
+    <h3 style="margin:0 0 8px;color:#6ee7b7;font-size:15px;">III. Las Cuatro Dimensiones (4D) del Plano Estructural Dinámico</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
+      <div style="background:rgba(8,12,24,0.75);padding:11px 13px;border-radius:8px;">
+        <b style="color:#38bdf8;">1ª y 2ª Dimensión · Ejes Cartesiano (M<sub>i</sub><sup>neta</sup> vs. D<sub>i</sub><sup>neta</sup>) y Tamaño (M<sub>i</sub><sup>bruta</sup>):</b>
+        <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">
+          La <b>Motricidad Neta Efectiva</b> <code>M<sub>i</sub><sup>neta</sup> = ∑<sub>j≠i</sub> |S<sub>ij</sub><sup>neta</sup>|</code> (Eje Y) y la <b>Dependencia Neta Efectiva</b> <code>D<sub>j</sub><sup>neta</sup> = ∑<sub>i≠j</sub> |S<sub>ij</sub><sup>neta</sup>|</code> (Eje X) posicionan cada variable según el impacto real que sobrevive tras la interferencia de bucles opuestos, mientras el diámetro del nodo refleja su <b>Motricidad Bruta</b> <code>M<sub>i</sub><sup>bruta</sup> = ∑<sub>j≠i</sub> S<sub>ij</sub><sup>bruta</sup></code> (<b>Bonacich, 1987; Meadows, 1999</b>).
+        </p>
+      </div>
+      <div style="background:rgba(8,12,24,0.75);padding:11px 13px;border-radius:8px;">
+        <b style="color:#34d399;">3ª Dimensión · Color del Nodo: Auto-Bucle Dinámico (F<sub>i</sub> = S<sub>ii</sub><sup>neta</sup>):</b>
+        <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">
+          La diagonal principal <code>F<sub>i</sub> = S<sub>ii</sub><sup>neta</sup></code> mide la energía que parte de la variable <code>i</code> y retorna a sí misma a través de ciclos cerrados de longitud <code>k ≥ 2</code>:
+          <br>• <b>F<sub>i</sub> &gt; 0 (Verde / Amplificador):</b> Ciclo reforzador o «bola de nieve» (<i>Virtuous/Vicious Cycle</i>, <b>Senge, 1990; Forrester, 1961</b>).
+          <br>• <b>F<sub>i</sub> &lt; 0 (Rosa / Regulador):</b> Bucle negativo homeostático que absorbe perturbaciones (<b>Sterman, 2000</b>).
+        </p>
+      </div>
+      <div style="background:rgba(8,12,24,0.75);padding:11px 13px;border-radius:8px;">
+        <b style="color:#fbbf24;">4ª Dimensión · Anillo Exterior: Índice de Ambigüedad Causal (Ω<sub>i</sub>):</b>
+        <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">
+          Definido como <code>Ω<sub>i</sub> = (1 − M<sub>i</sub><sup>neta</sup> / M<sub>i</sub><sup>bruta</sup>) × 100%</code>. Mide la fracción de fuerza motriz que se autodestruye por trayectorias de signo opuesto. Permite distinguir entre <b>Palancas Maestras Consistentes</b> (alta <code>M<sub>i</sub><sup>neta</sup></code>, bajo <code>Ω<sub>i</sub></code>) y <b>Trampas de Política / Espejismos</b> (alta <code>M<sub>i</sub><sup>bruta</sup></code> clásica pero elevado <code>Ω<sub>i</sub> &gt; 30%</code>, <b>Meadows, 2008; Kotter, 1996; Schein, 2010</b>).
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(148,163,255,0.2);border-radius:10px;padding:14px 16px;">
+    <h3 style="margin:0 0 8px;color:#93c5fd;font-size:15px;">IV. Referencias Bibliográficas Fundamentales (APA 7.ª ed.)</h3>
+    <ul style="margin:0;padding-left:18px;font-size:12px;color:#cbd5e1;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:6px 18px;">
+      <li><b>Barabási, A.-L. (2016).</b> <i>Network science</i>. Cambridge University Press.</li>
+      <li><b>Bonacich, P. (1987).</b> Power and centrality: A family of measures. <i>American Journal of Sociology</i>, 92(5), 1170–1182. https://doi.org/10.1086/228631</li>
+      <li><b>Cartwright, D., &amp; Harary, F. (1956).</b> Structural balance: A generalization of Heider's theory. <i>Psychological Review</i>, 63(5), 277–293.</li>
+      <li><b>Forrester, J. W. (1961).</b> <i>Industrial dynamics</i>. MIT Press.</li>
+      <li><b>Frobenius, G. (1912).</b> Über Matrizen aus nicht negativen Elementen. <i>Sitzungsberichte der Königlich Preussischen Akademie der Wissenschaften</i>, 456–477.</li>
+      <li><b>Godet, M. (1994).</b> <i>From anticipation to action: A handbook of strategic prospective</i>. UNESCO Publishing.</li>
+      <li><b>Godet, M. (2001).</b> <i>Creating futures: Scenario planning as a strategic management tool</i>. Economica.</li>
+      <li><b>Godet, M., &amp; Durance, P. (2011).</b> <i>La prospectiva estratégica para las empresas y los territorios</i>. Dunod / UNESCO.</li>
+      <li><b>Harary, F. (1953).</b> On the notion of balance of a signed graph. <i>Michigan Mathematical Journal</i>, 2(2), 143–146.</li>
+      <li><b>Katz, L. (1953).</b> A new status index derived from sociometric analysis. <i>Psychometrika</i>, 18(1), 39–43. https://doi.org/10.1007/BF02289026</li>
+      <li><b>Kotter, J. P. (1996).</b> <i>Leading change</i>. Harvard Business School Press.</li>
+      <li><b>Leontief, W. (1951).</b> <i>The structure of the American economy, 1919–1939</i> (2nd ed.). Oxford University Press.</li>
+      <li><b>Meadows, D. H. (1999).</b> <i>Leverage points: Places to intervene in a system</i>. The Sustainability Institute.</li>
+      <li><b>Meadows, D. H. (2008).</b> <i>Thinking in systems: A primer</i>. Chelsea Green Publishing.</li>
+      <li><b>Perron, O. (1907).</b> Zur Theorie der Matrices. <i>Mathematische Annalen</i>, 64(2), 248–263.</li>
+      <li><b>Richardson, G. P. (1991).</b> <i>Feedback thought in social science and systems theory</i>. University of Pennsylvania Press.</li>
+      <li><b>Schein, E. H. (2010).</b> <i>Organizational culture and leadership</i> (4th ed.). Jossey-Bass.</li>
+      <li><b>Senge, P. M. (1990).</b> <i>The fifth discipline: The art and practice of the learning organization</i>. Doubleday/Currency.</li>
+      <li><b>Sterman, J. D. (2000).</b> <i>Business dynamics: Systems thinking and modeling for a complex world</i>. Irwin/McGraw-Hill.</li>
+    </ul>
+  </div>
+</div>
+
+    </div>
   </div>
 
   <!-- English Methodology -->
@@ -1243,7 +1610,7 @@
     <div class="card method">
       <h2>Calculation Methodology</h2>
       <p class="muted">Comprehensive mathematical description of all algorithms and analytical procedures executed by the application. Every formulation matches the exact client-side implementation in <code>app.js</code>.</p>
-      <nav class="toc"><a href="#m1-en">1 Overview</a><a href="#m2-en">2 Matrix</a><a href="#m3-en">3 Influence & Dependence</a><a href="#m4-en">4 Indirect (MICMAC)</a><a href="#m5-en">5 Quadrants</a><a href="#m6-en">6 Visualization</a><a href="#m7-en">7 Simulation</a><a href="#m8-en">8 Justification</a><a href="#m9-en">9 Limitations</a><a href="#m10-en">10 References</a></nav>
+      <nav class="toc"><a href="#m1-en">1 Overview</a><a href="#m2-en">2 Matrix</a><a href="#m3-en">3 Influence & Dependence</a><a href="#m4-en">4 Indirect (MICMAC)</a><a href="#m5-en">5 Quadrants</a><a href="#m6-en">6 Visualization</a><a href="#m7-en">7 Simulation</a><a href="#m8-en">8 Justification</a><a href="#m9-en">9 Limitations</a><a href="#m10-en">10 References</a><a href="#m11-en">11 4D Signed-MICMAC</a></nav>
     </div>
 
     <div class="card method" id="m1-en"><h3>1 · General Strategic Framework</h3>
@@ -1307,6 +1674,126 @@
       <li>Schein, E. — <i>Organizational Culture and Leadership</i>.</li>
       <li>Tinto, V. — Student departure, institutional integration and retention models.</li>
       <li>Katz, L. &amp; Bonacich, P. — Network status and centrality in directed graphs with attenuation.</li></ul></div>
+    <div class="card method" id="m11-en"><h3>11 · 4D Dynamic Signed-MICMAC Model &amp; Scientific Bibliography</h3>
+      
+<div style="display:flex;flex-direction:column;gap:16px;font-size:13px;line-height:1.7;color:var(--txt);">
+  <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(56,189,248,0.25);border-left:4px solid #38bdf8;border-radius:10px;padding:14px 16px;">
+    <h3 style="margin:0 0 8px;color:#38bdf8;font-size:15px;">I. Overcoming the Three Structural Limitations of Classical MICMAC (Godet, 1994, 2001)</h3>
+    <p style="margin:0 0 10px;">
+      Classical structural prospective analysis <b>MICMAC</b> (<i>Matrice d'Impacts Croisés Multiplication Appliquée à un Classement</i>), developed by <b>Michel Godet (1994, 2001; Godet &amp; Durance, 2011)</b> at LIPSOR (CNAM, Paris), classifies system variables by raising an unsigned intensity matrix <code>A ∈ {0, 1, 2, 3}<sup>n×n</sup></code> to successive powers <code>A², A³, ..., A<sup>k</sup></code>. Despite its foundational role in strategic foresight, it suffers from three algebraic and systemic limitations that the <b>4D Dynamic Signed-MICMAC</b> model formally resolves:
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px;">
+      <div style="background:rgba(8,12,24,0.75);padding:12px;border-radius:8px;border:1px solid rgba(148,163,255,0.14);">
+        <b style="color:#60a5fa;display:block;margin-bottom:4px;">1. Perron-Frobenius Spectral Degeneration</b>
+        <span style="font-size:12px;color:#cbd5e1;">
+          By the <b>Perron (1907)</b> and <b>Frobenius (1912)</b> theorem, for any primitive non-negative matrix <code>A</code>, as <code>k → ∞</code> the normalized power <code>A<sup>k</sup> / ρ(A)<sup>k</sup></code> converges to a rank-1 projection (<code>u · v<sup>T</sup></code>). Consequently, all rows become collinear with the dominant eigenvector, erasing the specific causal topology of medium-range pathways (<b>Bonacich, 1987; Barabási, 2016</b>).
+        </span>
+      </div>
+      <div style="background:rgba(8,12,24,0.75);padding:12px;border-radius:8px;border:1px solid rgba(148,163,255,0.14);">
+        <b style="color:#fbbf24;display:block;margin-bottom:4px;">2. Polarity Blindness &amp; Inhibitory Loops</b>
+        <span style="font-size:12px;color:#cbd5e1;">
+          By operating solely on absolute magnitudes <code>|W|</code>, classical MICMAC implicitly assumes all causal influences add up. It disregards signed graph theory (<b>Harary, 1953; Cartwright &amp; Harary, 1956</b>) and conflates genuine net drivers with variables whose positive pushes are neutralized by counteracting negative feedback loops (the <i>Fixes that Fail</i> and <i>Policy Resistance</i> archetypes of <b>Senge, 1990; Meadows, 2008</b>).
+        </span>
+      </div>
+      <div style="background:rgba(8,12,24,0.75);padding:12px;border-radius:8px;border:1px solid rgba(148,163,255,0.14);">
+        <b style="color:#34d399;display:block;margin-bottom:4px;">3. Static Timelessness &amp; Missing Lags</b>
+        <span style="font-size:12px;color:#cbd5e1;">
+          In Godet's static formulation, a causal link taking 6 months to materialize is weighted identically to a structural reform requiring 5 years. In system dynamics (<b>Forrester, 1961; Richardson, 1991; Sterman, 2000</b>), material and informational delays govern attenuation, phase shifts, and system stability.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(167,139,250,0.25);border-left:4px solid #a78bfa;border-radius:10px;padding:14px 16px;">
+    <h3 style="margin:0 0 8px;color:#c4b5fd;font-size:15px;">II. Exact Mathematical Formulation of the 4D Resolvent Operator</h3>
+    <p style="margin:0 0 10px;">
+      Let a system of <code>n</code> variables be defined by a signed direct impact matrix <code>A = [a<sub>ij</sub>] ∈ [−3, +3]<sup>n×n</sup></code> (with <code>a<sub>ii</sub> = 0</code>) and an implementation delay matrix <code>T = [t<sub>ij</sub>] ∈ ℝ<sub>+</sub><sup>n×n</sup></code>. The model executes four coupled analytical stages:
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">
+      <div style="background:rgba(8,12,24,0.8);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+        <b style="color:#38bdf8;font-size:12.5px;">Step 1 · Exponential Time Discounting (Sterman, 2000):</b>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e2e8f0;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;margin:6px 0;">
+          W<sub>ij</sub>(λ) = A<sub>ij</sub> · exp(−λ · t<sub>ij</sub>)
+        </div>
+        <span style="font-size:11.5px;color:#94a3b8;">Where <code>λ ≥ 0</code> is the continuous temporal friction and institutional decay rate.</span>
+      </div>
+      <div style="background:rgba(8,12,24,0.8);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+        <b style="color:#a78bfa;font-size:12.5px;">Step 2 · Spectral Radius &amp; Attenuation α (Katz, 1953):</b>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e2e8f0;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;margin:6px 0;">
+          ρ(|W|) = max |μ<sub>k</sub>(|W|)|  ;  α = r / ρ(|W|)  (0 &lt; r &lt; 1)
+        </div>
+        <span style="font-size:11.5px;color:#94a3b8;">Guarantees absolute convergence of the Neumann series <code>∑ α<sup>k</sup> W<sup>k</sup></code> under <code>α · ρ(|W|) &lt; 1</code>.</span>
+      </div>
+      <div style="background:rgba(8,12,24,0.8);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+        <b style="color:#34d399;font-size:12.5px;">Step 3 · Gross Leontief Resolvent (Leontief, 1951):</b>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e2e8f0;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;margin:6px 0;">
+          S<sup>gross</sup> = (I − α·|W|)<sup>−1</sup> · |W| = ∑<sub>k=1</sub><sup>∞</sup> α<sup>k−1</sup> |W|<sup>k</sup>
+        </div>
+        <span style="font-size:11.5px;color:#94a3b8;">Quantifies total gross systemic activity mobilized without sign cancellation.</span>
+      </div>
+      <div style="background:rgba(8,12,24,0.8);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+        <b style="color:#f472b6;font-size:12.5px;">Step 4 · Signed Katz-Bonacich Resolvent (Bonacich, 1987):</b>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e2e8f0;background:rgba(0,0,0,0.35);padding:6px 10px;border-radius:6px;margin:6px 0;">
+          S<sup>net</sup> = (I − α·W)<sup>−1</sup> · W = ∑<sub>k=1</sub><sup>∞</sup> α<sup>k−1</sup> W<sup>k</sup>
+        </div>
+        <span style="font-size:11.5px;color:#94a3b8;">Algebraically integrates reinforcing (+) and inhibiting (−) pathways across all orders.</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(52,211,153,0.25);border-left:4px solid #34d399;border-radius:10px;padding:14px 16px;">
+    <h3 style="margin:0 0 8px;color:#6ee7b7;font-size:15px;">III. The Four Structural Dimensions (4D) of the Dynamic Plane</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
+      <div style="background:rgba(8,12,24,0.75);padding:11px 13px;border-radius:8px;">
+        <b style="color:#38bdf8;">1st &amp; 2nd Dimensions · Cartesian Axes (M<sub>i</sub><sup>net</sup> vs. D<sub>i</sub><sup>net</sup>) &amp; Node Size (M<sub>i</sub><sup>gross</sup>):</b>
+        <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">
+          <b>Net Effective Motricity</b> <code>M<sub>i</sub><sup>net</sup> = ∑<sub>j≠i</sub> |S<sub>ij</sub><sup>net</sup>|</code> (Y Axis) and <b>Net Effective Dependence</b> <code>D<sub>j</sub><sup>net</sup> = ∑<sub>i≠j</sub> |S<sub>ij</sub><sup>net</sup>|</code> (X Axis) map each variable by the effective impact that survives opposing loop interference, while bubble size encodes <b>Gross Motricity</b> <code>M<sub>i</sub><sup>gross</sup> = ∑<sub>j≠i</sub> S<sub>ij</sub><sup>gross</sup></code> (<b>Bonacich, 1987; Meadows, 1999</b>).
+        </p>
+      </div>
+      <div style="background:rgba(8,12,24,0.75);padding:11px 13px;border-radius:8px;">
+        <b style="color:#34d399;">3rd Dimension · Node Color: Dynamic Self-Loop (F<sub>i</sub> = S<sub>ii</sub><sup>net</sup>):</b>
+        <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">
+          The main diagonal <code>F<sub>i</sub> = S<sub>ii</sub><sup>net</sup></code> measures causal energy departing from variable <code>i</code> and returning to itself via closed cycles of length <code>k ≥ 2</code>:
+          <br>• <b>F<sub>i</sub> &gt; 0 (Green / Amplifier):</b> Reinforcing snowball cycle (<i>Virtuous/Vicious Cycle</i>, <b>Senge, 1990; Forrester, 1961</b>).
+          <br>• <b>F<sub>i</sub> &lt; 0 (Pink / Stabilizer):</b> Homeostatic negative feedback loop that buffers shocks (<b>Sterman, 2000</b>).
+        </p>
+      </div>
+      <div style="background:rgba(8,12,24,0.75);padding:11px 13px;border-radius:8px;">
+        <b style="color:#fbbf24;">4th Dimension · Outer Ring: Causal Ambiguity Index (Ω<sub>i</sub>):</b>
+        <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">
+          Defined as <code>Ω<sub>i</sub> = (1 − M<sub>i</sub><sup>net</sup> / M<sub>i</sub><sup>gross</sup>) × 100%</code>. Quantifies the fraction of driving force canceled by opposing pathways. Distinguishes <b>Consistent Master Levers</b> (high <code>M<sub>i</sub><sup>net</sup></code>, low <code>Ω<sub>i</sub></code>) from <b>Policy Traps / Mirages</b> (high classical <code>M<sub>i</sub><sup>gross</sup></code> but high dissipation <code>Ω<sub>i</sub> &gt; 30%</code>, <b>Meadows, 2008; Kotter, 1996; Schein, 2010</b>).
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(148,163,255,0.2);border-radius:10px;padding:14px 16px;">
+    <h3 style="margin:0 0 8px;color:#93c5fd;font-size:15px;">IV. Core Bibliographic References (APA 7th ed.)</h3>
+    <ul style="margin:0;padding-left:18px;font-size:12px;color:#cbd5e1;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:6px 18px;">
+      <li><b>Barabási, A.-L. (2016).</b> <i>Network science</i>. Cambridge University Press.</li>
+      <li><b>Bonacich, P. (1987).</b> Power and centrality: A family of measures. <i>American Journal of Sociology</i>, 92(5), 1170–1182. https://doi.org/10.1086/228631</li>
+      <li><b>Cartwright, D., &amp; Harary, F. (1956).</b> Structural balance: A generalization of Heider's theory. <i>Psychological Review</i>, 63(5), 277–293.</li>
+      <li><b>Forrester, J. W. (1961).</b> <i>Industrial dynamics</i>. MIT Press.</li>
+      <li><b>Frobenius, G. (1912).</b> Über Matrizen aus nicht negativen Elementen. <i>Sitzungsberichte der Königlich Preussischen Akademie der Wissenschaften</i>, 456–477.</li>
+      <li><b>Godet, M. (1994).</b> <i>From anticipation to action: A handbook of strategic prospective</i>. UNESCO Publishing.</li>
+      <li><b>Godet, M. (2001).</b> <i>Creating futures: Scenario planning as a strategic management tool</i>. Economica.</li>
+      <li><b>Godet, M., &amp; Durance, P. (2011).</b> <i>Strategic foresight for corporate and regional development</i>. Dunod / UNESCO.</li>
+      <li><b>Harary, F. (1953).</b> On the notion of balance of a signed graph. <i>Michigan Mathematical Journal</i>, 2(2), 143–146.</li>
+      <li><b>Katz, L. (1953).</b> A new status index derived from sociometric analysis. <i>Psychometrika</i>, 18(1), 39–43. https://doi.org/10.1007/BF02289026</li>
+      <li><b>Kotter, J. P. (1996).</b> <i>Leading change</i>. Harvard Business School Press.</li>
+      <li><b>Leontief, W. (1951).</b> <i>The structure of the American economy, 1919–1939</i> (2nd ed.). Oxford University Press.</li>
+      <li><b>Meadows, D. H. (1999).</b> <i>Leverage points: Places to intervene in a system</i>. The Sustainability Institute.</li>
+      <li><b>Meadows, D. H. (2008).</b> <i>Thinking in systems: A primer</i>. Chelsea Green Publishing.</li>
+      <li><b>Perron, O. (1907).</b> Zur Theorie der Matrices. <i>Mathematische Annalen</i>, 64(2), 248–263.</li>
+      <li><b>Richardson, G. P. (1991).</b> <i>Feedback thought in social science and systems theory</i>. University of Pennsylvania Press.</li>
+      <li><b>Schein, E. H. (2010).</b> <i>Organizational culture and leadership</i> (4th ed.). Jossey-Bass.</li>
+      <li><b>Senge, P. M. (1990).</b> <i>The fifth discipline: The art and practice of the learning organization</i>. Doubleday/Currency.</li>
+      <li><b>Sterman, J. D. (2000).</b> <i>Business dynamics: Systems thinking and modeling for a complex world</i>. Irwin/McGraw-Hill.</li>
+    </ul>
+  </div>
+</div>
+
+    </div>
   </div>
 </section>
 </main>
@@ -1341,7 +1828,7 @@
       <!-- 1. Tasa de Fricción Temporal (λ) -->
       <article class="metric-def-card" id="def-lambda">
         <header class="def-header">
-          <span class="def-badge def-badge-cyan">1 · Horizonte Temporal</span>
+          <span class="def-badge def-badge-cyan" data-i18n="def_badge_1">1 · Horizonte Temporal</span>
           <h4 data-i18n="def_lambda_title">Zona de la Tasa de Fricción Temporal (λ) y Retardos</h4>
         </header>
         <div class="def-content">
@@ -1370,7 +1857,7 @@
       <!-- 2. Factor de Convergencia (α) -->
       <article class="metric-def-card" id="def-alpha">
         <header class="def-header">
-          <span class="def-badge def-badge-indigo">2 · Operador Resolvente</span>
+          <span class="def-badge def-badge-indigo" data-i18n="def_badge_2">2 · Operador Resolvente</span>
           <h4 data-i18n="def_alpha_title">Factor de Convergencia Espectral (α) y Ratio (α · ρ)</h4>
         </header>
         <div class="def-content">
@@ -1395,7 +1882,7 @@
       <!-- 3. Ambigüedad Media (Ω) -->
       <article class="metric-def-card" id="def-omega">
         <header class="def-header">
-          <span class="def-badge def-badge-amber">3 · Fricción Sistémica</span>
+          <span class="def-badge def-badge-amber" data-i18n="def_badge_3">3 · Fricción Sistémica</span>
           <h4 data-i18n="def_omega_title">Ambigüedad Media del Sistema (Ω̄) y Disipación Causal</h4>
         </header>
         <div class="def-content">
@@ -1424,7 +1911,7 @@
       <!-- 4. Palancas Consistentes -->
       <article class="metric-def-card" id="def-palancas">
         <header class="def-header">
-          <span class="def-badge def-badge-emerald">4 · Eficiencia Estratégica</span>
+          <span class="def-badge def-badge-emerald" data-i18n="def_badge_4">4 · Eficiencia Estratégica</span>
           <h4 data-i18n="def_palancas_title">Palancas Maestras Consistentes</h4>
         </header>
         <div class="def-content">
@@ -1453,7 +1940,7 @@
       <!-- 5. Trampas de Política -->
       <article class="metric-def-card" id="def-trampas">
         <header class="def-header">
-          <span class="def-badge def-badge-rose">5 · Alerta Prospectiva</span>
+          <span class="def-badge def-badge-rose" data-i18n="def_badge_5">5 · Alerta Prospectiva</span>
           <h4 data-i18n="def_trampas_title">Trampas de Política (Espejismos Causales)</h4>
         </header>
         <div class="def-content">
@@ -1512,7 +1999,7 @@
       <button type="button" class="modal-chip" data-target="convergence" onclick="filterStabilityModalSection('convergence')"><span data-i18n="stab_chip_convergence">8. Katz-Bonacich / Leontief</span></button>
     </div>
 
-    <div class="modal-body" id="modal-stability-body">
+    <div class="modal-body" id="modal-stability-body" data-i18n="stab_modal_body_html">
       <!-- 1. Tasa de Relleno (d) -->
       <article class="metric-def-card" id="def-stab-density">
         <header class="def-header">
@@ -1733,8 +2220,8 @@
     </div>
 
     <div class="modal-footer">
-      <span class="modal-footer-hint">Tip: Haga clic en cualquier tarjeta de KPI de estabilidad o botón «ⓘ» para abrir directamente su explicación.</span>
-      <button type="button" class="btn primary" onclick="closeStabilityModal()">Entendido / Cerrar</button>
+      <span class="modal-footer-hint" data-i18n="modal_footer_hint">Tip: Haga clic en cualquier tarjeta de KPI de estabilidad o botón «ⓘ» para abrir directamente su explicación.</span>
+      <button type="button" class="btn primary" onclick="closeStabilityModal()" data-i18n="modal_btn_close">Entendido / Cerrar</button>
     </div>
   </div>
 </div>
@@ -1748,8 +2235,8 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
         </div>
         <div>
-          <h3 id="modal-flow-int-title">⚡ Intervención de Variables en la Red Causal</h3>
-          <p class="modal-subtitle">Configure perturbaciones sobre una o varias variables y parta la simulación temporal en el diagrama</p>
+          <h3 id="modal-flow-int-title" data-i18n="flow_int_modal_title">⚡ Intervención de Variables en la Red Causal</h3>
+          <p class="modal-subtitle" data-i18n="flow_int_modal_sub">Configure perturbaciones sobre una o varias variables y parta la simulación temporal en el diagrama</p>
         </div>
       </div>
       <button type="button" class="modal-close-btn" onclick="closeFlowInterventionModal()" title="Cerrar modal">&times;</button>
@@ -1759,11 +2246,11 @@
       <!-- Selección de Variables -->
       <div style="margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
-          <b style="font-size:12.5px;color:var(--txt);">1 · Seleccione la(s) variable(s) a intervenir:</b>
+          <b style="font-size:12.5px;color:var(--txt);" data-i18n="flow_int_step1">1 · Seleccione la(s) variable(s) a intervenir:</b>
           <div style="display:flex;gap:4px;">
-            <button type="button" class="btn ghost sm" onclick="selectFlowIntVars('all')" style="font-size:11px;padding:2px 7px;">Todas</button>
-            <button type="button" class="btn ghost sm" onclick="selectFlowIntVars('power')" style="font-size:11px;padding:2px 7px;">Palancas</button>
-            <button type="button" class="btn ghost sm" onclick="selectFlowIntVars('none')" style="font-size:11px;padding:2px 7px;">Limpiar</button>
+            <button type="button" class="btn ghost sm" onclick="selectFlowIntVars('all')" style="font-size:11px;padding:2px 7px;" data-i18n="sim_btn_select_all">Todas</button>
+            <button type="button" class="btn ghost sm" onclick="selectFlowIntVars('power')" style="font-size:11px;padding:2px 7px;" data-i18n="sim_btn_select_power">Palancas</button>
+            <button type="button" class="btn ghost sm" onclick="selectFlowIntVars('none')" style="font-size:11px;padding:2px 7px;" data-i18n="sim_btn_clear_sel">Limpiar</button>
           </div>
         </div>
         <div id="flow-int-var-checklist" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;max-height:160px;overflow-y:auto;padding:8px;background:rgba(8,12,24,.6);border-radius:8px;border:1px solid var(--line);"></div>
@@ -1771,25 +2258,25 @@
 
       <!-- Parámetros de la Intervención -->
       <div style="background:rgba(8,12,24,.5);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:14px;">
-        <b style="font-size:12.5px;color:var(--txt);display:block;margin-bottom:8px;">2 · Parámetros de la perturbación / impulso:</b>
+        <b style="font-size:12.5px;color:var(--txt);display:block;margin-bottom:8px;" data-i18n="flow_int_step2">2 · Parámetros de la perturbación / impulso:</b>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
           <div>
-            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:3px;">Tipo de intervención:</label>
+            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:3px;" data-i18n="flow_int_lbl_type">Tipo de intervención:</label>
             <select id="flow-modal-int-type" style="padding:5px 8px;font-size:12px;">
-              <option value="pulse">Impulso (paso único)</option>
-              <option value="sust" selected>Sostenida (rango continuo)</option>
+              <option value="pulse" data-i18n="flow_int_opt_pulse">Impulso (paso único)</option>
+              <option value="sust" selected data-i18n="flow_int_opt_sust">Sostenida (rango continuo)</option>
             </select>
           </div>
           <div>
-            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:3px;">Magnitud (+ / −):</label>
+            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:3px;" data-i18n="flow_int_lbl_mag">Magnitud (+ / −):</label>
             <input type="number" id="flow-modal-int-mag" value="20" step="1" style="padding:5px 8px;font-size:12px;font-family:'JetBrains Mono';font-weight:700;">
           </div>
           <div>
-            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:3px;">Inicio en paso (t):</label>
+            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:3px;" data-i18n="flow_int_lbl_start">Inicio en paso (t):</label>
             <input type="number" id="flow-modal-int-start" value="1" min="1" max="50" style="padding:5px 8px;font-size:12px;font-family:'JetBrains Mono';font-weight:700;">
           </div>
           <div>
-            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:3px;">Duración (pasos):</label>
+            <label style="font-size:11px;color:var(--mut);display:block;margin-bottom:3px;" data-i18n="flow_int_lbl_dur">Duración (pasos):</label>
             <input type="number" id="flow-modal-int-dur" value="10" min="1" max="50" style="padding:5px 8px;font-size:12px;font-family:'JetBrains Mono';font-weight:700;">
           </div>
         </div>
@@ -1800,15 +2287,15 @@
     </div>
 
     <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-      <button type="button" class="btn danger sm" onclick="clearAllFlowInterventions()" style="padding:6px 12px;font-size:12px;">
+      <button type="button" class="btn danger sm" onclick="clearAllFlowInterventions()" style="padding:6px 12px;font-size:12px;" data-i18n="flow_int_btn_clear">
         ✕ Limpiar todas
       </button>
       <div style="display:flex;gap:8px;">
-        <button type="button" class="btn ghost sm" onclick="closeFlowInterventionModal()">Cancelar</button>
-        <button type="button" class="btn sm" onclick="applyFlowInterventionsAndPlay(false)" style="background:rgba(99,102,241,0.85);color:#fff;">
+        <button type="button" class="btn ghost sm" onclick="closeFlowInterventionModal()" data-i18n="flow_int_btn_cancel">Cancelar</button>
+        <button type="button" class="btn sm" onclick="applyFlowInterventionsAndPlay(false)" style="background:rgba(99,102,241,0.85);color:#fff;" data-i18n="flow_int_btn_apply">
           💾 Solo aplicar
         </button>
-        <button type="button" class="btn primary sm" onclick="applyFlowInterventionsAndPlay(true)" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+        <button type="button" class="btn primary sm" onclick="applyFlowInterventionsAndPlay(true)" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px;" data-i18n="flow_int_btn_play">
           <span>▶ Aplicar e Iniciar Simulación</span>
         </button>
       </div>
@@ -1820,9 +2307,9 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="vendor/docx.umd.js"></script>
 <script>if (!window.docx) { document.write('<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"><\/script>'); }</script>
-<script src="i18n.js?v=120"></script>
-<script src="data.js?v=120"></script>
-<script src="app.js?v=120"></script>
-<script src="word-export.js?v=120"></script>
+<script src="i18n.js?v=125"></script>
+<script src="data.js?v=124"></script>
+<script src="app.js?v=125"></script>
+<script src="word-export.js?v=124"></script>
 </body>
 </html>
