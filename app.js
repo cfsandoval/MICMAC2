@@ -62,6 +62,13 @@ function defaults(lang = (typeof currentLang !== 'undefined' ? currentLang : 'en
   return { vars, links, ints: [{ vid: byCode.V1 || byCode.INV, type: 'sust', mag: 2, start: 3, dur: 18 }], params: { beta: .15, lambda: .05, steps: 50, engine: 'euler', dt: 0.1 } };
 }
 
+if (!localStorage.getItem('micmac-init-15vars')) {
+  localStorage.removeItem(LS);
+  localStorage.removeItem('micmac_vnet_positions');
+  localStorage.removeItem('micmac_flow_positions');
+  localStorage.setItem('micmac-init-15vars', '1');
+}
+
 let S = (() => {
   try {
     const s = JSON.parse(localStorage.getItem(LS));
@@ -915,15 +922,15 @@ $('#preset-add-btn').onclick = () => {
   const selected = [...$('#preset-checklist').querySelectorAll('input[type=checkbox]:not(:disabled):checked')]
     .map(cb => cb.dataset.presetCode);
   if (!selected.length) { alert(currentLang === 'en' ? 'Select at least one variable.' : 'Selecciona al menos una variable.'); return; }
-  const byCode = Object.fromEntries(sourceVars.map(([c, n, d, x]) => [c, { name: n, desc: d, x0: x }]));
+  const byCode = Object.fromEntries(sourceVars.map(([c, n, d, x, pol]) => [c, { name: n, desc: d, x0: x, polar: pol === 'neg' ? '-' : '+' }]));
   let added = 0;
   selected.forEach(code => {
     const info = byCode[code];
     if (!info) return;
-    S.vars.push({ id: 'v' + uid++, code, name: info.name, desc: info.desc || '', x0: info.x0 ?? 50 });
+    S.vars.push({ id: 'v' + uid++, code, name: info.name, desc: info.desc || '', x0: info.x0 ?? 50, polar: info.polar || '+' });
     added++;
   });
-  save(); renderVars();
+  save(); renderAll();
   $('#preset-panel').style.display = 'none';
   const msg = currentLang === 'en' ? `${added} variable(s) added.` : `${added} variable(s) añadida(s).`;
   // Show brief toast notification
@@ -2043,31 +2050,37 @@ function getVarSimTheme(v, quadKey) {
   const code = (v.code || '').toUpperCase();
   const name = (v.name || '').toLowerCase();
   
-  if (code.includes('INV') || name.includes('inversión') || name.includes('presupuesto') || name.includes('cost') || name.includes('salario') || name.includes('gasto')) {
+  if (code.includes('INV') || name.includes('inversión') || name.includes('presupuesto') || name.includes('budget') || name.includes('cost') || name.includes('salario') || name.includes('gasto') || name.includes('incentiv')) {
     return { theme: 'theme-amber', icon: '🪙', gauge: 'amber', unit: '$' };
   }
-  if (code.includes('LID') || name.includes('liderazgo') || name.includes('dirección') || name.includes('estrateg')) {
+  if (code.includes('LID') || name.includes('liderazgo') || name.includes('gobernanza') || name.includes('governance') || name.includes('leadership') || name.includes('dirección') || name.includes('estrateg')) {
     return { theme: 'theme-amber', icon: '👑', gauge: 'amber', unit: 'pts' };
   }
-  if (code.includes('INF') || name.includes('infraestructura') || name.includes('máquina') || name.includes('tecnología') || name.includes('equipo')) {
+  if (code === 'V12' || name.includes('inteligencia artificial') || name.includes('educational ai') || name.includes('ai adoption')) {
+    return { theme: 'theme-purple', icon: '🤖', gauge: 'purple', unit: 'AI' };
+  }
+  if (code === 'V10' || name.includes('investigación') || name.includes('research') || name.includes('transferencia')) {
+    return { theme: 'theme-blue', icon: '🔬', gauge: 'blue', unit: 'I+D' };
+  }
+  if (code.includes('INF') || name.includes('infraestructura') || name.includes('infrastructure') || name.includes('máquina') || name.includes('tecnología') || name.includes('equipo')) {
     return { theme: 'theme-blue', icon: '⚙️', gauge: 'blue', unit: 'cap' };
   }
-  if (code.includes('COM') || name.includes('docente') || name.includes('trabajador') || name.includes('personal') || name.includes('competenc')) {
+  if (code.includes('COM') || name.includes('docente') || name.includes('faculty') || name.includes('trabajador') || name.includes('personal') || name.includes('competenc')) {
     return { theme: 'theme-green', icon: '👷', gauge: 'green', unit: 'pers' };
   }
-  if (code.includes('CUL') || name.includes('cultura') || name.includes('innovación') || name.includes('marketing')) {
+  if (code.includes('CUL') || name.includes('cultura') || name.includes('innovación') || name.includes('innovation') || name.includes('marketing')) {
     return { theme: 'theme-green', icon: '💡', gauge: 'green', unit: 'idx' };
   }
-  if (code.includes('EXP') || name.includes('experiencia') || name.includes('estudiantil') || name.includes('satisfacción') || name.includes('cliente')) {
+  if (code.includes('EXP') || name.includes('experiencia') || name.includes('estudiantil') || name.includes('student learning') || name.includes('aprendizaje') || name.includes('satisfacción') || name.includes('cliente')) {
     return { theme: 'theme-purple', icon: '⭐', gauge: 'purple', unit: 'NPS' };
   }
-  if (code.includes('RET') || name.includes('retención') || name.includes('producción') || name.includes('almacén') || name.includes('stock')) {
+  if (code.includes('RET') || name.includes('retención') || name.includes('retention') || name.includes('permanencia') || name.includes('producción') || name.includes('almacén') || name.includes('stock')) {
     return { theme: 'theme-blue', icon: '📦', gauge: 'blue', unit: 'uds' };
   }
-  if (code.includes('RES') || name.includes('resistencia') || name.includes('oposición') || name.includes('retraso') || name.includes('demora')) {
+  if (code.includes('RES') || name.includes('resistencia') || name.includes('resistance') || name.includes('burocracia') || name.includes('bureaucracy') || name.includes('oposición') || name.includes('retraso') || name.includes('demora')) {
     return { theme: 'theme-rose', icon: '⚠️', gauge: 'rose', unit: 'res' };
   }
-  if (code.includes('NOR') || name.includes('normativa') || name.includes('acreditación') || name.includes('estándar') || name.includes('pedido')) {
+  if (code.includes('NOR') || name.includes('normativa') || name.includes('acreditación') || name.includes('accreditation') || name.includes('calidad') || name.includes('estándar') || name.includes('pedido')) {
     return { theme: 'theme-slate', icon: '📄', gauge: 'blue', unit: 'st' };
   }
 
@@ -2288,18 +2301,24 @@ function renderFlowDiagram() {
   });
   if (needLayout) initFlowLayout(flowState.layout);
 
-  // Asegurar que el slider de tiempo tenga el maximo correcto
+  // Asegurar que el slider de tiempo tenga el maximo correcto (tope t=50 en la simulación de red)
+  const maxFlowSteps = Math.min(S.params.steps || 50, 50);
+  if (flowState.activeStep > maxFlowSteps) flowState.activeStep = maxFlowSteps;
   const slider = $('#flow-time-slider');
   if (slider) {
-    slider.max = S.params.steps || 50;
+    slider.max = maxFlowSteps;
     slider.value = flowState.activeStep;
   }
+  const maxOut = $('#flow-time-max');
+  if (maxOut) maxOut.textContent = maxFlowSteps;
   const valOut = $('#flow-time-val');
   if (valOut) valOut.textContent = flowState.activeStep;
 
   renderFlowCards();
   renderFlowLinks();
   renderFlowTrajectoryTable();
+  if (typeof renderFlowChart === 'function') renderFlowChart();
+  if (flowState.selectedVar) showFlowDrawer(flowState.selectedVar);
   applyFlowTransform();
 
   if (!flowState.initialized) {
@@ -2615,6 +2634,11 @@ function updateFlowStepUI() {
   const hudStep = $('#flow-hud-step-pill');
   if (hudStep) hudStep.textContent = `t = ${flowState.activeStep}`;
 
+  const chartActivePill = $('#flow-chart-active-pill');
+  if (chartActivePill) {
+    chartActivePill.textContent = (currentLang === 'en' ? 'Step t = ' : 'Paso t = ') + flowState.activeStep;
+  }
+
   renderFlowCards();
   renderFlowLinks();
   highlightFlowTableRow(flowState.activeStep);
@@ -2635,15 +2659,29 @@ function setFlowPlaying(play) {
   const hudPlayIcon = $('#flow-hud-play-icon');
 
   if (play) {
+    const maxSteps = Math.min(S.params.steps || 50, 50);
+    if (flowState.activeStep >= maxSteps) {
+      flowState.activeStep = 0;
+      updateFlowStepUI();
+    }
     if (playBtnText) playBtnText.textContent = t('flow_btn_pause');
     if (playIcon) playIcon.textContent = '⏸';
     if (hudPlayText) hudPlayText.textContent = t('flow_btn_pause');
     if (hudPlayIcon) hudPlayIcon.textContent = '⏸';
     if (flowState.playTimer) clearInterval(flowState.playTimer);
     flowState.playTimer = setInterval(() => {
-      const maxSteps = S.params.steps || 50;
-      flowState.activeStep = (flowState.activeStep + 1) % (maxSteps + 1);
+      const limitStep = Math.min(S.params.steps || 50, 50);
+      if (flowState.activeStep >= limitStep) {
+        flowState.activeStep = limitStep;
+        updateFlowStepUI();
+        setFlowPlaying(false);
+        return;
+      }
+      flowState.activeStep += 1;
       updateFlowStepUI();
+      if (flowState.activeStep >= limitStep) {
+        setFlowPlaying(false);
+      }
     }, flowState.speed);
   } else {
     if (playBtnText) playBtnText.textContent = t('flow_btn_play');
@@ -3233,7 +3271,7 @@ function renderFlowTrajectoryTable() {
   if (!SIM) SIM = simulate();
 
   const isEn = currentLang === 'en';
-  const T = S.params.steps || 50;
+  const T = Math.min(S.params.steps || 50, 50);
   const stepFilter = flowTableStepFilter;
   const isDelta = flowTableMode === 'delta';
 
@@ -3315,7 +3353,7 @@ function exportFlowTrajectoriesCSV() {
   const vars = V();
   if (!vars.length) return;
   if (!SIM) SIM = simulate();
-  const T = S.params.steps || 50;
+  const T = Math.min(S.params.steps || 50, 50);
 
   let csv = 'Paso;' + vars.map(v => `"${v.code} (${v.name.replace(/"/g, '""')})"`).join(';') + '\n';
   for (let t = 0; t <= T; t++) {
@@ -3409,7 +3447,7 @@ function renderFlowChart() {
   if (!SIM || !SIM.x) SIM = simulate();
   if (!PD) PD = planeData();
 
-  const T = S.params.steps || 50;
+  const T = Math.min(S.params.steps || 50, 50);
   const data = (flowChartViewMode === 'abs') ? SIM.x : SIM.dl;
 
   // Filtrado por cuadrante y visibilidad
@@ -3613,7 +3651,7 @@ function renderFlowChart() {
 
 function updateFlowChartCursor() {
   const step = flowState.activeStep || 0;
-  const T = S.params.steps || 50;
+  const T = Math.min(S.params.steps || 50, 50);
   const W = 960;
   const M = { top: 25, bottom: 35, left: 56, right: 30 };
   const pw = W - M.left - M.right;
@@ -3867,7 +3905,20 @@ $('#file-import').onchange = e => {
 };
 $('#btn-reset').onclick = () => {
   if (confirm(t('confirm_reset'))) {
-    uid = 1; S = defaults(currentLang); ui.sel = ui.selVar = null; ui.hidden.clear(); save(); renderAll();
+    uid = 1;
+    S = defaults(currentLang);
+    ui.sel = ui.selVar = null;
+    ui.hidden.clear();
+    vnetState.positions = {};
+    flowState.positions = {};
+    localStorage.removeItem('micmac_vnet_positions');
+    localStorage.removeItem('micmac_flow_positions');
+    save();
+    renderAll();
+    setTimeout(() => {
+      if (typeof vnetFitScreen === 'function') vnetFitScreen();
+      if (typeof flowFitToScreen === 'function') flowFitToScreen();
+    }, 80);
   }
 };
 
@@ -3916,17 +3967,20 @@ function applyLanguage(lang) {
     const enByCode = Object.fromEntries(enVars.map(item => [item[0], item]));
     const toByCode = Object.fromEntries(toList.map(item => [item[0], item]));
 
-    S.vars.forEach(v => {
-      const target = toByCode[v.code];
-      const esItem = esByCode[v.code];
-      const enItem = enByCode[v.code];
+    S.vars.forEach((v, idx) => {
+      const codeKey = (v.code || '').trim().toUpperCase();
+      const target = toByCode[codeKey] || toList[idx];
+      const esItem = esByCode[codeKey] || esVars[idx];
+      const enItem = enByCode[codeKey] || enVars[idx];
       if (target && esItem && enItem) {
-        if (v.name === esItem[1] || v.name === enItem[1]) {
+        if (!v.name || v.name === esItem[1] || v.name === enItem[1]) {
           v.name = target[1];
         }
         if (!v.desc || v.desc === esItem[2] || v.desc === enItem[2]) {
           v.desc = target[2];
         }
+      } else if (v.name === 'New variable' || v.name === 'Nueva variable') {
+        v.name = lang === 'en' ? 'New variable' : 'Nueva variable';
       }
     });
   }
@@ -5157,6 +5211,9 @@ function renderStability() {
           else if ((r.codeA === 'COM' || r.codeA === 'V3') && (r.codeB === 'RES' || r.codeB === 'V7')) interp = isEn ? 'Mitigating loop: training reduces uncertainty; lower resistance unlocks active classroom adoption.' : 'Bucle de desbloqueo: mayor formación mitiga el temor; una menor resistencia destraba la adopción en aula.';
           else if ((r.codeA === 'CUL' || r.codeA === 'V6') && (r.codeB === 'RES' || r.codeB === 'V7')) interp = isEn ? 'Cultural neutralizing loop: collaborative culture dissolves opposition; reduced resistance protects innovation.' : 'Bucle estabilizador: la cultura colaborativa disuelve la oposición; la menor resistencia protege la innovación.';
           else if (r.codeA === 'V5' && r.codeB === 'V9') interp = isEn ? 'Relevance loop: aligned curriculum boosts graduate employability, and employer feedback updates study plans.' : 'Bucle de pertinencia: el diseño curricular eleva la inserción laboral y la retroalimentación externa actualiza el currículo.';
+          else if (r.codeA === 'V1' && r.codeB === 'V13') interp = isEn ? 'Governance-Quality loop: leadership institutionalizes quality standards, and accreditation diagnostics guide executive strategy.' : 'Bucle de gobernanza y calidad: el liderazgo institucionaliza estándares y la acreditación orienta la agenda directiva.';
+          else if (r.codeA === 'V2' && r.codeB === 'V11') interp = isEn ? 'Sustainability loop: financial aid supports student retention, and cohort persistence stabilizes institutional revenue.' : 'Bucle de sostenibilidad: el presupuesto sostiene becas de retención y la permanencia estabiliza los ingresos institucionales.';
+          else if (r.codeA === 'V2' && r.codeB === 'V13') interp = isEn ? 'Accreditation-Funding loop: resources sustain quality systems, and active accreditation unlocks competitive public funding.' : 'Bucle de financiamiento y calidad: los recursos sostienen el aseguramiento de calidad y la acreditación habilita fondos competitivos.';
           else interp = isPos ? (isEn ? 'Self-reinforcing positive feedback' : 'Retroalimentación positiva de auto-refuerzo') : (isEn ? 'Balancing / homeostatic feedback' : 'Retroalimentación balanceadora homeostática');
 
           return `<tr>
