@@ -159,8 +159,12 @@ function renderVars() {
 /* ============================================================
    VARIABLE NETWORK (vnet) — Red de Influencias Directas
    ============================================================ */
-const VNET_NODE_W = 196;
-const VNET_NODE_H = 112;
+const VNET_NODE_W = 190;
+const VNET_NODE_H = 74;
+if (!localStorage.getItem('micmac-vnet-simplified-v1')) {
+  localStorage.removeItem('micmac_vnet_positions');
+  localStorage.setItem('micmac-vnet-simplified-v1', '1');
+}
 const vnetState = {
   zoom: 1.0, panX: 50, panY: 40,
   isPanning: false, startPanX: 0, startPanY: 0, startMouseX: 0, startMouseY: 0,
@@ -290,31 +294,26 @@ function vnetFitScreen() {
   vnetApplyTransform();
 }
 
-function vnetUpdateNodeVisual(v) {
-  const card = document.querySelector(`.vnet-node[data-id="${v.id}"]`);
-  if (!card) return;
-  const vStyle = getVarColorStyle(v);
-  const cardBg = card.querySelector('.vnet-card-bg');
-  const badge = card.querySelector('.vnet-val-badge');
-  const slider = card.querySelector('.vnet-level-slider');
-  const polarText = card.querySelector('.vnet-polar-text');
+function vnetWrapName(str, maxChars = 26) {
+  const words = String(str || '').trim().split(/\s+/);
+  let line1 = '';
+  let line2 = '';
+  for (const w of words) {
+    if (!line2 && (line1 ? line1.length + 1 + w.length : w.length) <= maxChars) {
+      line1 = line1 ? line1 + ' ' + w : w;
+    } else {
+      line2 = line2 ? line2 + ' ' + w : w;
+    }
+  }
+  if (line2.length > maxChars) {
+    line2 = line2.slice(0, maxChars - 1) + '…';
+  }
+  return [line1, line2];
+}
 
-  const borderCol = vStyle.status === 'fav' ? COLOR_POS : (vStyle.status === 'adv' ? COLOR_NEG : 'rgba(148,163,255,.35)');
-  if (cardBg) {
-    cardBg.setAttribute('stroke', borderCol);
-  }
-  if (badge) {
-    badge.textContent = (v.x0 > 0 ? '+' : '') + v.x0;
-    badge.style.color = borderCol;
-  }
-  if (slider && Number(slider.value) !== Number(v.x0)) {
-    slider.value = v.x0;
-    slider.style.accentColor = borderCol;
-  }
-  if (polarText) {
-    polarText.textContent = v.polar === '-' ? '−' : '+';
-    polarText.setAttribute('fill', v.polar === '-' ? '#fb7185' : '#38bdf8');
-  }
+function vnetUpdateNodeVisual(v) {
+  /* En Red de Influencias Directas los cuadros son puramente estructurales (sin nivel ni intervenciones) */
+  if (!v) return;
 }
 
 function renderVarsNetworkNodes() {
@@ -323,93 +322,100 @@ function renderVarsNetworkNodes() {
   if (!PD) PD = planeData();
   const vars = V();
   const sel = vnetState.selectedNode;
+  const selVar = sel ? vars.find(u => u.id === sel) : null;
+
+  const quadLabels = currentLang === 'en'
+    ? { power: 'Driver', conflict: 'Relay', result: 'Outcome', auto: 'Auton.' }
+    : { power: 'Motriz', conflict: 'Enlace', result: 'Resultado', auto: 'Autón.' };
 
   let html = '';
   vars.forEach((v, i) => {
     const pos = vnetState.positions[v.id] || { x: 80 + i * 200, y: 80 };
     const quadKey = PD.q ? PD.q[i] : 'auto';
     const col = vnetNodeColors(quadKey);
+    const qLabel = quadLabels[quadKey] || quadLabels.auto;
     const dimmed = sel && v.id !== sel && !val(sel, v.id) && !val(v.id, sel);
     const selected = v.id === sel;
-    const isNeg = v.polar === '-';
 
-    const vStyle = getVarColorStyle(v);
-    const cardBorderColor = vStyle.status === 'fav' ? COLOR_POS : (vStyle.status === 'adv' ? COLOR_NEG : col.border);
+    const cardBorderColor = col.border;
 
-    /* Calcula motricidad bruta simple para barra */
-    const motRow = vars.reduce((s, u) => s + Math.abs(val(v.id, u.id)), 0);
+    /* Métricas relacionales directas: cuántas variables influye (salen) y de cuántas recibe (entran) */
+    let outCount = 0, inCount = 0, motRow = 0, depCol = 0;
+    vars.forEach(u => {
+      if (u.id === v.id) return;
+      const wOut = val(v.id, u.id);
+      const wIn = val(u.id, v.id);
+      if (wOut !== 0) { outCount++; motRow += Math.abs(wOut); }
+      if (wIn !== 0) { inCount++; depCol += Math.abs(wIn); }
+    });
+
     const maxMot = Math.max(...vars.map(u => vars.reduce((s, w) => s + Math.abs(val(u.id, w.id)), 0)), 1);
     const barPct = Math.round((motRow / maxMot) * 100);
 
-    const opacity = dimmed ? 0.2 : 1.0;
+    const opacity = dimmed ? 0.18 : 1.0;
     const strokeW = selected ? 2.8 : 1.8;
-    const glowFilter = selected ? 'filter:drop-shadow(0 0 10px ' + cardBorderColor + ')' : (vStyle.status !== 'zero' ? 'filter:drop-shadow(0 0 4px ' + cardBorderColor + '55)' : '');
+    const glowFilter = selected ? 'filter:drop-shadow(0 0 10px ' + cardBorderColor + ')' : '';
 
-    const valSign = (v.x0 > 0 ? '+' : '') + v.x0;
+    const [line1, line2] = vnetWrapName(v.name, 26);
 
-    /* Node rectangle */
+    /* Etiqueta de relación directa cuando hay un nodo seleccionado */
+    let relBadge = '';
+    if (sel && v.id !== sel && selVar) {
+      const wFromSel = val(sel, v.id);
+      const wToSel = val(v.id, sel);
+      const parts = [];
+      if (wFromSel !== 0) parts.push(`${selVar.code}→${v.code}: ${wFromSel > 0 ? '+' : ''}${wFromSel}`);
+      if (wToSel !== 0) parts.push(`${v.code}→${selVar.code}: ${wToSel > 0 ? '+' : ''}${wToSel}`);
+      if (parts.length) {
+        const relTxt = parts.join(' · ');
+        const badgeCol = (wFromSel || wToSel) > 0 ? '#38bdf8' : '#fb7185';
+        relBadge = `<text x="${VNET_NODE_W / 2}" y="63" font-family="JetBrains Mono, monospace" font-size="9.2" font-weight="700" fill="${badgeCol}" text-anchor="middle">${esc(relTxt)}</text>`;
+      }
+    }
+
+    const footerContent = relBadge || `
+      <text x="8" y="63" font-family="JetBrains Mono, monospace" font-size="9.2" fill="#38bdf8" opacity="0.92">↗ ${currentLang === 'en' ? 'Out' : 'Salen'}: ${outCount} (M:${motRow})</text>
+      <text x="${VNET_NODE_W - 8}" y="63" font-family="JetBrains Mono, monospace" font-size="9.2" fill="#cbd5e1" opacity="0.88" text-anchor="end">↘ ${currentLang === 'en' ? 'In' : 'Entran'}: ${inCount} (D:${depCol})</text>
+    `;
+
+    const tooltipTxt = `${v.code} · ${v.name}${v.desc ? '\n' + v.desc : ''}\n${currentLang === 'en' ? 'Direct influences (Out)' : 'Influencias directas (Salen)'}: ${outCount} (M=${motRow}) | ${currentLang === 'en' ? 'Dependencies (In)' : 'Dependencias (Entran)'}: ${inCount} (D=${depCol})`;
+
+    /* Node rectangle simplificado (solo estructura y relaciones) */
     html += `<g class="vnet-node" data-id="${v.id}" style="cursor:grab;opacity:${opacity};${glowFilter};transition:opacity .2s;" transform="translate(${pos.x}, ${pos.y})">
+      <title>${esc(tooltipTxt)}</title>
       <!-- shadow -->
       <rect x="2" y="3" width="${VNET_NODE_W}" height="${VNET_NODE_H}" rx="10" fill="rgba(0,0,0,.55)"/>
-      <!-- main card bg (color cambia según positivo/negativo) -->
-      <rect class="vnet-card-bg" data-id="${v.id}" width="${VNET_NODE_W}" height="${VNET_NODE_H}" rx="10" fill="${col.bg}" stroke="${cardBorderColor}" stroke-width="${strokeW}"/>
+      <!-- main card bg -->
+      <rect class="vnet-card-bg" data-id="${v.id}" width="${VNET_NODE_W}" height="${VNET_NODE_H}" rx="10" fill="#0d1527" stroke="${cardBorderColor}" stroke-width="${strokeW}"/>
+      <rect width="${VNET_NODE_W}" height="${VNET_NODE_H}" rx="10" fill="${col.bg}"/>
       <!-- header strip -->
-      <rect width="${VNET_NODE_W}" height="24" rx="10" fill="${col.header}" opacity="0.85"/>
-      <rect y="14" width="${VNET_NODE_W}" height="10" fill="${col.header}" opacity="0.85"/>
+      <rect width="${VNET_NODE_W}" height="22" rx="10" fill="${col.header}" opacity="0.9"/>
+      <rect y="12" width="${VNET_NODE_W}" height="10" fill="${col.header}" opacity="0.9"/>
       <!-- code -->
-      <text x="8" y="16" font-family="JetBrains Mono, monospace" font-size="11.5" font-weight="700" fill="${col.htext}">${esc(v.code)}</text>
-      <!-- polar toggle button (+/-) -->
-      <g class="vnet-polar-btn" data-id="${v.id}" style="cursor:pointer;" transform="translate(${VNET_NODE_W - 56}, 3)" title="${currentLang === 'en' ? 'Toggle polarity (+/−)' : 'Cambiar polaridad (+/−)'}">
-        <rect width="22" height="18" rx="4" fill="rgba(0,0,0,.4)"/>
-        <text class="vnet-polar-text" x="11" y="13" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="${isNeg ? '#fb7185' : '#38bdf8'}" text-anchor="middle">${v.polar === '-' ? '−' : '+'}</text>
-      </g>
+      <text x="8" y="15" font-family="JetBrains Mono, monospace" font-size="11.5" font-weight="700" fill="${col.htext}">${esc(v.code)}</text>
+      <!-- quadrant role pill -->
+      <rect x="${VNET_NODE_W - 86}" y="3" width="54" height="16" rx="4" fill="rgba(0,0,0,.38)"/>
+      <text x="${VNET_NODE_W - 59}" y="14" font-family="Outfit, sans-serif" font-size="9.5" font-weight="600" fill="#ffffff" text-anchor="middle">${esc(qLabel)}</text>
       <!-- index badge -->
-      <rect x="${VNET_NODE_W - 28}" y="3" width="22" height="18" rx="4" fill="rgba(0,0,0,.45)"/>
-      <text x="${VNET_NODE_W - 17}" y="15" font-family="JetBrains Mono" font-size="9.5" font-weight="700" fill="#fff" text-anchor="middle">${i + 1}</text>
-      <!-- name (truncated) -->
-      <text x="8" y="38" font-family="Outfit, sans-serif" font-size="10.5" fill="${col.text}" opacity="0.92">
-        <title>${esc(v.name)}</title>
-        ${esc(v.name.length > 25 ? v.name.slice(0, 24) + '…' : v.name)}
-      </text>
-      <!-- hit area for dragging node & selection (cubre cabecera y título) -->
-      <rect width="${VNET_NODE_W}" height="42" fill="transparent" class="vnet-node-hit" data-id="${v.id}"/>
-      <!-- interactive level controls (slider arrastrable con el ratón + botones +/-) -->
-      <foreignObject x="6" y="44" width="${VNET_NODE_W - 12}" height="28" class="vnet-interactive" style="overflow:visible;">
-        <div class="vnet-level-box" xmlns="http://www.w3.org/1999/xhtml">
-          <button type="button" class="vnet-btn-step" data-id="${v.id}" data-step="-5" title="${currentLang === 'en' ? 'Decrease baseline (−5)' : 'Disminuir nivel base (−5)'}">−</button>
-          <input type="range" class="vnet-level-slider" data-id="${v.id}" min="-100" max="100" step="1" value="${v.x0}" style="accent-color:${cardBorderColor};" title="${currentLang === 'en' ? 'Drag baseline level: ' : 'Arrastrar nivel base: '}${v.x0}">
-          <button type="button" class="vnet-btn-step" data-id="${v.id}" data-step="5" title="${currentLang === 'en' ? 'Increase baseline (+5)' : 'Aumentar nivel base (+5)'}">+</button>
-          <span class="vnet-val-badge" data-id="${v.id}" style="color:${cardBorderColor};" title="${currentLang === 'en' ? 'Baseline level x₀' : 'Nivel base x₀'}">${valSign}</span>
-        </div>
-      </foreignObject>
-      <!-- interactive intervention controls (Magnitud & Tiempo) -->
-      <foreignObject x="6" y="74" width="${VNET_NODE_W - 12}" height="26" class="vnet-interactive" style="overflow:visible;">
-        <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;">
-          ${(() => {
-            const myInt = S.ints.find(it => it.vid === v.id);
-            if (myInt) {
-              return `<div class="vnet-int-row" title="${currentLang === 'en' ? `Active intervention on ${esc(v.code)}: Magnitude ${myInt.mag}, t=${myInt.start} to ${myInt.start + myInt.dur}` : `Intervención activa en ${esc(v.code)}: Magnitud ${myInt.mag}, t=${myInt.start} a ${myInt.start + myInt.dur}`}">
-                <span style="font-weight:700;">⚡</span>
-                <span style="font-size:8px;color:#94a3b8;">M:</span>
-                <input type="number" step="0.5" class="vnet-int-field vnet-int-mag" data-id="${v.id}" value="${myInt.mag}" title="${currentLang === 'en' ? 'Magnitude (+/-)' : 'Magnitud (+/-)'}">
-                <span style="font-size:8px;color:#94a3b8;">t:</span>
-                <input type="number" min="1" max="100" class="vnet-int-field vnet-int-start" data-id="${v.id}" value="${myInt.start}" title="${currentLang === 'en' ? 'Start (t)' : 'Inicio (t)'}">
-                <span style="font-size:8px;color:#94a3b8;">d:</span>
-                <input type="number" min="1" max="100" class="vnet-int-field vnet-int-dur" data-id="${v.id}" value="${myInt.dur}" title="${currentLang === 'en' ? 'Duration (steps)' : 'Duración (pasos)'}">
-                <button type="button" class="vnet-int-del" data-id="${v.id}" title="${currentLang === 'en' ? 'Remove intervention' : 'Quitar intervención'}">✕</button>
-              </div>`;
-            } else {
-              return `<button type="button" class="vnet-btn-add-int" data-id="${v.id}" title="${currentLang === 'en' ? 'Add external intervention in magnitude and time' : 'Agregar intervención externa en magnitud y tiempo'}">
-                ${currentLang === 'en' ? '⚡ + Intervene (Mag & Time)' : '⚡ + Intervenir (Mag & Tiempo)'}
-              </button>`;
-            }
-          })()}
-        </div>
-      </foreignObject>
+      <rect x="${VNET_NODE_W - 28}" y="3" width="22" height="16" rx="4" fill="rgba(0,0,0,.48)"/>
+      <text x="${VNET_NODE_W - 17}" y="14" font-family="JetBrains Mono" font-size="9.5" font-weight="700" fill="#fff" text-anchor="middle">${i + 1}</text>
+      <!-- variable name (1 or 2 lines) -->
+      ${line2 ? `
+        <text x="8" y="36" font-family="Outfit, sans-serif" font-size="10.5" font-weight="500" fill="${col.text}">${esc(line1)}</text>
+        <text x="8" y="48" font-family="Outfit, sans-serif" font-size="10.2" fill="${col.text}" opacity="0.88">${esc(line2)}</text>
+      ` : `
+        <text x="8" y="42" font-family="Outfit, sans-serif" font-size="10.8" font-weight="500" fill="${col.text}">${esc(line1)}</text>
+      `}
+      <!-- divider line -->
+      <line x1="8" y1="53" x2="${VNET_NODE_W - 8}" y2="53" stroke="rgba(148,163,255,.16)" stroke-width="1"/>
+      <!-- structural relations summary -->
+      ${footerContent}
       <!-- motricidad bar bg -->
-      <rect x="8" y="103" width="${VNET_NODE_W - 16}" height="3.5" rx="2" fill="rgba(0,0,0,.45)"/>
+      <rect x="8" y="68" width="${VNET_NODE_W - 16}" height="3" rx="1.5" fill="rgba(0,0,0,.45)"/>
       <!-- motricidad bar fill -->
-      <rect x="8" y="103" width="${Math.round((VNET_NODE_W - 16) * barPct / 100)}" height="3.5" rx="2" fill="${cardBorderColor}" opacity="0.8"/>
+      <rect x="8" y="68" width="${Math.round((VNET_NODE_W - 16) * barPct / 100)}" height="3" rx="1.5" fill="${cardBorderColor}" opacity="0.85"/>
+      <!-- full card hit area for dragging & selecting -->
+      <rect width="${VNET_NODE_W}" height="${VNET_NODE_H}" rx="10" fill="transparent" class="vnet-node-hit" data-id="${v.id}"/>
     </g>`;
   });
   g.innerHTML = html;
@@ -583,8 +589,7 @@ function vnetSetupInteraction() {
 
   /* Drag node & pan canvas */
   wrap.addEventListener('mousedown', e => {
-    /* Si hace click en el slider o controles interactivos de la tarjeta, NO arrastrar nodo ni lienzo */
-    if (e.target.closest('foreignObject') || e.target.closest('.vnet-interactive') || e.target.closest('input') || e.target.closest('button')) {
+    if (e.target.closest('button') || e.target.closest('select')) {
       return;
     }
     const hit = e.target.closest('.vnet-node-hit') || e.target.closest('.vnet-node');
@@ -600,124 +605,6 @@ function vnetSetupInteraction() {
     vnetState.startPanX = vnetState.panX; vnetState.startPanY = vnetState.panY;
     vnetState.startMouseX = e.clientX; vnetState.startMouseY = e.clientY;
     wrap.style.cursor = 'grabbing';
-  });
-
-  /* Arrastrar el nivel base con el mouse en el slider o editar intervención en la tarjeta */
-  wrap.addEventListener('input', e => {
-    const slider = e.target.closest('.vnet-level-slider');
-    if (slider) {
-      const id = slider.dataset.id;
-      const v = V().find(u => u.id === id);
-      if (!v) return;
-      v.x0 = Number(slider.value);
-      save();
-      SIM = simulate();
-      vnetUpdateNodeVisual(v);
-      if (typeof renderSimX0 === 'function') renderSimX0();
-      if (typeof renderChart === 'function') renderChart();
-      if (typeof renderFlowCards === 'function') renderFlowCards();
-      const tblInput = $(`#vars-table input[data-id="${id}"][data-f="x0"]`);
-      if (tblInput) {
-        tblInput.value = v.x0;
-        const st = getVarColorStyle(v);
-        tblInput.style.background = st.bg;
-        tblInput.style.borderColor = st.border;
-        tblInput.style.color = st.color;
-      }
-      return;
-    }
-
-    /* Intervenciones directas en la tarjeta: Magnitud y Tiempo */
-    const intMag = e.target.closest('.vnet-int-mag');
-    const intStart = e.target.closest('.vnet-int-start');
-    const intDur = e.target.closest('.vnet-int-dur');
-    if (intMag || intStart || intDur) {
-      const inputEl = intMag || intStart || intDur;
-      const id = inputEl.dataset.id;
-      const myInt = S.ints.find(it => it.vid === id);
-      if (myInt) {
-        if (intMag) myInt.mag = Number(intMag.value) || 0;
-        if (intStart) myInt.start = Math.max(1, Number(intStart.value) || 1);
-        if (intDur) myInt.dur = Math.max(1, Number(intDur.value) || 1);
-        save();
-        SIM = simulate();
-        if (typeof renderInts === 'function') renderInts();
-        if (typeof renderChart === 'function') renderChart();
-        if (typeof renderFlowCards === 'function') renderFlowCards();
-      }
-      return;
-    }
-  });
-
-  /* Botones +/- nivel, intervenciones y polaridad (+/-) en la tarjeta */
-  wrap.addEventListener('click', e => {
-    const btnAddInt = e.target.closest('.vnet-btn-add-int');
-    if (btnAddInt) {
-      e.stopPropagation();
-      const id = btnAddInt.dataset.id;
-      S.ints.push({ vid: id, type: 'sust', mag: 2.5, start: 2, dur: 12 });
-      save();
-      SIM = simulate();
-      renderVarsNetworkNodes();
-      if (typeof renderInts === 'function') renderInts();
-      if (typeof renderChart === 'function') renderChart();
-      if (typeof renderFlowCards === 'function') renderFlowCards();
-      return;
-    }
-
-    const btnDelInt = e.target.closest('.vnet-int-del');
-    if (btnDelInt) {
-      e.stopPropagation();
-      const id = btnDelInt.dataset.id;
-      S.ints = S.ints.filter(it => it.vid !== id);
-      save();
-      SIM = simulate();
-      renderVarsNetworkNodes();
-      if (typeof renderInts === 'function') renderInts();
-      if (typeof renderChart === 'function') renderChart();
-      if (typeof renderFlowCards === 'function') renderFlowCards();
-      return;
-    }
-
-    const btn = e.target.closest('.vnet-btn-step');
-    if (btn) {
-      e.stopPropagation();
-      const id = btn.dataset.id;
-      const step = Number(btn.dataset.step) || 0;
-      const v = V().find(u => u.id === id);
-      if (!v) return;
-      v.x0 = clamp(Number(v.x0 || 0) + step, -100, 100);
-      save();
-      SIM = simulate();
-      vnetUpdateNodeVisual(v);
-      if (typeof renderSimX0 === 'function') renderSimX0();
-      if (typeof renderChart === 'function') renderChart();
-      if (typeof renderFlowCards === 'function') renderFlowCards();
-      const tblInput = $(`#vars-table input[data-id="${id}"][data-f="x0"]`);
-      if (tblInput) {
-        tblInput.value = v.x0;
-        const st = getVarColorStyle(v);
-        tblInput.style.background = st.bg;
-        tblInput.style.borderColor = st.border;
-        tblInput.style.color = st.color;
-      }
-      return;
-    }
-
-    const polarBtn = e.target.closest('.vnet-polar-btn');
-    if (polarBtn) {
-      e.stopPropagation();
-      const id = polarBtn.dataset.id;
-      const v = V().find(u => u.id === id);
-      if (!v) return;
-      v.polar = v.polar === '-' ? '+' : '-';
-      save();
-      vnetUpdateNodeVisual(v);
-      if (typeof renderSimX0 === 'function') renderSimX0();
-      if (typeof renderChart === 'function') renderChart();
-      if (typeof renderVars === 'function') renderVars();
-      return;
-    }
   });
 
   window.addEventListener('mousemove', e => {
@@ -757,6 +644,12 @@ function vnetSetupInteraction() {
       renderVarsNetworkLinks();
     }
     if (vnetState.isPanning) {
+      const panDist = Math.hypot(e.clientX - vnetState.startMouseX, e.clientY - vnetState.startMouseY);
+      if (panDist < 4 && vnetState.selectedNode) {
+        vnetState.selectedNode = null;
+        renderVarsNetworkNodes();
+        renderVarsNetworkLinks();
+      }
       vnetState.isPanning = false;
       wrap.style.cursor = 'grab';
     }
