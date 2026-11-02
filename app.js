@@ -971,12 +971,15 @@ function renderPlane() {
   const W = 780, H = 620, m = { l: 66, r: 20, t: 20, b: 58 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
   let x0 = 0, x1 = 100, y0 = 0, y1 = 100;
   if ($('#pl-zoom').checked) {
-    const dom = (a, t) => { const lo = Math.min(...a, t), hi = Math.max(...a, t), p = Math.max(4, (hi - lo) * .14); return [Math.max(0, lo - p), Math.min(105, hi + p)]; };
-    [x0, x1] = dom(sc.dep, tx); [y0, y1] = dom(sc.inf, ty);
+    const allVals = [...sc.dep, ...sc.inf, tx, ty];
+    const lo = Math.min(...allVals), hi = Math.max(...allVals), p = Math.max(4, (hi - lo) * .14);
+    x0 = y0 = Math.max(0, lo - p);
+    x1 = y1 = Math.min(105, hi + p);
   }
   const X = v => m.l + (v - x0) / (x1 - x0) * pw, Y = v => m.t + ph - (v - y0) / (y1 - y0) * ph;
+  const showDiag = $('#pl-diag') ? $('#pl-diag').checked : true;
   const zones = [['power', m.l, m.t, X(tx) - m.l, Y(ty) - m.t], ['conflict', X(tx), m.t, m.l + pw - X(tx), Y(ty) - m.t], ['auto', m.l, Y(ty), X(tx) - m.l, m.t + ph - Y(ty)], ['result', X(tx), Y(ty), m.l + pw - X(tx), m.t + ph - Y(ty)]];
-  let s = `<svg viewBox="0 0 ${W} ${H}" id="plane-svg"><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#94a3ff"/></marker><marker id="ar-pos" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 1.5L8 5L0 8.5z" fill="#38bdf8"/></marker><marker id="ar-neg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 1.5L8 5L0 8.5z" fill="#fb7185"/></marker></defs>`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" id="plane-svg"><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#94a3ff"/></marker><marker id="ar-pos" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 1.5L8 5L0 8.5z" fill="#38bdf8"/></marker><marker id="ar-neg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 1.5L8 5L0 8.5z" fill="#fb7185"/></marker><marker id="ar-diag" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1.5L9 5L0 8.5z" fill="#38bdf8"/></marker></defs>`;
   zones.forEach(([k, x, y, w, h]) => {
     s += `<rect x="${x}" y="${y}" width="${Math.max(w, 0)}" height="${Math.max(h, 0)}" fill="${QUAD[k].color}" opacity=".13"/>`;
     const right = k === 'conflict' || k === 'result', bottom = k === 'auto' || k === 'result';
@@ -988,8 +991,48 @@ function renderPlane() {
     <text x="${X(vx)}" y="${m.t + ph + 18}" text-anchor="middle" fill="#93a0c4" font-size="11">${vx.toFixed(0)}</text><text x="${m.l - 8}" y="${Y(vy) + 4}" text-anchor="end" fill="#93a0c4" font-size="11">${vy.toFixed(0)}</text>`;
   }
   s += `<line x1="${X(tx)}" x2="${X(tx)}" y1="${m.t}" y2="${m.t + ph}" stroke="#fff" stroke-width="1.6" stroke-dasharray="6 4" opacity=".75"/><line y1="${Y(ty)}" y2="${Y(ty)}" x1="${m.l}" x2="${m.l + pw}" stroke="#fff" stroke-width="1.6" stroke-dasharray="6 4" opacity=".75"/>
-  <text x="${X(tx) + 5}" y="${m.t + ph - 6}" fill="#fff" font-size="10" opacity=".7">${t('tip_threshold_dep')} ${tx.toFixed(1)}</text><text x="${m.l + 6}" y="${Y(ty) - 5}" fill="#fff" font-size="10" opacity=".7">${t('tip_threshold_mot')} ${ty.toFixed(1)}</text>
-  <text x="${m.l + pw / 2}" y="${H - 12}" text-anchor="middle" fill="#e8ecf8" font-size="13" font-weight="600">${t('axis_dep_pct')}</text><text transform="translate(16 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle" fill="#e8ecf8" font-size="13" font-weight="600">${t('axis_infl_pct')}</text>`;
+  <text x="${X(tx) + 5}" y="${m.t + ph - 6}" fill="#fff" font-size="10" opacity=".7">${t('tip_threshold_dep')} ${tx.toFixed(1)}</text><text x="${m.l + 6}" y="${Y(ty) - 5}" fill="#fff" font-size="10" opacity=".7">${t('tip_threshold_mot')} ${ty.toFixed(1)}</text>`;
+
+  /* Eje Estratégico / Diagonal Estratégica (Bisectriz I = D) */
+  if (showDiag) {
+    const d0 = Math.max(x0, y0), d1 = Math.min(x1, y1);
+    const dx1 = X(d0), dy1 = Y(d0), dx2 = X(d1), dy2 = Y(d1);
+    const diagAngle = Math.atan2(dy2 - dy1, dx2 - dx1) * 180 / Math.PI;
+    const midX = (dx1 + dx2) / 2, midY = (dy1 + dy2) / 2;
+    const isEn = currentLang === 'en';
+
+    /* Sombreado suave de semiplanos por encima (I > D) y por debajo (I < D) */
+    s += `<polygon points="${dx1},${dy1} ${m.l},${m.t} ${dx2},${dy2}" fill="#38bdf8" opacity="0.04"/>`;
+    s += `<polygon points="${dx1},${dy1} ${m.l + pw},${m.t + ph} ${dx2},${dy2}" fill="#a78bfa" opacity="0.04"/>`;
+
+    /* Línea de la Bisectriz / Diagonal Estratégica */
+    s += `<line x1="${dx1}" y1="${dy1}" x2="${dx2 - 4}" y2="${dy2 + 3}" stroke="#38bdf8" stroke-width="2.2" stroke-dasharray="9 5" opacity="0.88" marker-end="url(#ar-diag)"/>`;
+
+    /* Etiquetas sobre la diagonal y zonas superior/inferior */
+    s += `<g transform="translate(${midX}, ${midY}) rotate(${diagAngle.toFixed(2)})" pointer-events="none">
+      <rect x="-155" y="-22" width="310" height="16" rx="4" fill="rgba(8,13,26,0.82)" stroke="rgba(56,189,248,0.4)" stroke-width="1"/>
+      <text x="0" y="-10" text-anchor="middle" fill="#38bdf8" font-size="10.2" font-weight="700" font-family="Outfit, sans-serif">${isEn ? '↗ STRATEGIC AXIS / BISECTOR (I = D)' : '↗ EJE ESTRATÉGICO / BISECTRIZ (I = D)'}</text>
+      <text x="0" y="-27" text-anchor="middle" fill="#34d399" font-size="9.5" font-weight="600" opacity="0.9">${isEn ? '▲ Above Diagonal (I > D): Net Drivers / Conditioners' : '▲ Encima de la Diagonal (I > D): Condicionantes / Motrices Netas'}</text>
+      <text x="0" y="14" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="600" opacity="0.9">${isEn ? '▼ Below Diagonal (I < D): Net Dependent / Outcomes' : '▼ Debajo de la Diagonal (I < D): Dependientes / Receptoras Netas'}</text>
+    </g>`;
+
+    /* Proyección ortogonal de la variable seleccionada sobre la bisectriz */
+    if (ui.selVar && idx(ui.selVar) >= 0) {
+      const si = idx(ui.selVar);
+      const depVal = sc.dep[si], infVal = sc.inf[si];
+      const projVal = clamp((depVal + infVal) / 2, d0, d1);
+      const px = X(depVal), py = Y(infVal);
+      const qx = X(projVal), qy = Y(projVal);
+      const diff = infVal - depVal;
+      const diffCol = diff >= 0 ? '#34d399' : '#c4b5fd';
+      s += `<line x1="${px}" y1="${py}" x2="${qx}" y2="${qy}" stroke="${diffCol}" stroke-width="1.6" stroke-dasharray="3 3" opacity="0.9"/>`;
+      s += `<circle cx="${qx}" cy="${qy}" r="4.5" fill="${diffCol}" stroke="#080d1a" stroke-width="1.5"/>`;
+      s += `<rect x="${(px + qx) / 2 - 34}" y="${(py + qy) / 2 - 9}" width="68" height="17" rx="4" fill="rgba(8,13,26,0.9)" stroke="${diffCol}" stroke-width="1"/>`;
+      s += `<text x="${(px + qx) / 2}" y="${(py + qy) / 2 + 3}" text-anchor="middle" fill="${diffCol}" font-size="9.5" font-weight="700" font-family="JetBrains Mono">I−D=${diff > 0 ? '+' : ''}${diff.toFixed(1)}</text>`;
+    }
+  }
+
+  s += `<text x="${m.l + pw / 2}" y="${H - 12}" text-anchor="middle" fill="#e8ecf8" font-size="13" font-weight="600">${t('axis_dep_pct')}</text><text transform="translate(16 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle" fill="#e8ecf8" font-size="13" font-weight="600">${t('axis_infl_pct')}</text>`;
   /* posiciones con desplazamiento de duplicados */
   const pts = V().map((v, i) => ({ i, x: X(sc.dep[i]), y: Y(sc.inf[i]), r: Math.max(18, 7 + (sc.inf[i] + sc.dep[i]) / 200 * 9) }));
   const seen = {}; pts.forEach(p => { const k = p.x.toFixed(0) + '_' + p.y.toFixed(0); seen[k] = (seen[k] || 0) + 1; if (seen[k] > 1) { const a = seen[k] * 2.4; p.x += Math.cos(a) * 9; p.y += Math.sin(a) * 9; } });
@@ -1014,27 +1057,85 @@ function renderPlane() {
   $('#plane-wrap').innerHTML = s + '</svg>';
   /* tabla de posiciones */
   const order = [...V().keys()].sort((a, b) => sc.inf[b] - sc.inf[a]);
-  $('#rank').innerHTML = `<tr><th style="width:38px;text-align:center">${t('th_num')}</th><th>Var.</th><th>${t('th_infl')}</th><th>${t('th_dep')}</th><th>${t('th_quad')}</th>${PD.mode === 'indirect' ? `<th>${currentLang === 'en' ? 'Rank Δ' : 'Rango Δ'}</th>` : ''}</tr>` + order.map(i => {
+  $('#rank').innerHTML = `<tr><th style="width:38px;text-align:center">${t('th_num')}</th><th>Var.</th><th>${t('th_infl')}</th><th>${t('th_dep')}</th><th>${t('th_diag')}</th><th>${t('th_quad')}</th>${PD.mode === 'indirect' ? `<th>${currentLang === 'en' ? 'Rank Δ' : 'Rango Δ'}</th>` : ''}</tr>` + order.map(i => {
     const border = Math.abs(sc.inf[i] - ty) < (y1 - y0) * .04 || Math.abs(sc.dep[i] - tx) < (x1 - x0) * .04;
     const dr = PD.rkD[i] - PD.rkI[i];
-    return `<tr class="clickable ${ui.selVar === V()[i].id ? 'sel' : ''}" data-id="${V()[i].id}"><td style="text-align:center"><span class="var-idx sm">${i + 1}</span></td><td><b>${esc(V()[i].code)}</b></td><td>${sc.inf[i].toFixed(1)}</td><td>${sc.dep[i].toFixed(1)}</td><td><span class="badge" style="background:${QUAD[q[i]].color}">${QUAD[q[i]].short}</span>${border ? ` <span title="${currentLang === 'en' ? 'Near threshold' : 'Cerca del umbral'}" style="color:#fbbf24">≈</span>` : ''}</td>${PD.mode === 'indirect' ? `<td>${dr === 0 ? '=' : (dr > 0 ? '▲' + dr : '▼' + -dr)}</td>` : ''}</tr>`;
+    const diff = sc.inf[i] - sc.dep[i];
+    const isAbove = diff > 1.5, isBelow = diff < -1.5;
+    const diagCol = isAbove ? '#34d399' : (isBelow ? '#c4b5fd' : '#fbbf24');
+    const diagIcon = isAbove ? '▲' : (isBelow ? '▼' : '≈');
+    const diagTitle = isAbove
+      ? (currentLang === 'en' ? 'Above bisector (I > D): Net driver / conditioner' : 'Encima de la diagonal (I > D): Impulsora / condicionante neta')
+      : (isBelow
+        ? (currentLang === 'en' ? 'Below bisector (I < D): Net dependent / receiver' : 'Debajo de la diagonal (I < D): Dependiente / receptora neta')
+        : (currentLang === 'en' ? 'On bisector (I ≈ D): Balanced relay' : 'Sobre la bisectriz (I ≈ D): Equilibrio influencia-dependencia'));
+    return `<tr class="clickable ${ui.selVar === V()[i].id ? 'sel' : ''}" data-id="${V()[i].id}"><td style="text-align:center"><span class="var-idx sm">${i + 1}</span></td><td><b>${esc(V()[i].code)}</b></td><td>${sc.inf[i].toFixed(1)}</td><td>${sc.dep[i].toFixed(1)}</td><td title="${diagTitle}" style="color:${diagCol};font-family:'JetBrains Mono';font-size:11.5px;font-weight:700;white-space:nowrap;">${diagIcon} ${diff > 0 ? '+' : ''}${diff.toFixed(1)}</td><td><span class="badge" style="background:${QUAD[q[i]].color}">${QUAD[q[i]].short}</span>${border ? ` <span title="${currentLang === 'en' ? 'Near threshold' : 'Cerca del umbral'}" style="color:#fbbf24">≈</span>` : ''}</td>${PD.mode === 'indirect' ? `<td>${dr === 0 ? '=' : (dr > 0 ? '▲' + dr : '▼' + -dr)}</td>` : ''}</tr>`;
   }).join('');
   renderDetail();
+  renderDiagHelp();
   renderQuadCards();
 }
 $('#plane-wrap').onclick = e => { const id = e.target.dataset?.id; if (id) { ui.selVar = id; renderPlane(); } };
 $('#plane-wrap').onmousemove = e => {
   const id = e.target.dataset?.id; if (!id || !PD) return tip(null);
-  const i = idx(id); tip(e, `<b>N° ${i + 1} · ${esc(V()[i].code)}: ${esc(V()[i].name)}</b><br>${t('th_infl')} ${PD.sc.inf[i].toFixed(1)}% · ${t('th_dep')} ${PD.sc.dep[i].toFixed(1)}%<br>${QUAD[PD.q[i]].name}`);
+  const i = idx(id);
+  const diff = PD.sc.inf[i] - PD.sc.dep[i];
+  const diagTxt = diff >= 0
+    ? (currentLang === 'en' ? `▲ Above Bisector (I−D = +${diff.toFixed(1)}% · Net Driver)` : `▲ Encima de la Bisectriz (I−D = +${diff.toFixed(1)}% · Motriz Neta)`)
+    : (currentLang === 'en' ? `▼ Below Bisector (I−D = ${diff.toFixed(1)}% · Net Dependent)` : `▼ Debajo de la Bisectriz (I−D = ${diff.toFixed(1)}% · Dependiente Neta)`);
+  tip(e, `<b>N° ${i + 1} · ${esc(V()[i].code)}: ${esc(V()[i].name)}</b><br>${t('th_infl')} ${PD.sc.inf[i].toFixed(1)}% · ${t('th_dep')} ${PD.sc.dep[i].toFixed(1)}%<br><span style="color:${diff >= 0 ? '#34d399' : '#c4b5fd'};font-weight:600;">${diagTxt}</span><br>${QUAD[PD.q[i]].name}`);
 };
 $('#plane-wrap').onmouseleave = () => tip(null);
 $('#rank').onclick = e => { const r = e.target.closest('tr.clickable'); if (r) { ui.selVar = r.dataset.id; renderPlane(); } };
-['#pl-mode', '#pl-k', '#pl-thr', '#pl-zoom', '#pl-links'].forEach(s => $(s).oninput = renderPlane);
+['#pl-mode', '#pl-k', '#pl-thr', '#pl-zoom', '#pl-diag', '#pl-links'].forEach(s => { const el = $(s); if (el) el.oninput = renderPlane; });
+
+function getDiagInterpretation(inf, dep, quadKey) {
+  const diff = inf - dep;
+  const weight = inf + dep;
+  const isEn = currentLang === 'en';
+  const isAbove = diff >= 0;
+
+  if (isEn) {
+    const posTitle = isAbove
+      ? `▲ Above the Strategic Diagonal / Bisector (I − D = +${diff.toFixed(1)}% · Strategic Weight I + D = ${weight.toFixed(1)}%)`
+      : `▼ Below the Strategic Diagonal / Bisector (I − D = ${diff.toFixed(1)}% · Strategic Weight I + D = ${weight.toFixed(1)}%)`;
+    let detail = '';
+    if (isAbove) {
+      if (quadKey === 'power') detail = 'Pure input lever: its influence far exceeds its dependence. Acting on this variable drives structural change across the system with minimal feedback vulnerability.';
+      else if (quadKey === 'conflict') detail = 'Driver-oriented relay variable (High-Leverage Challenge): located in the upper half of the strategic quadrant, its capacity to propel the system outweighs the influences it receives.';
+      else if (quadKey === 'auto') detail = 'Focused / secondary lever: although moderately connected overall, it acts as a net conditioner (it influences more than it is influenced).';
+      else detail = 'Despite being in the outcome zone, its influence approaches its dependence.';
+    } else {
+      if (quadKey === 'result') detail = 'Pure outcome / symptom variable: strongly conditioned by the system. It serves as an impact indicator and cannot be modified sustainably without acting on upstream drivers.';
+      else if (quadKey === 'conflict') detail = 'Receptive / vulnerable strategic variable (High-Sensitivity Target): located in the lower half of the conflict quadrant, it is highly exposed to cascading effects from the rest of the system.';
+      else if (quadKey === 'auto') detail = 'Autonomous receiver variable: low systemic coupling, reacting more to external impulses than it transmits.';
+      else detail = 'Moderate net balance within its quadrant.';
+    }
+    return { posTitle, detail, isAbove, diff, weight };
+  } else {
+    const posTitle = isAbove
+      ? `▲ Por ENCIMA de la Diagonal Estratégica / Bisectriz (I − D = +${diff.toFixed(1)}% · Peso Estratégico I + D = ${weight.toFixed(1)}%)`
+      : `▼ Por DEBAJO de la Diagonal Estratégica / Bisectriz (I − D = ${diff.toFixed(1)}% · Peso Estratégico I + D = ${weight.toFixed(1)}%)`;
+    let detail = '';
+    if (isAbove) {
+      if (quadKey === 'power') detail = 'Palanca pura de entrada: su motricidad supera ampliamente su dependencia. Intervenir sobre esta variable impulsa al sistema con mínima vulnerabilidad a retroalimentaciones adversas.';
+      else if (quadKey === 'conflict') detail = 'Variable clave de empuje (Reto Motriz): ubicada en el triángulo superior del cuadrante estratégico, su capacidad de arrastrar al sistema supera la dependencia que recibe.';
+      else if (quadKey === 'auto') detail = 'Palanca focalizada o secundaria: aunque presenta baja articulación global, cuando actúa empuja más al sistema de lo que depende de él.';
+      else detail = 'Pese a ubicarse cerca de la zona de salida, mantiene un saldo de influencia cercano al equilibrio.';
+    } else {
+      if (quadKey === 'result') detail = 'Variable de resultado puro o síntoma: está fuertemente condicionada por el sistema. Es un indicador de impacto que solo puede modificarse de forma sostenible actuando sobre las palancas motrices.';
+      else if (quadKey === 'conflict') detail = 'Variable clave receptora / vulnerable (Objetivo Crítico): ubicada en el triángulo inferior del cuadrante de enlace, tiene alto impacto pero es aún más sensible a los cambios del resto del sistema.';
+      else if (quadKey === 'auto') detail = 'Variable autónoma receptora: baja conexión sistémica y mayor propensión a recibir efectos que a emitirlos.';
+      else detail = 'Saldo neto moderado dentro de su cuadrante.';
+    }
+    return { posTitle, detail, isAbove, diff, weight };
+  }
+}
 
 function renderDetail() {
   const box = $('#var-detail');
   if (!ui.selVar || idx(ui.selVar) < 0) {
-    box.innerHTML = `<h2>${currentLang === 'en' ? 'Position Justification' : 'Justificación de la posición'}</h2><p class="muted">${currentLang === 'en' ? 'Select a variable on the chart or table to inspect why it falls in its quadrant: which crossover linkages build its influence and dependence.' : 'Seleccione una variable en el gráfico o en la tabla para ver por qué cae en su cuadrante: qué cruces suman su influencia y su dependencia, con su concepto y evidencia.'}</p>`;
+    box.innerHTML = `<h2>${currentLang === 'en' ? 'Position Justification' : 'Justificación de la posición'}</h2><p class="muted">${currentLang === 'en' ? 'Select a variable on the chart or table to inspect why it falls in its quadrant and its position relative to the strategic diagonal (bisector).' : 'Seleccione una variable en el gráfico o en la tabla para ver por qué cae en su cuadrante y su lectura respecto a la diagonal estratégica (bisectriz).'}</p>`;
     return;
   }
   const i = idx(ui.selVar), v = V()[i], q = PD.q[i], Q = QUAD[q], id = v.id;
@@ -1043,10 +1144,160 @@ function renderDetail() {
   const list = (arr, out) => arr.length ? arr.map(({ b, l }) => `<div class="lk" style="border-color:${pillBg(l.v)}"><b>${out ? esc(v.code) + ' → ' + esc(b.code) : esc(b.code) + ' → ' + esc(v.code)}</b> <span class="pill" style="background:${pillBg(l.v)}">${sgn(l.v)}</span><br>${esc(l.concept) || `<i>${currentLang === 'en' ? 'no concept' : 'sin concepto'}</i>`}<small>${currentLang === 'en' ? 'Evidence:' : 'Evidencia:'} ${esc(l.evidence) || '—'}</small></div>`).join('') : `<p class="muted">${currentLang === 'en' ? 'No direct linkages registered.' : 'Ningún vínculo directo registrado.'}</p>`;
   const rI = PD.sc.rawI[i], rD = PD.sc.rawD[i], inf = PD.sc.inf[i], dep = PD.sc.dep[i];
   const sumO = outs.reduce((s, o) => s + Math.abs(o.l.v), 0), sumI = ins.reduce((s, o) => s + Math.abs(o.l.v), 0);
+  const diagInfo = getDiagInterpretation(inf, dep, q);
+  const diagCol = diagInfo.isAbove ? '#34d399' : '#c4b5fd';
+
   box.innerHTML = `<div class="card-head"><h2><span class="var-idx sm" style="font-size:13px;vertical-align:middle;margin-right:8px">${i + 1}</span>${esc(v.code)} · ${esc(v.name)}</h2><span class="badge" style="background:${Q.color}">${Q.name}</span></div>
   <p class="muted"><b style="color:var(--txt)">${currentLang === 'en' ? 'Result interpretation:' : 'Lectura del resultado:'}</b> ${t('th_infl')} <b>${inf.toFixed(1)}%</b> ${inf >= PD.ty ? '≥' : '<'} ${currentLang === 'en' ? 'threshold' : 'umbral'} ${PD.ty.toFixed(1)}% ${currentLang === 'en' ? 'and' : 'y'} ${t('th_dep')} <b>${dep.toFixed(1)}%</b> ${dep >= PD.tx ? '≥' : '<'} ${currentLang === 'en' ? 'threshold' : 'umbral'} ${PD.tx.toFixed(1)}%. ${PD.mode === 'direct' ? (currentLang === 'en' ? `Influence = row sum = ${sumO} (of ${3 * (V().length - 1)} max); dependence = col sum = ${sumI}.` : `Influencia = suma de la fila = ${sumO} (de ${3 * (V().length - 1)} posibles); dependencia = suma de la columna = ${sumI}.`) : (currentLang === 'en' ? `Indirect values: paths up to ${PD.K} steps with 0.6 attenuation (gross infl ${rI.toFixed(2)}, gross dep ${rD.toFixed(2)}).` : `Valores indirectos: caminos de hasta ${PD.K} pasos con atenuación 0,6 por paso adicional (influencia bruta ${rI.toFixed(2)}, dependencia bruta ${rD.toFixed(2)}).`)}</p>
+  <div style="background:rgba(15,23,42,0.75);border:1px solid ${diagCol}44;border-left:4px solid ${diagCol};border-radius:8px;padding:10px 14px;margin:10px 0;">
+    <div style="font-weight:700;color:${diagCol};font-size:13px;margin-bottom:4px;">${diagInfo.posTitle}</div>
+    <div style="font-size:12.5px;color:var(--txt);line-height:1.5;">${diagInfo.detail}</div>
+  </div>
   <p class="muted"><b style="color:var(--txt)">${currentLang === 'en' ? 'Concept:' : 'Concepto:'}</b> ${Q.concept}<br><b style="color:var(--txt)">${currentLang === 'en' ? 'Practical implication:' : 'Implicación práctica:'}</b> ${Q.action}</p>
   <div class="detail-grid"><div><h3>${currentLang === 'en' ? 'Influences (sum ' + sumO + ')' : 'Influye en (suma ' + sumO + ')'}</h3>${list(outs, true)}</div><div><h3>${currentLang === 'en' ? 'Depends on (sum ' + sumI + ')' : 'Depende de (suma ' + sumI + ')'}</h3>${list(ins, false)}</div></div>`;
+}
+
+function renderDiagHelp() {
+  const card = $('#diag-help-card');
+  if (!card || !PD) return;
+  const isEn = currentLang === 'en';
+  const vars = V();
+  const items = vars.map((v, i) => ({
+    v, i,
+    inf: PD.sc.inf[i],
+    dep: PD.sc.dep[i],
+    diff: PD.sc.inf[i] - PD.sc.dep[i],
+    weight: PD.sc.inf[i] + PD.sc.dep[i],
+    q: PD.q[i]
+  }));
+
+  const above = items.filter(x => x.diff >= 0).sort((a, b) => b.diff - a.diff);
+  const below = items.filter(x => x.diff < 0).sort((a, b) => a.diff - b.diff);
+
+  const renderVarChips = (arr, isAboveZone) => arr.length ? arr.map(x => {
+    const qCol = QUAD[x.q]?.color || '#64748b';
+    const sel = ui.selVar === x.v.id;
+    const diffStr = (x.diff > 0 ? '+' : '') + x.diff.toFixed(1) + '%';
+    return `<button type="button" class="diag-var-chip" data-id="${x.v.id}"
+      style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;background:${sel ? 'rgba(56,189,248,0.22)' : 'rgba(8,12,24,0.8)'};border:1px solid ${sel ? '#38bdf8' : 'rgba(148,163,255,0.18)'};color:var(--txt);cursor:pointer;font-size:12px;text-align:left;transition:all .15s;"
+      title="${esc(x.v.name)} · I=${x.inf.toFixed(1)}% | D=${x.dep.toFixed(1)}% | I+D=${x.weight.toFixed(1)}%">
+      <span style="width:8px;height:8px;border-radius:50%;background:${qCol};display:inline-block;"></span>
+      <b style="font-family:'JetBrains Mono';color:#fff;">${esc(x.v.code)}</b>
+      <span style="color:#cbd5e1;max-width:165px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(x.v.name)}</span>
+      <span style="font-family:'JetBrains Mono';font-size:11px;font-weight:700;color:${isAboveZone ? '#34d399' : '#c4b5fd'};background:rgba(0,0,0,0.4);padding:1px 6px;border-radius:5px;">${diffStr}</span>
+    </button>`;
+  }).join('') : `<span class="muted" style="font-size:12px;">${isEn ? 'None' : 'Ninguna'}</span>`;
+
+  if (isEn) {
+    card.innerHTML = `
+      <div class="card-head" style="flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2 style="margin:0;">📐 Strategic Axis / Strategic Diagonal (Bisector I = D) — Interpretation Guide</h2>
+          <p class="muted" style="margin:4px 0 0;font-size:12.5px;">
+            In Michel Godet's structural analysis (MICMAC), the <b>Strategic Diagonal or Bisector (I = D)</b> divides the plane into two triangular half-planes according to the net motricity balance (<b>I − D</b>) and measures overall systemic weight along the diagonal (<b>I + D</b>).
+          </p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span class="badge" style="background:rgba(52,211,153,0.18);border:1px solid #34d399;color:#34d399;">▲ Above (I ≥ D): ${above.length}</span>
+          <span class="badge" style="background:rgba(167,139,250,0.18);border:1px solid #a78bfa;color:#c4b5fd;">▼ Below (I &lt; D): ${below.length}</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-top:12px;">
+        <!-- ABOVE THE DIAGONAL -->
+        <div style="background:rgba(15,23,42,0.75);border:1px solid rgba(52,211,153,0.3);border-top:3px solid #34d399;border-radius:10px;padding:14px 16px;">
+          <h3 style="margin:0 0 6px;color:#34d399;font-size:14px;">▲ Variables ABOVE the Diagonal (I &gt; D · Net Drivers)</h3>
+          <p style="margin:0 0 8px;font-size:12.5px;color:#cbd5e1;line-height:1.5;">
+            Variables located above the bisector exert <b>more influence on the system than they receive from it</b> (<b>I − D &gt; 0</b>). They act as <b>explanatory, conditioning, and driving factors</b>:
+          </p>
+          <ul style="margin:0 0 12px;padding-left:18px;font-size:12px;color:#94a3b8;line-height:1.55;">
+            <li><b style="color:#34d399;">In Drivers (Power):</b> <b>Pure input levers</b>; highest capacity to transform the system without suffering feedback instability.</li>
+            <li><b style="color:#f59e0b;">In Critical / Strategic (Upper Triangle):</b> <b>Driving relays</b>; high-stake variables whose propelling force outweighs their vulnerability.</li>
+            <li><b style="color:#94a3b8;">In Autonomous (Upper Triangle):</b> <b>Secondary / niche levers</b>; low global coupling, but net conditioners when activated.</li>
+          </ul>
+          <div style="font-size:11.5px;font-weight:700;color:#e2e8f0;margin-bottom:6px;">Current variables above the diagonal (click to inspect on plane):</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">${renderVarChips(above, true)}</div>
+        </div>
+
+        <!-- BELOW THE DIAGONAL -->
+        <div style="background:rgba(15,23,42,0.75);border:1px solid rgba(167,139,250,0.3);border-top:3px solid #a78bfa;border-radius:10px;padding:14px 16px;">
+          <h3 style="margin:0 0 6px;color:#c4b5fd;font-size:14px;">▼ Variables BELOW the Diagonal (I &lt; D · Net Dependent)</h3>
+          <p style="margin:0 0 8px;font-size:12.5px;color:#cbd5e1;line-height:1.5;">
+            Variables located below the bisector <b>depend more on the system than they influence it</b> (<b>I − D &lt; 0</b>). They act as <b>explained variables, receivers, symptoms, or outcome indicators</b>:
+          </p>
+          <ul style="margin:0 0 12px;padding-left:18px;font-size:12px;color:#94a3b8;line-height:1.55;">
+            <li><b style="color:#a78bfa;">In Results / Output:</b> <b>Pure outcome indicators</b>; reflect system performance and must be modified indirectly through upstream drivers.</li>
+            <li><b style="color:#f59e0b;">In Critical / Strategic (Lower Triangle):</b> <b>Vulnerable strategic targets</b>; although influential, they are even more sensitive to system-wide shifts.</li>
+            <li><b style="color:#94a3b8;">In Autonomous (Lower Triangle):</b> <b>Marginal receivers</b>; weakly coupled variables that mostly absorb external effects.</li>
+          </ul>
+          <div style="font-size:11.5px;font-weight:700;color:#e2e8f0;margin-bottom:6px;">Current variables below the diagonal (click to inspect on plane):</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">${renderVarChips(below, false)}</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:#cbd5e1;line-height:1.5;">
+        <b style="color:#38bdf8;">↗ Reading along the Strategic Axis (Projection I + D):</b> The further a variable projects toward the <b>top-right corner</b> along the bisector, the greater its <b>strategic weight and systemic integration (I + D)</b>. Conversely, variables near the bottom-left origin have low systemic coupling.
+      </div>
+    `;
+  } else {
+    card.innerHTML = `
+      <div class="card-head" style="flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2 style="margin:0;">📐 Eje Estratégico / Diagonal Estratégica (Bisectriz I = D) — Guía de Interpretación</h2>
+          <p class="muted" style="margin:4px 0 0;font-size:12.5px;">
+            En la prospectiva estructural (MICMAC de Michel Godet), la <b>Diagonal Estratégica o Bisectriz (I = D)</b> divide el plano en dos semiplanos según el saldo neto de motricidad (<b>I − D</b>) y gradúa el peso estratégico total a lo largo de su recorrido (<b>I + D</b>).
+          </p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span class="badge" style="background:rgba(52,211,153,0.18);border:1px solid #34d399;color:#34d399;">▲ Encima (I ≥ D): ${above.length}</span>
+          <span class="badge" style="background:rgba(167,139,250,0.18);border:1px solid #a78bfa;color:#c4b5fd;">▼ Debajo (I &lt; D): ${below.length}</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-top:12px;">
+        <!-- POR ENCIMA DE LA DIAGONAL -->
+        <div style="background:rgba(15,23,42,0.75);border:1px solid rgba(52,211,153,0.3);border-top:3px solid #34d399;border-radius:10px;padding:14px 16px;">
+          <h3 style="margin:0 0 6px;color:#34d399;font-size:14px;">▲ Variables por ENCIMA de la Diagonal (I &gt; D · Condicionantes / Motrices Netas)</h3>
+          <p style="margin:0 0 8px;font-size:12.5px;color:#cbd5e1;line-height:1.5;">
+            Las variables situadas por encima de la bisectriz <b>influyen más sobre el sistema de lo que dependen de él</b> (<b>I − D &gt; 0</b>). Actúan como <b>factores explicativos, impulsores y condicionantes netos</b>:
+          </p>
+          <ul style="margin:0 0 12px;padding-left:18px;font-size:12px;color:#94a3b8;line-height:1.55;">
+            <li><b style="color:#34d399;">En Motrices (Poder):</b> <b>Palancas puras de entrada</b>; máxima capacidad para transformar el sistema sin quedar expuestas a efectos de rebote.</li>
+            <li><b style="color:#f59e0b;">En Estratégicas / Conflicto (Triángulo Superior):</b> <b>Variables clave de empuje (Retos Motrices)</b>; articulan el sistema con predominio de fuerza impulsora sobre su vulnerabilidad.</li>
+            <li><b style="color:#94a3b8;">En Autónomas (Triángulo Superior):</b> <b>Palancas secundarias o focalizadas</b>; baja conexión global, pero cuando actúan condicionan más de lo que reciben.</li>
+          </ul>
+          <div style="font-size:11.5px;font-weight:700;color:#e2e8f0;margin-bottom:6px;">Variables actuales por encima de la diagonal (clic para inspeccionar en el plano):</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">${renderVarChips(above, true)}</div>
+        </div>
+
+        <!-- POR DEBAJO DE LA DIAGONAL -->
+        <div style="background:rgba(15,23,42,0.75);border:1px solid rgba(167,139,250,0.3);border-top:3px solid #a78bfa;border-radius:10px;padding:14px 16px;">
+          <h3 style="margin:0 0 6px;color:#c4b5fd;font-size:14px;">▼ Variables por DEBAJO de la Diagonal (I &lt; D · Dependientes / Receptoras Netas)</h3>
+          <p style="margin:0 0 8px;font-size:12.5px;color:#cbd5e1;line-height:1.5;">
+            Las variables situadas por debajo de la bisectriz <b>dependen más del sistema de lo que influyen sobre él</b> (<b>I − D &lt; 0</b>). Actúan como <b>variables explicadas, receptoras, síntomas o indicadores de resultado</b>:
+          </p>
+          <ul style="margin:0 0 12px;padding-left:18px;font-size:12px;color:#94a3b8;line-height:1.55;">
+            <li><b style="color:#a78bfa;">En Resultado (Salida):</b> <b>Indicadores puros de impacto</b>; reflejan el estado del sistema y no deben intervenirse aisladamente, sino a través de las variables motrices que las alimentan.</li>
+            <li><b style="color:#f59e0b;">En Estratégicas / Conflicto (Triángulo Inferior):</b> <b>Variables clave vulnerables (Objetivos Críticos)</b>; aunque son influyentes, su dependencia es aún mayor, por lo que son altamente sensibles a la evolución general del sistema.</li>
+            <li><b style="color:#94a3b8;">En Autónomas (Triángulo Inferior):</b> <b>Variables marginales receptoras</b>; evolucionan con baja conexión pero condicionadas por el entorno.</li>
+          </ul>
+          <div style="font-size:11.5px;font-weight:700;color:#e2e8f0;margin-bottom:6px;">Variables actuales por debajo de la diagonal (clic para inspeccionar en el plano):</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">${renderVarChips(below, false)}</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:#cbd5e1;line-height:1.5;">
+        <b style="color:#38bdf8;">↗ Lectura a lo largo del Eje Estratégico (Proyección I + D):</b> Cuanto más arriba y a la derecha se proyecta una variable sobre la bisectriz, mayor es su <b>peso estratégico y grado de articulación sistémica (I + D)</b>. Cuanto más cerca del origen inferior izquierdo, menor es su participación en la dinámica global.
+      </div>
+    `;
+  }
+
+  card.querySelectorAll('.diag-var-chip').forEach(btn => {
+    btn.onclick = () => {
+      ui.selVar = btn.dataset.id;
+      renderPlane();
+    };
+  });
 }
 function renderQuadCards() {
   $('#quad-cards').innerHTML = Object.entries(QUAD).map(([k, q]) => `<div class="qc" style="background:${q.color}18"><h4><span class="dot" style="background:${q.color}"></span>${q.name}</h4>${q.concept}<br><b style="color:var(--txt)">→ ${q.action}</b></div>`).join('');
@@ -1541,7 +1792,15 @@ function renderChart(prefix = '') {
     }).join('');
   }
 
-  if (prefix === '') renderChart('mx-');
+  if (prefix === '') {
+    renderChart('mx-');
+    if (typeof flowState !== 'undefined' && flowState.initialized) {
+      renderFlowCards();
+      renderFlowLinks();
+      renderFlowTrajectoryTable();
+      if (typeof renderFlowChart === 'function') renderFlowChart();
+    }
+  }
 }
 
 /* ---------- 5. Dynamic Signed-MICMAC (Katz-Bonacich / Leontief) ---------- */
@@ -1744,8 +2003,9 @@ function renderDynamic() {
   // Render SVG 4D Plane
   const W = 880, H = 500, m = { l: 60, r: 24, t: 30, b: 50 };
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
-  const maxD = Math.max(...rows.map(r => r.dn), uDep * 1.25, 5);
-  const maxM = Math.max(...rows.map(r => r.mn), uMot * 1.25, 5);
+  const maxAxis = Math.max(...rows.map(r => r.dn), ...rows.map(r => r.mn), uDep * 1.25, uMot * 1.25, 5);
+  const maxD = maxAxis;
+  const maxM = maxAxis;
   const maxMb = Math.max(...rows.map(r => r.mb), 1);
 
   const X = d => m.l + (d / maxD) * pw;
@@ -1764,6 +2024,11 @@ function renderDynamic() {
   s += `<line x1="${m.l}" x2="${m.l + pw}" y1="${yMid}" y2="${yMid}" stroke="#94a3ff" stroke-dasharray="4 4" opacity=".4"/>`;
   s += `<text x="${xMid + 6}" y="${m.t + 16}" fill="#93a0c4" font-size="11">${t('tip_threshold_dep')} (${uDep.toFixed(1)})</text>`;
   s += `<text x="${m.l + 6}" y="${yMid - 6}" fill="#93a0c4" font-size="11">${t('tip_threshold_mot')} (${uMot.toFixed(1)})</text>`;
+
+  // Strategic Diagonal / Bisector (M^neta = D^neta)
+  const diagAngle4D = Math.atan2(-ph, pw) * 180 / Math.PI;
+  s += `<line x1="${m.l}" y1="${m.t + ph}" x2="${m.l + pw}" y2="${m.t}" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="8 5" opacity="0.72"/>`;
+  s += `<text transform="translate(${m.l + pw * 0.55}, ${m.t + ph * 0.45}) rotate(${diagAngle4D.toFixed(2)})" y="-6" text-anchor="middle" fill="#38bdf8" font-size="10" font-weight="600" opacity="0.88">${currentLang === 'en' ? '↗ Strategic Bisector (Mⁿᵉᵗᵃ = Dⁿᵉᵗᵃ)' : '↗ Bisectriz Estratégica (Mⁿᵉᵗᵃ = Dⁿᵉᵗᵃ)'}</text>`;
 
   // Axes ticks
   for (let k = 0; k <= 5; k++) {
@@ -2249,12 +2514,15 @@ function renderFlowCards() {
     const dimmedClass = (selId && !isConnected) ? 'dimmed' : '';
     const selectedClass = (selId === v.id) ? 'selected' : '';
 
-    const myInt = S.ints && S.ints.find(it => it.vid === v.id);
-    const hasActiveIntNow = myInt ? (
-      myInt.type === 'pulse' 
-        ? (step === +myInt.start || step === +myInt.start + 1)
-        : (step >= +myInt.start && step < +myInt.start + +myInt.dur)
-    ) : false;
+    const myInts = S.ints ? S.ints.filter(it => it.vid === v.id) : [];
+    const myInt = myInts[0] || null;
+    const activeIntsNow = myInts.filter(it =>
+      it.type === 'pulse'
+        ? step === +it.start
+        : (step >= +it.start && step < +it.start + +it.dur)
+    );
+    const hasActiveIntNow = activeIntsNow.length > 0;
+    const activeIntMag = activeIntsNow.reduce((acc, it) => acc + (+it.mag || 0), 0);
 
     const prevPrevVal = (step > 1 && SIM && SIM.x[step - 2]) ? SIM.x[step - 2][i] : v.x0;
     const prevStepDelta = prevVal - prevPrevVal;
@@ -2268,8 +2536,8 @@ function renderFlowCards() {
         const trend = (stepDelta !== 0 ? stepDelta : delta) >= 0 ? 'trend-up' : 'trend-down';
         focusClass = `flow-node-focus-active ${trend}`;
         if (hasActiveIntNow) {
-          const intSign = myInt.mag > 0 ? '+' : '';
-          focusBadge = `<span class="sim-card-focus-badge ${myInt.mag >= 0 ? 'pos' : 'neg'}" title="${currentLang === 'en' ? `Active intervention at t=${step}: ${intSign}${myInt.mag}` : `Intervención activa en t=${step}: ${intSign}${myInt.mag}`}">⚡ Int ${intSign}${myInt.mag}</span>`;
+          const intSign = activeIntMag > 0 ? '+' : '';
+          focusBadge = `<span class="sim-card-focus-badge ${activeIntMag >= 0 ? 'pos' : 'neg'}" title="${currentLang === 'en' ? `Active intervention at t=${step}: ${intSign}${activeIntMag}` : `Intervención activa en t=${step}: ${intSign}${activeIntMag}`}">⚡ Int ${intSign}${activeIntMag}</span>`;
         } else {
           const sSign = stepDelta > 0 ? '+' : '';
           focusBadge = `<span class="sim-card-focus-badge ${stepDelta >= 0 ? 'pos' : 'neg'}" title="${currentLang === 'en' ? `Rate at t=${step}: ${sSign}${stepDelta.toFixed(2)}/t | Cumulative: ${deltaSign}${delta.toFixed(1)}` : `Velocidad en t=${step}: ${sSign}${stepDelta.toFixed(2)}/t | Acumulado: ${deltaSign}${delta.toFixed(1)}`}">⚡ Δ ${sSign}${stepDelta.toFixed(1)}/t</span>`;
@@ -2386,13 +2654,13 @@ function renderFlowLinks() {
     const prevStepDeltaA = prevA - prevPrevA;
     const stepDeltaB = curB - prevB;
 
-    // Verificar si la variable de origen A tiene intervención directa activa en este periodo t
-    const intA = S.ints && S.ints.find(it => it.vid === idA);
-    const isIntActiveNowA = intA ? (
-      intA.type === 'pulse' 
-        ? (step === +intA.start || step === +intA.start + 1)
+    // Verificar si la variable de origen A tiene intervención directa activa en este periodo t (misma regla que simulate())
+    const intsA = S.ints ? S.ints.filter(it => it.vid === idA) : [];
+    const isIntActiveNowA = intsA.some(intA =>
+      intA.type === 'pulse'
+        ? step === +intA.start
         : (step >= +intA.start && step < +intA.start + +intA.dur)
-    ) : false;
+    );
 
     // Flujo causal transmitido en el periodo actual t a través de este vínculo A -> B
     const transSpeedA = Math.max(Math.abs(stepDeltaA), Math.abs(prevStepDeltaA));
