@@ -5985,6 +5985,1048 @@ window.setStabAlpha = setStabAlpha;
 window.spearmanRankCorr = spearmanRankCorr;
 window.renderGodetStability = renderGodetStability;
 
+/* ============================================================
+   9. MATRIZ IGO (IMPORTANCIA Y GOBERNABILIDAD) Y ESCALA DE FINALIDADES GENERALES AL TERRITORIO
+   ============================================================ */
+const IGO_QUADS = {
+  immediate: {
+    id: 'immediate',
+    code: 'I',
+    color: '#10b981',
+    bg: 'rgba(16,185,129,0.13)',
+    name_es: 'Cuadrante I · Acciones Inmediatas o Críticas',
+    name_en: 'Quadrant I · Immediate or Critical Actions',
+    short_es: 'I · ACCIONES INMEDIATAS',
+    short_en: 'I · IMMEDIATE ACTIONS',
+    sub_es: 'Alta Importancia (I ≥ Prom.) + Alta Gobernabilidad (G ≥ Prom.)',
+    sub_en: 'High Importance (I ≥ Avg.) + High Governability (G ≥ Avg.)',
+    whatToDo_es: 'Máxima prioridad estratégica. Son las variables que más contribuyen a las finalidades generales del territorio y sobre las cuales los actores locales tienen control directo.',
+    whatToDo_en: 'Highest strategic priority. These variables contribute the most to general territorial purposes and are under direct control of local actors.',
+    actions_es: [
+      'Ejecutar de inmediato como proyectos tractores o emblemáticos del Plan de Desarrollo Territorial.',
+      'Blindar su asignación presupuestaria plurianual y asignar responsables directos con metas de corto y mediano plazo.',
+      'Usarlas como palancas iniciales para destrabar el resto del sistema.'
+    ],
+    actions_en: [
+      'Execute immediately as flagship projects of the Territorial Development Plan.',
+      'Protect multi-year budget allocations and assign direct accountable leads with short/medium-term milestones.',
+      'Use them as initial levers to unlock the rest of the system.'
+    ]
+  },
+  challenges: {
+    id: 'challenges',
+    code: 'II',
+    color: '#f59e0b',
+    bg: 'rgba(245,158,11,0.13)',
+    name_es: 'Cuadrante II · Retos Estratégicos',
+    name_en: 'Quadrant II · Strategic Challenges',
+    short_es: 'II · RETOS (ALIANZAS / MONITOREO)',
+    short_en: 'II · CHALLENGES (ALLIANCES / MONITOR)',
+    sub_es: 'Alta Importancia (I ≥ Prom.) + Baja Gobernabilidad (G < Prom.)',
+    sub_en: 'High Importance (I ≥ Avg.) + Low Governability (G < Avg.)',
+    whatToDo_es: 'Requieren alianzas estratégicas, gestión multinivel o monitoreo continuo. Son variables críticas para las finalidades del territorio, pero escapan al control autónomo de la entidad.',
+    whatToDo_en: 'Require strategic alliances, multi-level governance, or active monitoring. They are critical for territorial purposes but lie outside autonomous local control.',
+    actions_es: [
+      'Construir alianzas público-privadas, convenios interinstitucionales y articulación con niveles superiores de gobierno.',
+      'Diseñar estrategias de negociación de actores (MACTOR), incentivos indirectos y acuerdos territoriales.',
+      'Activar sistemas de vigilancia prospectiva, alerta temprana y planes de contingencia.'
+    ],
+    actions_en: [
+      'Build public-private partnerships, inter-institutional agreements, and multi-level governance coordination.',
+      'Design stakeholder negotiation strategies, indirect incentives, and territorial pacts.',
+      'Establish foresight monitoring, early-warning systems, and contingency plans.'
+    ]
+  },
+  less_urgent: {
+    id: 'less_urgent',
+    code: 'IV',
+    color: '#38bdf8',
+    bg: 'rgba(56,189,248,0.13)',
+    name_es: 'Cuadrante IV · Menos Urgentes (Complementarias)',
+    name_en: 'Quadrant IV · Less Urgent (Complementary)',
+    short_es: 'IV · MENOS URGENTES',
+    short_en: 'IV · LESS URGENT',
+    sub_es: 'Baja Importancia (I < Prom.) + Alta Gobernabilidad (G ≥ Prom.)',
+    sub_en: 'Low Importance (I < Avg.) + High Governability (G ≥ Avg.)',
+    whatToDo_es: 'Se ejecutan solo si hay recursos disponibles. Existe alto control operativo, pero su impacto estructural sobre las finalidades generales del territorio es secundario.',
+    whatToDo_en: 'Execute only if spare resources are available. High operational control exists, but structural impact on general territorial purposes is secondary.',
+    actions_es: [
+      'Evitar el sesgo de "hacer lo fácil": no concentrar el presupuesto estratégico aquí solo porque son sencillas de ejecutar.',
+      'Mantenerlas mediante gestión operativa rutinaria o mejoras de bajo costo.',
+      'Condicionar su ampliación a que las Acciones Inmediatas (Cuadrante I) y Retos (Cuadrante II) estén cubiertos.'
+    ],
+    actions_en: [
+      'Avoid the "easy-action bias": do not concentrate strategic budget here merely because implementation is straightforward.',
+      'Maintain through routine operational management or low-cost incremental improvements.',
+      'Condition further funding on full coverage of Immediate Actions (Quadrant I) and Challenges (Quadrant II).'
+    ]
+  },
+  discardable: {
+    id: 'discardable',
+    code: 'III',
+    color: '#64748b',
+    bg: 'rgba(100,116,139,0.13)',
+    name_es: 'Cuadrante III · Descartables (Archivar o Ignorar)',
+    name_en: 'Quadrant III · Discardable (Archive or Ignore)',
+    short_es: 'III · DESCARTABLES',
+    short_en: 'III · DISCARDABLE',
+    sub_es: 'Baja Importancia (I < Prom.) + Baja Gobernabilidad (G < Prom.)',
+    sub_en: 'Low Importance (I < Avg.) + Low Governability (G < Avg.)',
+    whatToDo_es: 'Archivar, descartar o ignorar en la priorización actual. Aportan poco a las finalidades generales del territorio y además se tiene bajo control sobre ellas.',
+    whatToDo_en: 'Archive, discard, or ignore in current prioritization. They contribute little to general territorial purposes and offer minimal local control.',
+    actions_es: [
+      'No asignar presupuesto prioritario ni desgastar capital político o técnico en estas variables.',
+      'Archivar de la cartera estratégica central para evitar la dispersión de esfuerzos del territorio.',
+      'Revisar únicamente si un cambio estructural futuro modifica su relevancia.'
+    ],
+    actions_en: [
+      'Do not allocate priority budget or expend political/technical capital on these variables.',
+      'Archive from the core strategic portfolio to prevent dispersion of territorial efforts.',
+      'Revisit only if a future structural shift alters their relevance.'
+    ]
+  }
+};
+
+function getDefaultIGOPurposes() {
+  return [
+    {
+      id: 'FG1',
+      code: 'FG1',
+      name_es: 'Desarrollo Humano, Aprendizaje de Calidad e Inclusión',
+      name_en: 'Human Development, Quality Learning & Inclusion',
+      desc_es: 'Garantizar el logro efectivo de capacidades, permanencia, equidad y bienestar integral de las personas en el territorio.',
+      desc_en: 'Ensure effective capability attainment, persistence, equity, and comprehensive well-being across the territory.',
+      level: 5
+    },
+    {
+      id: 'FG2',
+      code: 'FG2',
+      name_es: 'Pertinencia Productiva, Empleabilidad e Innovación Territorial',
+      name_en: 'Productive Relevance, Employability & Territorial Innovation',
+      desc_es: 'Articular la formación, la ciencia aplicada (I+D) y la adopción tecnológica con las demandas productivas y sociales del territorio.',
+      desc_en: 'Align training, applied R&D, and technology adoption with the productive and social demands of the territory.',
+      level: 5
+    },
+    {
+      id: 'FG3',
+      code: 'FG3',
+      name_es: 'Gobernanza Efectiva, Liderazgo y Capacidad Institucional',
+      name_en: 'Effective Governance, Leadership & Institutional Capacity',
+      desc_es: 'Fortalecer la conducción estratégica, la sostenibilidad financiera, el aseguramiento de calidad y la desburocratización.',
+      desc_en: 'Strengthen strategic leadership, financial sustainability, quality assurance, and administrative debureaucratization.',
+      level: 5
+    },
+    {
+      id: 'FG4',
+      code: 'FG4',
+      name_es: 'Infraestructura Habilitante, Conectividad y Sostenibilidad',
+      name_en: 'Enabling Infrastructure, Connectivity & Sustainability',
+      desc_es: 'Consolidar plataformas físicas, digitales y de inteligencia artificial ética que soporten la transformación territorial.',
+      desc_en: 'Consolidate physical, digital, and ethical AI platforms that support long-term territorial transformation.',
+      level: 3
+    },
+    {
+      id: 'FG5',
+      code: 'FG5',
+      name_es: 'Cohesión Cultural, Apertura al Cambio y Reconocimiento al Mérito',
+      name_en: 'Cultural Cohesion, Openness to Change & Merit Recognition',
+      desc_es: 'Construir una cultura de experimentación, incentivos justos y superación de inercias organizacionales o territoriales.',
+      desc_en: 'Build a culture of experimentation, fair incentives, and overcoming organizational or territorial inertia.',
+      level: 3
+    }
+  ];
+}
+
+// Calibración inicial por código de variable en escala clásica IGO {0, 1, 3, 5}
+const DEFAULT_IGO_BY_CODE = {
+  V1:  { imp: 5, gob: 5, fg: 'FG3', note_es: 'Mandato directivo y conducción estratégica bajo control institucional directo.', note_en: 'Executive mandate and strategic steering under direct institutional control.' },
+  V2:  { imp: 5, gob: 5, fg: 'FG3', note_es: 'Asignación presupuestaria crítica para financiar las finalidades territoriales.', note_en: 'Critical budget allocation to finance territorial purposes.' },
+  V3:  { imp: 5, gob: 5, fg: 'FG1', note_es: 'Palanca pedagógica directa con alta incidencia en aprendizaje y retención.', note_en: 'Direct pedagogical lever with high impact on learning and retention.' },
+  V4:  { imp: 3, gob: 5, fg: 'FG4', note_es: 'Soporte técnico altamente gobernable mediante inversión programada.', note_en: 'Highly governable technical support through scheduled capital investment.' },
+  V5:  { imp: 5, gob: 5, fg: 'FG2', note_es: 'Rediseño curricular bajo competencia directa con alto impacto en pertinencia.', note_en: 'Curricular redesign under direct authority with high relevance impact.' },
+  V6:  { imp: 5, gob: 3, fg: 'FG5', note_es: 'Alta importancia estratégica; gobernabilidad moderada por requerir cambio cultural gradual.', note_en: 'High strategic importance; moderate governability requiring gradual cultural change.' },
+  V7:  { imp: 5, gob: 1, fg: 'FG5', note_es: 'Reto crítico: frena todo el sistema, pero no se elimina por decreto; exige alianzas e incentivos.', note_en: 'Critical challenge: brakes the system but cannot be decreed away; requires alliances and incentives.' },
+  V8:  { imp: 5, gob: 1, fg: 'FG1', note_es: 'Finalidad central de resultado; depende de múltiples factores previos (baja gobernabilidad directa inmediata).', note_en: 'Core outcome purpose; depends on upstream drivers (low immediate direct governability).' },
+  V9:  { imp: 5, gob: 1, fg: 'FG2', note_es: 'Reto externo: depende del mercado laboral y alianzas con el entorno productivo del territorio.', note_en: 'External challenge: depends on labor market and alliances with territorial productive actors.' },
+  V10: { imp: 3, gob: 1, fg: 'FG2', note_es: 'Requiere ecosistema externo, fondos competitivos y cooperación con empresas.', note_en: 'Requires external ecosystem, competitive grants, and industry cooperation.' },
+  V11: { imp: 5, gob: 3, fg: 'FG1', note_es: 'Objetivo crítico de equidad territorial con gobernabilidad compartida (factores académicos y socioeconómicos).', note_en: 'Critical territorial equity goal with shared governability (academic and socioeconomic factors).' },
+  V12: { imp: 3, gob: 3, fg: 'FG4', note_es: 'Innovación emergente con gobernabilidad e importancia moderadas en consolidación.', note_en: 'Emerging innovation with moderate governability and importance under consolidation.' },
+  V13: { imp: 3, gob: 1, fg: 'FG3', note_es: 'Evaluada por agencias externas bajo estándares de resultado acumulado.', note_en: 'Assessed by external accrediting agencies based on cumulative outcomes.' },
+  V14: { imp: 5, gob: 5, fg: 'FG5', note_es: 'Palanca normativa y presupuestaria directa para alinear talento y desactivar resistencias.', note_en: 'Direct regulatory and budgetary lever to align talent and deactivate resistance.' },
+  V15: { imp: 1, gob: 5, fg: 'FG3', note_es: 'Alta gobernabilidad interna (simplificación de trámites), pero es un medio operativo, no un fin último.', note_en: 'High internal governability (process simplification), though an operational means rather than an ultimate end.' }
+};
+
+function ensureIGOState() {
+  if (!S.igo) {
+    S.igo = {
+      vision_es: 'Consolidar un territorio e institución innovadora, inclusiva y articulada con su entorno productivo y social, capaz de transformar sus capacidades estructurales en bienestar sostenible.',
+      vision_en: 'Consolidate an innovative, inclusive territory and institution aligned with its productive and social environment, capable of transforming structural capacities into sustainable well-being.',
+      filterMode: 'strategic', // 'strategic' | 'conflict_power' | 'all'
+      scaleMode: 'classic',    // 'classic' (0,1,3,5) | 'ordinal5' (1..5) | 'dec10' (0..10)
+      thrMode: 'mean',         // 'mean' | 'median' | 'mid'
+      showDiag: true,
+      selVar: null,
+      purposes: getDefaultIGOPurposes(),
+      scores: {}
+    };
+  }
+  if (!S.igo.purposes || !S.igo.purposes.length) {
+    S.igo.purposes = getDefaultIGOPurposes();
+  }
+  if (!S.igo.scores) S.igo.scores = {};
+
+  const pd = PD || planeData();
+  V().forEach((v, i) => {
+    if (!S.igo.scores[v.id]) {
+      const preset = DEFAULT_IGO_BY_CODE[v.code];
+      if (preset) {
+        S.igo.scores[v.id] = {
+          imp: preset.imp,
+          gob: preset.gob,
+          fg: preset.fg,
+          note_es: preset.note_es,
+          note_en: preset.note_en
+        };
+      } else {
+        const inf = pd.sc.inf[i] || 50;
+        const dep = pd.sc.dep[i] || 50;
+        const w = (inf + dep) / 2;
+        const diff = inf - dep;
+        const imp = w >= 60 ? 5 : (w >= 35 ? 3 : 1);
+        const gob = diff >= 10 ? 5 : (diff >= -10 ? 3 : 1);
+        S.igo.scores[v.id] = {
+          imp,
+          gob,
+          fg: 'FG1',
+          note_es: 'Calibrado según posición estructural MICMAC.',
+          note_en: 'Calibrated from MICMAC structural position.'
+        };
+      }
+    }
+  });
+}
+
+function snapToClassicIGO(val) {
+  const nums = [0, 1, 3, 5];
+  return nums.reduce((best, n) => Math.abs(n - val) < Math.abs(best - val) ? n : best, 3);
+}
+
+function formatIGOScore(raw5, scaleMode) {
+  if (scaleMode === 'classic') return String(snapToClassicIGO(raw5));
+  if (scaleMode === 'ordinal5') return String(clamp(Math.round(raw5), 1, 5));
+  if (scaleMode === 'dec10') return (clamp(raw5 * 2, 0, 10)).toFixed(1);
+  return String(raw5);
+}
+
+function toDisplayScale(raw5, scaleMode) {
+  if (scaleMode === 'classic') return snapToClassicIGO(raw5);
+  if (scaleMode === 'ordinal5') return clamp(Math.round(raw5), 1, 5);
+  if (scaleMode === 'dec10') return +(clamp(raw5 * 2, 0, 10)).toFixed(1);
+  return raw5;
+}
+
+function fromDisplayScale(dispVal, scaleMode) {
+  const v = Number(dispVal) || 0;
+  if (scaleMode === 'classic') return snapToClassicIGO(v);
+  if (scaleMode === 'ordinal5') return clamp(v, 1, 5);
+  if (scaleMode === 'dec10') return clamp(v / 2, 0, 5);
+  return clamp(v, 0, 5);
+}
+
+function isStrategicVarMICMAC(i, pd) {
+  const q = pd.q[i];
+  const diff = pd.sc.inf[i] - pd.sc.dep[i];
+  // Es estratégica si está en Conflicto/Enlace, Poder/Motriz, o por encima de la bisectriz con peso relevante
+  return q === 'conflict' || q === 'power' || diff >= 0;
+}
+
+function getIGOQuadKey(imp, gob, thrI, thrG) {
+  if (imp >= thrI) {
+    return gob >= thrG ? 'immediate' : 'challenges';
+  } else {
+    return gob >= thrG ? 'less_urgent' : 'discardable';
+  }
+}
+
+function calibrateIGOFromMICMAC() {
+  ensureIGOState();
+  const pd = planeData();
+  const infs = pd.sc.inf;
+  const deps = pd.sc.dep;
+  const weights = V().map((_, i) => infs[i] + deps[i]);
+  const maxW = Math.max(...weights, 1);
+
+  // Mapa de peso de las finalidades generales activas
+  const fgMap = Object.fromEntries(S.igo.purposes.map(p => [p.id, Number(p.level) || 3]));
+
+  V().forEach((v, i) => {
+    const cur = S.igo.scores[v.id] || { fg: 'FG1' };
+    const fgWeight = (fgMap[cur.fg] ?? 3) / 5; // 0..1
+    const normW = weights[i] / maxW; // 0..1
+    const q = pd.q[i];
+    const diff = infs[i] - deps[i];
+
+    // Importancia combina peso estratégico MICMAC (I+D) y el nivel de la Finalidad General asociada
+    const combinedImp = (0.65 * normW + 0.35 * fgWeight) * 5;
+    let imp = 3;
+    if (q === 'conflict' || q === 'power' || combinedImp >= 3.6) imp = 5;
+    else if (combinedImp >= 2.1) imp = 3;
+    else if (combinedImp >= 0.8) imp = 1;
+    else imp = 0;
+
+    // Gobernabilidad considera el saldo neto (I - D) y si es palanca de entrada vs resultado dependiente
+    let gob = 3;
+    if (q === 'power' || diff >= 12) gob = 5;
+    else if (q === 'result' || diff <= -14) gob = 1;
+    else gob = 3;
+
+    // Si hay calibración experta base para las 15 variables y tiene la misma finalidad, refinar
+    if (DEFAULT_IGO_BY_CODE[v.code]) {
+      imp = snapToClassicIGO(0.5 * imp + 0.5 * DEFAULT_IGO_BY_CODE[v.code].imp);
+      gob = snapToClassicIGO(0.5 * gob + 0.5 * DEFAULT_IGO_BY_CODE[v.code].gob);
+    }
+
+    S.igo.scores[v.id].imp = imp;
+    S.igo.scores[v.id].gob = gob;
+  });
+
+  save();
+  renderIGO();
+}
+window.calibrateIGOFromMICMAC = calibrateIGOFromMICMAC;
+
+function exportIGOCSV() {
+  ensureIGOState();
+  const isEn = currentLang === 'en';
+  const pd = planeData();
+  const sm = S.igo.scaleMode;
+  const rows = [
+    [
+      'N°',
+      isEn ? 'Code' : 'Código',
+      isEn ? 'Variable' : 'Variable',
+      isEn ? 'MICMAC Quadrant' : 'Cuadrante MICMAC',
+      isEn ? 'MICMAC I (%)' : 'I MICMAC (%)',
+      isEn ? 'MICMAC D (%)' : 'D MICMAC (%)',
+      isEn ? 'Bisector (I-D)' : 'Bisectriz (I-D)',
+      isEn ? 'Territorial Purpose' : 'Finalidad Territorial',
+      isEn ? 'Importance (I)' : 'Importancia (I)',
+      isEn ? 'Governability (G)' : 'Gobernabilidad (G)',
+      isEn ? 'IGO Quadrant' : 'Cuadrante IGO',
+      isEn ? 'Strategic Action' : 'Acción Estratégica'
+    ]
+  ];
+
+  const allItems = V().map((v, i) => {
+    const sc = S.igo.scores[v.id] || { imp: 3, gob: 3, fg: 'FG1' };
+    return { v, i, imp: toDisplayScale(sc.imp, sm), gob: toDisplayScale(sc.gob, sm), fg: sc.fg };
+  });
+  const avgI = mean(allItems.map(x => x.imp));
+  const avgG = mean(allItems.map(x => x.gob));
+
+  allItems.forEach(x => {
+    const qk = getIGOQuadKey(x.imp, x.gob, avgI, avgG);
+    const iq = IGO_QUADS[qk];
+    const diff = pd.sc.inf[x.i] - pd.sc.dep[x.i];
+    rows.push([
+      x.i + 1,
+      x.v.code,
+      `"${(x.v.name || '').replace(/"/g, '""')}"`,
+      `"${QUAD[pd.q[x.i]].name}"`,
+      pd.sc.inf[x.i].toFixed(1),
+      pd.sc.dep[x.i].toFixed(1),
+      diff.toFixed(1),
+      x.fg,
+      x.imp,
+      x.gob,
+      `"${isEn ? iq.name_en : iq.name_es}"`,
+      `"${isEn ? iq.whatToDo_en : iq.whatToDo_es}"`
+    ]);
+  });
+
+  const csv = '\uFEFF' + rows.map(r => r.join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'matriz_igo_priorizacion_territorial.csv';
+  a.click();
+}
+window.exportIGOCSV = exportIGOCSV;
+
+function renderIGO() {
+  const root = $('#igo-root');
+  if (!root) return;
+  ensureIGOState();
+
+  const isEn = currentLang === 'en';
+  const pd = planeData();
+  const sm = S.igo.scaleMode || 'classic';
+  const fm = S.igo.filterMode || 'strategic';
+  const tm = S.igo.thrMode || 'mean';
+  const maxScale = sm === 'dec10' ? 10 : 5;
+  const minScale = sm === 'ordinal5' ? 1 : 0;
+
+  // Preparar todas las variables y aplicar filtro de priorización estratégica
+  const allVars = V().map((v, i) => {
+    const sc = S.igo.scores[v.id] || { imp: 3, gob: 3, fg: 'FG1' };
+    const imp = toDisplayScale(sc.imp, sm);
+    const gob = toDisplayScale(sc.gob, sm);
+    const infM = pd.sc.inf[i];
+    const depM = pd.sc.dep[i];
+    const diffM = infM - depM;
+    const weightM = infM + depM;
+    const qM = pd.q[i];
+    const isStrat = isStrategicVarMICMAC(i, pd);
+    return {
+      v, i,
+      imp, gob,
+      rawImp: sc.imp,
+      rawGob: sc.gob,
+      fg: sc.fg || 'FG1',
+      note: isEn ? (sc.note_en || sc.note_es || '') : (sc.note_es || sc.note_en || ''),
+      infM, depM, diffM, weightM, qM, isStrat
+    };
+  });
+
+  const filteredVars = allVars.filter(x => {
+    if (fm === 'strategic') return x.qM === 'conflict' || x.qM === 'power' || x.diffM >= 0;
+    if (fm === 'conflict_power') return x.qM === 'conflict' || x.qM === 'power';
+    return true;
+  });
+
+  const activeList = filteredVars.length ? filteredVars : allVars;
+
+  // Cálculo de umbrales (Promedio regular de I y G como en el método IGO clásico, o Mediana / Punto medio)
+  const impArr = activeList.map(x => x.imp);
+  const gobArr = activeList.map(x => x.gob);
+  const thrFn = {
+    mean: mean,
+    median: med,
+    mid: () => (minScale + maxScale) / 2
+  }[tm] || mean;
+
+  const thrI = thrFn(impArr);
+  const thrG = thrFn(gobArr);
+
+  // Clasificar cada variable en su cuadrante IGO
+  activeList.forEach(x => {
+    x.igoQuad = getIGOQuadKey(x.imp, x.gob, thrI, thrG);
+    x.igoPriority = x.imp + x.gob;
+  });
+
+  // Ordenar tabla priorizando primero las de mayor importancia + gobernabilidad y carácter estratégico MICMAC
+  const sortedForTable = [...activeList].sort((a, b) => {
+    if (b.imp !== a.imp) return b.imp - a.imp;
+    if (b.gob !== a.gob) return b.gob - a.gob;
+    return b.weightM - a.weightM;
+  });
+
+  // Construcción del Gráfico SVG Cartesiano IGO (Gobernabilidad en X, Importancia en Y)
+  const W = 780, H = 580, m = { l: 74, r: 28, t: 34, b: 64 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const pad = sm === 'dec10' ? 0.8 : 0.45;
+  const x0 = Math.max(0, minScale - pad), x1 = maxScale + pad;
+  const y0 = Math.max(0, minScale - pad), y1 = maxScale + pad;
+  const X = v => m.l + (v - x0) / (x1 - x0) * pw;
+  const Y = v => m.t + ph - (v - y0) / (y1 - y0) * ph;
+
+  const txPx = clamp(X(thrG), m.l + 40, m.l + pw - 40);
+  const tyPx = clamp(Y(thrI), m.t + 40, m.t + ph - 40);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" id="igo-plane-svg" style="width:100%;height:auto;display:block;background:#080d1a;border-radius:12px;border:1px solid rgba(148,163,255,0.16);">
+    <defs>
+      <marker id="igo-ar-diag" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0 1.5L9 5L0 8.5z" fill="#34d399"/>
+      </marker>
+    </defs>`;
+
+  // 4 Zonas de Cuadrantes IGO con etiquetas de Qué Hacer directamente visibles
+  const qRects = [
+    // Cuadrante II: Arriba-Izquierda (Alta Importancia, Baja Gobernabilidad) -> RETOS
+    {
+      q: IGO_QUADS.challenges,
+      x: m.l, y: m.t, w: txPx - m.l, h: tyPx - m.t,
+      align: 'start', vx: m.l + 14, vy: m.t + 24,
+      act_es: '🤝 QUÉ HACER: Alianzas estratégicas, gestión multinivel y monitoreo',
+      act_en: '🤝 WHAT TO DO: Strategic alliances, multi-level governance & monitoring'
+    },
+    // Cuadrante I: Arriba-Derecha (Alta Importancia, Alta Gobernabilidad) -> ACCIONES INMEDIATAS
+    {
+      q: IGO_QUADS.immediate,
+      x: txPx, y: m.t, w: m.l + pw - txPx, h: tyPx - m.t,
+      align: 'end', vx: m.l + pw - 14, vy: m.t + 24,
+      act_es: '🚀 QUÉ HACER: Ejecutar de inmediato (Máxima Prioridad Presupuestaria)',
+      act_en: '🚀 WHAT TO DO: Execute immediately (Top Budget & Action Priority)'
+    },
+    // Cuadrante III: Abajo-Izquierda (Baja Importancia, Baja Gobernabilidad) -> DESCARTABLES
+    {
+      q: IGO_QUADS.discardable,
+      x: m.l, y: tyPx, w: txPx - m.l, h: m.t + ph - tyPx,
+      align: 'start', vx: m.l + 14, vy: m.t + ph - 28,
+      act_es: '🗄️ QUÉ HACER: Descartar o archivar (No asignar recursos prioritarios)',
+      act_en: '🗄️ WHAT TO DO: Discard or archive (Do not assign priority resources)'
+    },
+    // Cuadrante IV: Abajo-Derecha (Baja Importancia, Alta Gobernabilidad) -> MENOS URGENTES
+    {
+      q: IGO_QUADS.less_urgent,
+      x: txPx, y: tyPx, w: m.l + pw - txPx, h: m.t + ph - tyPx,
+      align: 'end', vx: m.l + pw - 14, vy: m.t + ph - 28,
+      act_es: '⏳ QUÉ HACER: Ejecutar solo si hay recursos disponibles (Baja urgencia)',
+      act_en: '⏳ WHAT TO DO: Execute only if spare resources exist (Low urgency)'
+    }
+  ];
+
+  qRects.forEach(z => {
+    svg += `<rect x="${z.x}" y="${z.y}" width="${Math.max(0, z.w)}" height="${Math.max(0, z.h)}" fill="${z.q.color}" opacity="0.12"/>`;
+    svg += `<text x="${z.vx}" y="${z.vy}" text-anchor="${z.align}" fill="${z.q.color}" font-size="13.5" font-weight="800" font-family="Outfit, sans-serif">${isEn ? z.q.short_en : z.q.short_es}</text>`;
+    svg += `<text x="${z.vx}" y="${z.vy + 16}" text-anchor="${z.align}" fill="#e2e8f0" font-size="10.5" font-weight="600" opacity="0.92">${isEn ? z.act_en : z.act_es}</text>`;
+  });
+
+  // Cuadrícula de las escalas regulares (ej. 0, 1, 3, 5)
+  const ticks = sm === 'classic' ? [0, 1, 3, 5] : (sm === 'ordinal5' ? [1, 2, 3, 4, 5] : [0, 2, 4, 6, 8, 10]);
+  ticks.forEach(tk => {
+    const gx = X(tk), gy = Y(tk);
+    svg += `<line x1="${gx}" x2="${gx}" y1="${m.t}" y2="${m.t + ph}" stroke="#94a3ff" opacity="0.11" stroke-dasharray="3 3"/>`;
+    svg += `<line x1="${m.l}" x2="${m.l + pw}" y1="${gy}" y2="${gy}" stroke="#94a3ff" opacity="0.11" stroke-dasharray="3 3"/>`;
+    const lblMap = sm === 'classic'
+      ? { 0: isEn ? '0 (Null)' : '0 (Nula)', 1: isEn ? '1 (Weak)' : '1 (Débil)', 3: isEn ? '3 (Mod.)' : '3 (Mod.)', 5: isEn ? '5 (High)' : '5 (Fuerte)' }
+      : {};
+    const tickLbl = lblMap[tk] || String(tk);
+    svg += `<text x="${gx}" y="${m.t + ph + 20}" text-anchor="middle" fill="#cbd5e1" font-size="11" font-weight="600" font-family="JetBrains Mono">${tickLbl}</text>`;
+    svg += `<text x="${m.l - 10}" y="${gy + 4}" text-anchor="end" fill="#cbd5e1" font-size="11" font-weight="600" font-family="JetBrains Mono">${tickLbl}</text>`;
+  });
+
+  // Líneas de corte de Promedio / Umbral IGO
+  svg += `<line x1="${txPx}" x2="${txPx}" y1="${m.t}" y2="${m.t + ph}" stroke="#ffffff" stroke-width="1.8" stroke-dasharray="7 4" opacity="0.85"/>`;
+  svg += `<line x1="${m.l}" x2="${m.l + pw}" y1="${tyPx}" y2="${tyPx}" stroke="#ffffff" stroke-width="1.8" stroke-dasharray="7 4" opacity="0.85"/>`;
+  svg += `<rect x="${txPx + 6}" y="${m.t + ph - 22}" width="118" height="17" rx="4" fill="rgba(8,13,26,0.88)" stroke="rgba(255,255,255,0.3)"/>`;
+  svg += `<text x="${txPx + 65}" y="${m.t + ph - 10}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="JetBrains Mono">${isEn ? 'Cut G =' : 'Corte G ='} ${thrG.toFixed(2)}</text>`;
+  svg += `<rect x="${m.l + 6}" y="${tyPx - 21}" width="118" height="17" rx="4" fill="rgba(8,13,26,0.88)" stroke="rgba(255,255,255,0.3)"/>`;
+  svg += `<text x="${m.l + 65}" y="${tyPx - 9}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="JetBrains Mono">${isEn ? 'Cut I =' : 'Corte I ='} ${thrI.toFixed(2)}</text>`;
+
+  // Diagonal de Prioridad Integral IGO (I = G)
+  if (S.igo.showDiag) {
+    const dx1 = X(minScale), dy1 = Y(minScale), dx2 = X(maxScale), dy2 = Y(maxScale);
+    const angle = Math.atan2(dy2 - dy1, dx2 - dx1) * 180 / Math.PI;
+    const mx = (dx1 + dx2) / 2, my = (dy1 + dy2) / 2;
+    svg += `<line x1="${dx1}" y1="${dy1}" x2="${dx2}" y2="${dy2}" stroke="#34d399" stroke-width="1.8" stroke-dasharray="8 5" opacity="0.7" marker-end="url(#igo-ar-diag)"/>`;
+    svg += `<g transform="translate(${mx}, ${my}) rotate(${angle.toFixed(2)})" pointer-events="none">
+      <rect x="-135" y="-18" width="270" height="15" rx="4" fill="rgba(8,13,26,0.85)" stroke="rgba(52,211,153,0.4)"/>
+      <text x="0" y="-7" text-anchor="middle" fill="#34d399" font-size="9.8" font-weight="700">${isEn ? '↗ INTEGRATED PRIORITY AXIS (I + G)' : '↗ EJE DE PRIORIDAD INTEGRAL IGO (I + G)'}</text>
+    </g>`;
+  }
+
+  // Títulos de los ejes X (Gobernabilidad) e Y (Importancia para las Finalidades Territoriales)
+  svg += `<text x="${m.l + pw / 2}" y="${H - 14}" text-anchor="middle" fill="#f8fafc" font-size="13" font-weight="700">${isEn ? 'GOVERNABILITY (G) — Level of Institutional & Territorial Control →' : 'GOBERNABILIDAD (G) — Nivel de Control Institucional y Territorial →'}</text>`;
+  svg += `<text transform="translate(18 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle" fill="#f8fafc" font-size="13" font-weight="700">${isEn ? 'IMPORTANCE (I) — Criticality for Territorial Purposes →' : 'IMPORTANCIA (I) — Criticidad para las Finalidades del Territorio →'}</text>`;
+
+  // Posicionamiento de nodos con separación inteligente cuando comparten la misma coordenada (ej. (5,5) o (3,3))
+  const groups = {};
+  activeList.forEach(item => {
+    const gk = item.gob.toFixed(2) + '_' + item.imp.toFixed(2);
+    if (!groups[gk]) groups[gk] = [];
+    groups[gk].push(item);
+  });
+
+  const pts = [];
+  Object.values(groups).forEach(grp => {
+    grp.forEach((item, idxInGrp) => {
+      let px = X(item.gob), py = Y(item.imp);
+      if (grp.length > 1) {
+        const radius = grp.length <= 3 ? 22 : 28;
+        const ang = (2 * Math.PI * idxInGrp) / grp.length - Math.PI / 4;
+        px += Math.cos(ang) * radius;
+        py += Math.sin(ang) * radius;
+      }
+      px = clamp(px, m.l + 22, m.l + pw - 22);
+      py = clamp(py, m.t + 22, m.t + ph - 22);
+      pts.push({ item, x: px, y: py });
+    });
+  });
+
+  pts.forEach(({ item, x, y }) => {
+    const qCol = IGO_QUADS[item.igoQuad].color;
+    const isSel = S.igo.selVar === item.v.id;
+    const isStrat = item.isStrat;
+    // Halo exterior si es Variable Estratégica MICMAC
+    if (isStrat) {
+      svg += `<rect x="${x - 23}" y="${y - 14}" width="46" height="28" rx="7" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.85"/>`;
+    }
+    svg += `<g class="igo-node" data-id="${item.v.id}" style="cursor:pointer;">
+      <rect x="${x - 19}" y="${y - 11}" width="38" height="22" rx="5" fill="${qCol}" fill-opacity="0.92" stroke="${isSel ? '#ffffff' : '#080d1a'}" stroke-width="${isSel ? 2.8 : 1.5}"/>
+      <text x="${x}" y="${y + 4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="800" font-family="JetBrains Mono" pointer-events="none">${esc(item.v.code)}</text>
+    </g>`;
+  });
+
+  svg += `</svg>`;
+
+  // Botones de escala para cada fila de la tabla
+  const renderScaleControls = (vid, field, curRaw5) => {
+    if (sm === 'classic') {
+      const opts = [0, 1, 3, 5];
+      const curSnap = snapToClassicIGO(curRaw5);
+      return `<div style="display:inline-flex;gap:3px;background:rgba(8,12,24,0.8);padding:2px;border-radius:6px;border:1px solid rgba(148,163,255,0.18);">
+        ${opts.map(valOpt => {
+          const active = curSnap === valOpt;
+          const col = valOpt === 5 ? '#10b981' : (valOpt === 3 ? '#38bdf8' : (valOpt === 1 ? '#f59e0b' : '#64748b'));
+          return `<button type="button" class="igo-score-btn" data-id="${vid}" data-field="${field}" data-val="${valOpt}"
+            style="min-width:26px;height:24px;border-radius:4px;border:1px solid ${active ? col : 'transparent'};background:${active ? col + '33' : 'transparent'};color:${active ? '#fff' : '#94a3b8'};font-family:'JetBrains Mono';font-weight:${active ? '800' : '600'};font-size:11.5px;cursor:pointer;">${valOpt}</button>`;
+        }).join('')}
+      </div>`;
+    } else if (sm === 'ordinal5') {
+      const opts = [1, 2, 3, 4, 5];
+      const curSnap = clamp(Math.round(curRaw5), 1, 5);
+      return `<div style="display:inline-flex;gap:2px;background:rgba(8,12,24,0.8);padding:2px;border-radius:6px;border:1px solid rgba(148,163,255,0.18);">
+        ${opts.map(valOpt => {
+          const active = curSnap === valOpt;
+          return `<button type="button" class="igo-score-btn" data-id="${vid}" data-field="${field}" data-val="${valOpt}"
+            style="min-width:23px;height:24px;border-radius:4px;border:1px solid ${active ? '#38bdf8' : 'transparent'};background:${active ? 'rgba(56,189,248,0.28)' : 'transparent'};color:${active ? '#fff' : '#94a3b8'};font-family:'JetBrains Mono';font-weight:700;font-size:11px;cursor:pointer;">${valOpt}</button>`;
+        }).join('')}
+      </div>`;
+    } else {
+      const disp = toDisplayScale(curRaw5, 'dec10');
+      return `<input type="number" class="igo-score-input" data-id="${vid}" data-field="${field}" min="0" max="10" step="0.5" value="${disp}"
+        style="width:62px;padding:3px 6px;font-family:'JetBrains Mono';font-weight:700;font-size:12px;text-align:center;background:rgba(8,12,24,0.85);color:#fff;border:1px solid rgba(56,189,248,0.35);border-radius:6px;">`;
+    }
+  };
+
+  const stratCount = allVars.filter(x => x.isStrat).length;
+
+  root.innerHTML = `
+    <!-- ENCABEZADO Y CONTROLES PRINCIPALES DE LA MATRIZ IGO -->
+    <div class="card" style="border:1px solid rgba(16,185,129,0.3);background:linear-gradient(180deg,rgba(15,23,42,0.96),rgba(8,13,26,0.94));">
+      <div class="card-head" style="flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:22px;">🎯</span>
+            <h2 style="margin:0;">${isEn ? '3 · IGO Matrix (Importance & Governability) & Territorial Purposes Scale' : '3 · Matriz IGO (Importancia y Gobernabilidad) y Escala de Finalidades Generales al Territorio'}</h2>
+            <span class="pill" style="background:rgba(16,185,129,0.18);border:1px solid #10b981;color:#34d399;font-weight:700;font-size:11px;">CEPAL / ILPES · Prospectiva Territorial</span>
+          </div>
+          <p class="muted" style="margin:6px 0 0;font-size:12.5px;line-height:1.5;">
+            ${isEn
+              ? 'Links structural analysis (<b>MICMAC</b>) with territorial strategic planning: prioritizes the <b>strategic variables</b> according to how critical they are for achieving the <b>General Territorial Purposes (Importance I, Y-Axis)</b> and the <b>level of institutional/territorial control (Governability G, X-Axis)</b>, defining what action to take in each quadrant.'
+              : 'Vincula la prospectiva estructural (<b>MICMAC</b>) con la planificación estratégica territorial: prioriza las <b>variables estratégicas</b> evaluando qué tan críticas son para el logro de las <b>Finalidades Generales del Territorio (Importancia I, Eje Y)</b> y el <b>nivel de control de los actores (Gobernabilidad G, Eje X)</b>, definiendo qué hacer en cada cuadrante.'}
+          </p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button type="button" class="btn primary sm" onclick="calibrateIGOFromMICMAC()" title="${isEn ? 'Auto-calibrate I and G scores from MICMAC structural position and territorial purposes' : 'Sugerir puntajes I y G a partir del peso estratégico MICMAC y las finalidades territoriales'}">
+            ⚡ ${isEn ? 'Calibrate I & G from MICMAC' : 'Sugerir I y G desde MICMAC'}
+          </button>
+          <button type="button" class="btn ghost sm" onclick="exportIGOCSV()">
+            ⬇ ${isEn ? 'Export IGO CSV' : 'Exportar CSV IGO'}
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Controles: Priorización Estratégica, Escalas Regulares de I y G, y Corte -->
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:14px;padding:10px 14px;background:rgba(8,12,24,0.75);border-radius:10px;border:1px solid var(--line);">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0;">
+          <b style="color:#fbbf24;">★ ${isEn ? 'Variable Filter:' : 'Priorización de Variables:'}</b>
+          <select id="igo-filter-mode" style="padding:4px 8px;font-size:12px;border-radius:6px;background:#0f172a;color:#fff;border:1px solid rgba(251,191,36,0.4);">
+            <option value="strategic" ${fm === 'strategic' ? 'selected' : ''}>${isEn ? `Strategic Priority (Key + Drivers / Above Bisector: ${stratCount} vars)` : `Priorizar Variables Estratégicas (Clave + Motrices / Sobre Bisectriz: ${stratCount} vars)`}</option>
+            <option value="conflict_power" ${fm === 'conflict_power' ? 'selected' : ''}>${isEn ? 'Only High-Motricity Quadrants (Conflict + Power)' : 'Solo Cuadrantes de Alta Motricidad (Conflicto + Poder)'}</option>
+            <option value="all" ${fm === 'all' ? 'selected' : ''}>${isEn ? `All System Variables (${allVars.length} vars)` : `Todas las Variables del Sistema (${allVars.length} vars)`}</option>
+          </select>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0;">
+          <b style="color:#38bdf8;">📏 ${isEn ? 'I & G Scale:' : 'Escala para I y G:'}</b>
+          <select id="igo-scale-mode" style="padding:4px 8px;font-size:12px;border-radius:6px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.4);">
+            <option value="classic" ${sm === 'classic' ? 'selected' : ''}>${isEn ? 'Standard IGO Scale: 0 (Null) · 1 (Weak) · 3 (Moderate) · 5 (Strong/High)' : 'Escala Regular IGO (CEPAL): 0 (Nula) · 1 (Débil) · 3 (Moderada) · 5 (Fuerte/Alta)'}</option>
+            <option value="ordinal5" ${sm === 'ordinal5' ? 'selected' : ''}>${isEn ? 'Continuous Likert Scale: 1 to 5 (Very Low to Very High)' : 'Escala Ordinal Continua: 1 a 5 (Muy Baja a Muy Alta)'}</option>
+            <option value="dec10" ${sm === 'dec10' ? 'selected' : ''}>${isEn ? 'Weighted Scale: 0 to 10 points' : 'Escala Ponderada: 0 a 10 puntos'}</option>
+          </select>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0;">
+          <span style="color:var(--mut);">${isEn ? 'Quadrant Cut:' : 'Umbral Cuadrantes:'}</span>
+          <select id="igo-thr-mode" style="padding:4px 8px;font-size:12px;border-radius:6px;background:#0f172a;color:#fff;border:1px solid var(--line);">
+            <option value="mean" ${tm === 'mean' ? 'selected' : ''}>${isEn ? `Average (Ī = ${thrI.toFixed(2)}, Ḡ = ${thrG.toFixed(2)})` : `Promedio Regular (Ī = ${thrI.toFixed(2)}, Ḡ = ${thrG.toFixed(2)})`}</option>
+            <option value="median" ${tm === 'median' ? 'selected' : ''}>${isEn ? 'Median' : 'Mediana'}</option>
+            <option value="mid" ${tm === 'mid' ? 'selected' : ''}>${isEn ? 'Scale Midpoint' : 'Punto medio de la escala'}</option>
+          </select>
+        </label>
+
+        <label class="check" style="font-size:12px;margin:0;">
+          <input type="checkbox" id="igo-show-diag" ${S.igo.showDiag ? 'checked' : ''}>
+          <span>${isEn ? 'Priority Diagonal (I = G)' : 'Diagonal de Prioridad (I = G)'}</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 1: PROPUESTA DE ESCALA PARA DEFINIR FINALIDADES GENERALES AL TERRITORIO Y ESCALAS REGULARES I & G -->
+    <div class="card" style="margin-top:16px;">
+      <div class="card-head" style="flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2 style="margin:0;">🏛️ ${isEn ? '1 · Proposed Scale to Define General Territorial Purposes & Regular I / G Valuation Scales' : '1 · Escala Propuesta para Definir Finalidades Generales al Territorio y Escalas Regulares de I y G'}</h2>
+          <p class="muted" style="margin:4px 0 0;font-size:12.5px;">
+            ${isEn
+              ? 'Before scoring Importance (I), the territory defines its General Purposes (long-term collective ends). A variable is "Important" to the extent that it is critical for achieving these territorial purposes.'
+              : 'Para calificar con rigor la <b>Importancia (I)</b> en la Matriz IGO, primero se definen y ponderan las <b>Finalidades Generales del Territorio</b> (el "para qué" del desarrollo territorial). Una variable estratégica tendrá mayor Importancia cuanto más determinante sea para alcanzar dichas finalidades.'}
+          </p>
+        </div>
+      </div>
+
+      <!-- Visión / Finalidad Superior del Territorio -->
+      <div style="background:rgba(15,23,42,0.75);border:1px solid rgba(56,189,248,0.28);border-left:4px solid #38bdf8;border-radius:8px;padding:10px 14px;margin-top:10px;">
+        <label style="font-size:11.5px;font-weight:700;color:#38bdf8;display:block;margin-bottom:4px;">
+          🧭 ${isEn ? 'Overarching Territorial Vision / General Purpose Statement (Editable):' : 'Enunciado de la Finalidad General / Visión de Futuro del Territorio (Editable):'}
+        </label>
+        <input type="text" id="igo-vision-input" value="${esc(isEn ? S.igo.vision_en : S.igo.vision_es)}"
+          style="width:100%;padding:6px 10px;font-size:12.5px;background:rgba(8,12,24,0.85);color:#f8fafc;border:1px solid rgba(148,163,255,0.22);border-radius:6px;">
+      </div>
+
+      <!-- Comparativa de las 3 Escalas: Finalidades del Territorio, Importancia (I) y Gobernabilidad (G) -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:14px;">
+        <!-- Escala 1: Finalidades Generales del Territorio -->
+        <div style="background:rgba(8,12,24,0.75);border:1px solid rgba(251,191,36,0.28);border-top:3px solid #f59e0b;border-radius:10px;padding:12px 14px;">
+          <h3 style="margin:0 0 6px;font-size:13.5px;color:#fbbf24;">🎯 ${isEn ? 'Proposed Scale for Territorial General Purposes' : 'Escala Propuesta para Definir Finalidades Generales al Territorio'}</h3>
+          <p style="margin:0 0 8px;font-size:11.5px;color:#94a3b8;line-height:1.45;">
+            ${isEn ? 'Graduates the hierarchy of collective ends of the territorial development project:' : 'Gradúa la jerarquía de los fines colectivos del proyecto de desarrollo territorial:'}
+          </p>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:11.5px;">
+            <div><span class="badge" style="background:#10b981;min-width:24px;text-align:center;">5</span> <b>${isEn ? 'Structural / Guiding Purpose (High):' : 'Finalidad Estructural / Rectora (5 - Fuerte):'}</b> ${isEn ? 'Core mandate of territorial well-being and structural transformation.' : 'Fin último e irrenunciable de bienestar, equidad o transformación estructural del territorio.'}</div>
+            <div><span class="badge" style="background:#38bdf8;min-width:24px;text-align:center;">3</span> <b>${isEn ? 'Enabling / Articulating Purpose (Moderate):' : 'Finalidad Habilitante / Intermedia (3 - Moderada):'}</b> ${isEn ? 'Necessary condition that sustains the achievement of guiding purposes.' : 'Condición necesaria que articula capacidades para sostener las finalidades rectoras.'}</div>
+            <div><span class="badge" style="background:#f59e0b;min-width:24px;text-align:center;">1</span> <b>${isEn ? 'Complementary / Sectoral Purpose (Low):' : 'Finalidad Complementaria / Focalizada (1 - Débil):'}</b> ${isEn ? 'Secondary or localized contribution.' : 'Aporte sectorial o de apoyo secundario a la visión territorial.'}</div>
+            <div><span class="badge" style="background:#64748b;min-width:24px;text-align:center;">0</span> <b>${isEn ? 'Not Prioritized (Null):' : 'No Prioritaria en el Horizonte Actual (0 - Nula):'}</b> ${isEn ? 'Outside current territorial scope.' : 'Sin incidencia directa en el ciclo estratégico vigente.'}</div>
+          </div>
+        </div>
+
+        <!-- Escala 2: Importancia (Eje Y) -->
+        <div style="background:rgba(8,12,24,0.75);border:1px solid rgba(16,185,129,0.28);border-top:3px solid #10b981;border-radius:10px;padding:12px 14px;">
+          <h3 style="margin:0 0 6px;font-size:13.5px;color:#34d399;">📈 ${isEn ? 'Regular Scale for IMPORTANCE (I · Y-Axis)' : 'Escala Regular de IMPORTANCIA (I · Eje Vertical Y)'}</h3>
+          <p style="margin:0 0 8px;font-size:11.5px;color:#94a3b8;line-height:1.45;">
+            ${isEn ? 'How critical is the strategic variable for achieving the General Territorial Purposes?' : '¿Qué tan crítica es la variable para el logro de las Finalidades Generales del Territorio?'}
+          </p>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:11.5px;">
+            <div><span class="badge" style="background:#10b981;min-width:24px;text-align:center;">5</span> <b>${isEn ? 'Strong / High (5):' : 'Fuerte / Alta (5):'}</b> ${isEn ? 'Indispensable determinant; without this variable, territorial purposes cannot be achieved.' : 'Determinante e indispensable; sin movilizar esta variable no se logran los fines territoriales.'}</div>
+            <div><span class="badge" style="background:#38bdf8;min-width:24px;text-align:center;">3</span> <b>${isEn ? 'Moderate / Medium (3):' : 'Moderada / Media (3):'}</b> ${isEn ? 'Significant contribution to one or more territorial purposes.' : 'Incidencia relevante y directa sobre al menos una finalidad general del territorio.'}</div>
+            <div><span class="badge" style="background:#f59e0b;min-width:24px;text-align:center;">1</span> <b>${isEn ? 'Weak / Low (1):' : 'Débil / Baja (1):'}</b> ${isEn ? 'Marginal, indirect, or peripheral contribution to territorial ends.' : 'Aporte marginal, indirecto o periférico para los fines generales.'}</div>
+            <div><span class="badge" style="background:#64748b;min-width:24px;text-align:center;">0</span> <b>${isEn ? 'Null (0):' : 'Nula (0):'}</b> ${isEn ? 'Does not affect the achievement of territorial purposes.' : 'No guarda relación con el logro de los fines territoriales.'}</div>
+          </div>
+        </div>
+
+        <!-- Escala 3: Gobernabilidad (Eje X) -->
+        <div style="background:rgba(8,12,24,0.75);border:1px solid rgba(56,189,248,0.28);border-top:3px solid #38bdf8;border-radius:10px;padding:12px 14px;">
+          <h3 style="margin:0 0 6px;font-size:13.5px;color:#38bdf8;">🏛️ ${isEn ? 'Regular Scale for GOVERNABILITY (G · X-Axis)' : 'Escala Regular de GOBERNABILIDAD (G · Eje Horizontal X)'}</h3>
+          <p style="margin:0 0 8px;font-size:11.5px;color:#94a3b8;line-height:1.45;">
+            ${isEn ? 'What level of legal, budgetary, technical, and political control do territorial actors have over the variable?' : '¿Qué nivel de control legal, presupuestario, técnico y político tiene el actor territorial sobre la variable?'}
+          </p>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:11.5px;">
+            <div><span class="badge" style="background:#10b981;min-width:24px;text-align:center;">5</span> <b>${isEn ? 'Strong / High Control (5):' : 'Fuerte / Alta Gobernabilidad (5):'}</b> ${isEn ? 'Autonomous, direct decision-making power, budget, and mandate.' : 'Control directo y autónomo (competencia normativa, presupuesto propio y capacidad técnica).'}</div>
+            <div><span class="badge" style="background:#38bdf8;min-width:24px;text-align:center;">3</span> <b>${isEn ? 'Moderate / Shared Control (3):' : 'Moderada / Control Compartido (3):'}</b> ${isEn ? 'Co-governed; requires internal consensus or coordination with allied actors.' : 'Cogobernada; requiere coordinación interdepartamental o acuerdos con actores cercanos.'}</div>
+            <div><span class="badge" style="background:#f59e0b;min-width:24px;text-align:center;">1</span> <b>${isEn ? 'Weak / Low Control (1):' : 'Débil / Baja Gobernabilidad (1):'}</b> ${isEn ? 'Depends mostly on external actors, markets, or higher government tiers.' : 'Depende mayoritariamente de otros niveles de gobierno, mercado o cambios culturales lentos.'}</div>
+            <div><span class="badge" style="background:#64748b;min-width:24px;text-align:center;">0</span> <b>${isEn ? 'Null / Exogenous (0):' : 'Nula / Exógena (0):'}</b> ${isEn ? 'Completely outside local control (macroeconomic/climatic parameter).' : 'Totalmente fuera del dominio territorial (factor exógeno del entorno).'}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjetas editables de las 5 Finalidades Generales del Territorio -->
+      <div style="margin-top:14px;">
+        <div style="font-size:12.5px;font-weight:700;color:#e2e8f0;margin-bottom:8px;">
+          📋 ${isEn ? 'General Territorial Purposes Matrix (adjust priority weight 0–1–3–5 of each purpose):' : 'Matriz de Finalidades Generales del Territorio (ajuste el nivel de prioridad 0–1–3–5 de cada finalidad):'}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;">
+          ${S.igo.purposes.map(p => `
+            <div style="background:rgba(15,23,42,0.8);border:1px solid rgba(148,163,255,0.16);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px;">
+                  <span class="badge" style="background:#2563eb;font-family:'JetBrains Mono';">${esc(p.code)}</span>
+                  <div style="display:inline-flex;gap:3px;align-items:center;">
+                    <span style="font-size:10.5px;color:var(--mut);margin-right:2px;">${isEn ? 'Scale:' : 'Escala:'}</span>
+                    ${[0, 1, 3, 5].map(lv => `
+                      <button type="button" class="igo-purpose-lv-btn" data-fg="${p.id}" data-lv="${lv}"
+                        style="width:22px;height:20px;border-radius:4px;border:1px solid ${p.level === lv ? '#fbbf24' : 'rgba(255,255,255,0.1)'};background:${p.level === lv ? 'rgba(251,191,36,0.25)' : 'rgba(0,0,0,0.3)'};color:${p.level === lv ? '#fbbf24' : '#94a3b8'};font-size:11px;font-weight:700;cursor:pointer;">${lv}</button>
+                    `).join('')}
+                  </div>
+                </div>
+                <div style="font-weight:700;font-size:12.5px;color:#f8fafc;margin-bottom:3px;">${esc(isEn ? p.name_en : p.name_es)}</div>
+                <div style="font-size:11.5px;color:#94a3b8;line-height:1.4;">${esc(isEn ? p.desc_en : p.desc_es)}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2: GRÁFICO CARTESIANO IGO Y TABLA DE PRIORIZACIÓN DE VARIABLES ESTRATÉGICAS -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px;margin-top:16px;align-items:start;">
+      <!-- Columna Izquierda: Gráfico de Cuadrantes IGO -->
+      <div class="card" style="margin:0;">
+        <div class="card-head" style="flex-wrap:wrap;gap:8px;">
+          <div>
+            <h2 style="margin:0;">📊 ${isEn ? '2 · IGO Strategic Plane (Governability vs. Importance)' : '2 · Gráfico de la Matriz IGO (Gobernabilidad vs. Importancia)'}</h2>
+            <p class="muted" style="margin:3px 0 0;font-size:12px;">
+              ${isEn
+                ? 'Dashed gold border = MICMAC Strategic Variable (Key/Driver or Above Bisector). Click any variable to highlight.'
+                : 'Borde dorado punteado = Variable Estratégica MICMAC (Clave/Motriz o Sobre la Bisectriz). Clic en un nodo para inspeccionar.'}
+            </p>
+          </div>
+        </div>
+        <div id="igo-plane-wrap" style="margin-top:8px;">${svg}</div>
+
+        <!-- Resumen de Promedios al pie del gráfico -->
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:10px;padding:8px 12px;background:rgba(8,12,24,0.75);border-radius:8px;border:1px solid var(--line);font-size:12px;">
+          <span><b style="color:#34d399;">${isEn ? 'Average Importance (Ī):' : 'Promedio Importancia (Ī):'}</b> <code style="font-size:12.5px;color:#fff;">${thrI.toFixed(2)}</code></span>
+          <span><b style="color:#38bdf8;">${isEn ? 'Average Governability (Ḡ):' : 'Promedio Gobernabilidad (Ḡ):'}</b> <code style="font-size:12.5px;color:#fff;">${thrG.toFixed(2)}</code></span>
+          <span><b style="color:#fbbf24;">★ ${isEn ? 'Displayed Variables:' : 'Variables Evaluadas:'}</b> <code style="font-size:12.5px;color:#fff;">${activeList.length} / ${allVars.length}</code></span>
+        </div>
+      </div>
+
+      <!-- Columna Derecha: Tabla Interactiva de Calificación I y G -->
+      <div class="card" style="margin:0;">
+        <div class="card-head" style="flex-wrap:wrap;gap:8px;">
+          <div>
+            <h2 style="margin:0;">⚖️ ${isEn ? 'Strategic Variables Valuation Table (I & G)' : 'Tabla de Valoración de Variables Estratégicas (I y G)'}</h2>
+            <p class="muted" style="margin:3px 0 0;font-size:12px;">
+              ${isEn
+                ? 'Rate Importance (I) for territorial purposes and Governability (G). Changes update the IGO quadrant chart immediately.'
+                : 'Califique la Importancia (I) para las finalidades del territorio y la Gobernabilidad (G). El gráfico se actualiza en tiempo real.'}
+            </p>
+          </div>
+        </div>
+        <div class="table-wrap" style="max-height:590px;overflow-y:auto;margin-top:8px;">
+          <table style="width:100%;font-size:12px;">
+            <thead>
+              <tr>
+                <th>Var.</th>
+                <th>${isEn ? 'MICMAC Role' : 'Rol MICMAC'}</th>
+                <th>${isEn ? 'Purpose' : 'Finalidad'}</th>
+                <th style="text-align:center;">${isEn ? 'Importance (I)' : 'Importancia (I)'}</th>
+                <th style="text-align:center;">${isEn ? 'Governability (G)' : 'Gobernabilidad (G)'}</th>
+                <th>${isEn ? 'IGO Action Quadrant' : 'Cuadrante / Qué Hacer'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedForTable.map(x => {
+                const iq = IGO_QUADS[x.igoQuad];
+                const mq = QUAD[x.qM];
+                const isSel = S.igo.selVar === x.v.id;
+                const diagBadge = x.diffM >= 0
+                  ? `<span title="${isEn ? 'Above MICMAC Strategic Diagonal (I ≥ D)' : 'Encima de la Diagonal Estratégica MICMAC (I ≥ D)'}" style="color:#34d399;font-size:10.5px;font-weight:700;">▲ I−D=${x.diffM > 0 ? '+' : ''}${x.diffM.toFixed(0)}</span>`
+                  : `<span title="${isEn ? 'Below MICMAC Strategic Diagonal (I < D)' : 'Debajo de la Diagonal Estratégica MICMAC (I < D)'}" style="color:#c4b5fd;font-size:10.5px;font-weight:700;">▼ I−D=${x.diffM.toFixed(0)}</span>`;
+                return `<tr class="igo-row ${isSel ? 'sel' : ''}" data-id="${x.v.id}" style="background:${isSel ? 'rgba(56,189,248,0.12)' : 'transparent'};">
+                  <td>
+                    <div style="display:flex;align-items:center;gap:5px;">
+                      ${x.isStrat ? `<span title="${isEn ? 'Strategic Variable prioritized by MICMAC' : 'Variable Estratégica priorizada por MICMAC'}" style="color:#fbbf24;font-size:13px;">★</span>` : ''}
+                      <b>${esc(x.v.code)}</b>
+                    </div>
+                    <div style="font-size:11px;color:var(--mut);max-width:155px;line-height:1.25;">${esc(x.v.name)}</div>
+                  </td>
+                  <td style="white-space:nowrap;">
+                    <span class="badge" style="background:${mq.color};font-size:10px;">${mq.short}</span><br>
+                    ${diagBadge}
+                  </td>
+                  <td>
+                    <select class="igo-fg-select" data-id="${x.v.id}" style="padding:3px 5px;font-size:11px;border-radius:5px;background:#0f172a;color:#93c5fd;border:1px solid rgba(148,163,255,0.25);">
+                      ${S.igo.purposes.map(p => `<option value="${p.id}" ${x.fg === p.id ? 'selected' : ''}>${esc(p.code)}</option>`).join('')}
+                    </select>
+                  </td>
+                  <td style="text-align:center;">${renderScaleControls(x.v.id, 'imp', x.rawImp)}</td>
+                  <td style="text-align:center;">${renderScaleControls(x.v.id, 'gob', x.rawGob)}</td>
+                  <td>
+                    <span class="badge" style="background:${iq.color};font-size:10.5px;display:inline-block;margin-bottom:2px;">${isEn ? iq.short_en : iq.short_es}</span>
+                  </td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="background:rgba(15,23,42,0.95);font-weight:800;border-top:2px solid var(--line);">
+                <td colspan="3" style="text-align:right;color:#cbd5e1;">${isEn ? 'AVERAGE (Cut Threshold):' : 'PROMEDIO (Umbral de Corte):'}</td>
+                <td style="text-align:center;color:#34d399;font-family:'JetBrains Mono';font-size:13px;">${thrI.toFixed(2)}</td>
+                <td style="text-align:center;color:#38bdf8;font-family:'JetBrains Mono';font-size:13px;">${thrG.toFixed(2)}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 3: INTERPRETACIÓN ESTRATÉGICA POR CUADRANTE — ¿QUÉ ES LO QUE HAY QUE HACER EN CADA CUADRANTE? -->
+    <div class="card" style="margin-top:16px;">
+      <div class="card-head" style="flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2 style="margin:0;">🧭 ${isEn ? '3 · Quadrant Interpretation Guide — What Must Be Done in Each IGO Quadrant?' : '3 · Interpretación de Cuadrantes IGO — ¿Qué es lo que hay que hacer en cada cuadrante?'}</h2>
+          <p class="muted" style="margin:4px 0 0;font-size:12.5px;">
+            ${isEn
+              ? 'Operational translation of the IGO Matrix into the Territorial Action Plan: each quadrant defines a specific type of intervention, resource allocation, and institutional governance.'
+              : 'Traducción operativa de la Matriz IGO al Plan de Acción Territorial: cada cuadrante prescribe exactamente qué decisión estratégica, asignación de recursos y modalidad de gestión corresponde aplicar.'}
+          </p>
+        </div>
+      </div>
+
+      <!-- Tabla Resumen Canónica (Estilo Diapositiva Cátedra Prospectiva Territorial) -->
+      <div class="table-wrap" style="margin-top:10px;margin-bottom:16px;">
+        <table style="width:100%;font-size:12.5px;border-collapse:collapse;">
+          <thead>
+            <tr style="background:#0b1120;border-bottom:2px solid var(--line);">
+              <th style="padding:10px 12px;text-align:left;">${isEn ? 'IGO Quadrant' : 'Cuadrante IGO'}</th>
+              <th style="padding:10px 12px;text-align:left;">${isEn ? 'Importance & Governability Level' : 'Nivel de Importancia (I) y Gobernabilidad (G)'}</th>
+              <th style="padding:10px 12px;text-align:left;">${isEn ? 'Strategic Action Type (What to Do in the Territory)' : 'Tipo de Acción Estratégica (¿Qué hay que hacer en el territorio?)'}</th>
+              <th style="padding:10px 12px;text-align:center;">${isEn ? 'Variables' : 'Variables'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${['immediate', 'challenges', 'less_urgent', 'discardable'].map(qk => {
+              const iq = IGO_QUADS[qk];
+              const qVars = activeList.filter(x => x.igoQuad === qk);
+              return `<tr style="border-bottom:1px solid rgba(148,163,255,0.1);">
+                <td style="padding:10px 12px;font-weight:800;color:${iq.color};white-space:nowrap;">${isEn ? iq.name_en : iq.name_es}</td>
+                <td style="padding:10px 12px;color:#cbd5e1;font-weight:600;">${isEn ? iq.sub_en : iq.sub_es}</td>
+                <td style="padding:10px 12px;color:#f8fafc;line-height:1.45;"><b>${isEn ? iq.whatToDo_en : iq.whatToDo_es}</b></td>
+                <td style="padding:10px 12px;text-align:center;">
+                  <span class="badge" style="background:${iq.color};font-family:'JetBrains Mono';">${qVars.length}</span>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 4 Tarjetas Operativas de Cuadrantes con las Variables Asignadas y Directrices de Acción -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;">
+        ${['immediate', 'challenges', 'less_urgent', 'discardable'].map(qk => {
+          const iq = IGO_QUADS[qk];
+          const qVars = activeList.filter(x => x.igoQuad === qk).sort((a, b) => (b.imp + b.gob) - (a.imp + a.gob));
+          const actions = isEn ? iq.actions_en : iq.actions_es;
+          return `
+            <div style="background:rgba(15,23,42,0.82);border:1px solid ${iq.color}44;border-top:4px solid ${iq.color};border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+                  <h3 style="margin:0;font-size:14.5px;color:${iq.color};">${isEn ? iq.name_en : iq.name_es}</h3>
+                  <span class="badge" style="background:${iq.color};">${qVars.length} vars</span>
+                </div>
+                <div style="font-size:11.5px;font-weight:700;color:#cbd5e1;margin-bottom:8px;">${isEn ? iq.sub_en : iq.sub_es}</div>
+                <p style="margin:0 0 10px;font-size:12.5px;color:#f8fafc;line-height:1.5;background:rgba(8,12,24,0.65);padding:8px 10px;border-radius:6px;border-left:3px solid ${iq.color};">
+                  ${isEn ? iq.whatToDo_en : iq.whatToDo_es}
+                </p>
+                <div style="font-size:11.5px;font-weight:700;color:#93c5fd;margin-bottom:4px;">
+                  🛠️ ${isEn ? 'Concrete Actions to Take:' : '¿Qué hacer concretamente en este cuadrante?'}
+                </div>
+                <ul style="margin:0 0 12px;padding-left:18px;font-size:11.8px;color:#cbd5e1;line-height:1.5;">
+                  ${actions.map(a => `<li>${esc(a)}</li>`).join('')}
+                </ul>
+              </div>
+
+              <div>
+                <div style="font-size:11.5px;font-weight:700;color:#e2e8f0;margin-bottom:6px;">
+                  📌 ${isEn ? 'Variables in this Quadrant:' : 'Variables ubicadas en este cuadrante:'}
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                  ${qVars.length ? qVars.map(x => `
+                    <button type="button" class="igo-chip-var" data-id="${x.v.id}"
+                      style="display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:7px;background:rgba(8,12,24,0.9);border:1px solid ${iq.color}66;color:#fff;font-size:11.5px;cursor:pointer;"
+                      title="${esc(x.v.name)} · I=${x.imp} | G=${x.gob} | ${esc(x.note)}">
+                      ${x.isStrat ? '<span style="color:#fbbf24;">★</span>' : ''}
+                      <b style="font-family:'JetBrains Mono';color:${iq.color};">${esc(x.v.code)}</b>
+                      <span style="color:#cbd5e1;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(x.v.name)}</span>
+                      <span style="font-family:'JetBrains Mono';font-size:10.5px;color:#94a3b8;">(I:${x.imp}, G:${x.gob})</span>
+                    </button>
+                  `).join('') : `<span class="muted" style="font-size:11.5px;">${isEn ? 'No variables in this quadrant' : 'Ninguna variable en este cuadrante'}</span>`}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  // Eventos interactivos del módulo IGO
+  const filterSel = $('#igo-filter-mode', root);
+  if (filterSel) filterSel.onchange = e => { S.igo.filterMode = e.target.value; save(); renderIGO(); };
+
+  const scaleSel = $('#igo-scale-mode', root);
+  if (scaleSel) scaleSel.onchange = e => { S.igo.scaleMode = e.target.value; save(); renderIGO(); };
+
+  const thrSel = $('#igo-thr-mode', root);
+  if (thrSel) thrSel.onchange = e => { S.igo.thrMode = e.target.value; save(); renderIGO(); };
+
+  const diagChk = $('#igo-show-diag', root);
+  if (diagChk) diagChk.onchange = e => { S.igo.showDiag = e.target.checked; save(); renderIGO(); };
+
+  const visInp = $('#igo-vision-input', root);
+  if (visInp) visInp.onchange = e => {
+    if (currentLang === 'en') S.igo.vision_en = e.target.value;
+    else S.igo.vision_es = e.target.value;
+    save();
+  };
+
+  root.querySelectorAll('.igo-purpose-lv-btn').forEach(btn => {
+    btn.onclick = () => {
+      const fg = btn.dataset.fg;
+      const lv = Number(btn.dataset.lv);
+      const p = S.igo.purposes.find(item => item.id === fg);
+      if (p) {
+        p.level = lv;
+        save();
+        renderIGO();
+      }
+    };
+  });
+
+  root.querySelectorAll('.igo-score-btn').forEach(btn => {
+    btn.onclick = () => {
+      const vid = btn.dataset.id;
+      const field = btn.dataset.field;
+      const valDisp = Number(btn.dataset.val);
+      if (!S.igo.scores[vid]) S.igo.scores[vid] = { imp: 3, gob: 3, fg: 'FG1' };
+      S.igo.scores[vid][field] = fromDisplayScale(valDisp, sm);
+      S.igo.selVar = vid;
+      save();
+      renderIGO();
+    };
+  });
+
+  root.querySelectorAll('.igo-score-input').forEach(inp => {
+    inp.onchange = () => {
+      const vid = inp.dataset.id;
+      const field = inp.dataset.field;
+      if (!S.igo.scores[vid]) S.igo.scores[vid] = { imp: 3, gob: 3, fg: 'FG1' };
+      S.igo.scores[vid][field] = fromDisplayScale(inp.value, sm);
+      S.igo.selVar = vid;
+      save();
+      renderIGO();
+    };
+  });
+
+  root.querySelectorAll('.igo-fg-select').forEach(sel => {
+    sel.onchange = () => {
+      const vid = sel.dataset.id;
+      if (!S.igo.scores[vid]) S.igo.scores[vid] = { imp: 3, gob: 3, fg: 'FG1' };
+      S.igo.scores[vid].fg = sel.value;
+      save();
+      renderIGO();
+    };
+  });
+
+  root.querySelectorAll('.igo-node, .igo-chip-var').forEach(el => {
+    el.onclick = () => {
+      S.igo.selVar = el.dataset.id;
+      renderIGO();
+    };
+  });
+
+  const svgBox = $('#igo-plane-svg', root);
+  if (svgBox) {
+    svgBox.onmousemove = e => {
+      const g = e.target.closest('.igo-node');
+      if (!g) return tip(null);
+      const vid = g.dataset.id;
+      const x = activeList.find(it => it.v.id === vid);
+      if (!x) return tip(null);
+      const iq = IGO_QUADS[x.igoQuad];
+      tip(e, `<b>${esc(x.v.code)} · ${esc(x.v.name)}</b><br>` +
+        `${isEn ? 'Importance (I):' : 'Importancia (I):'} <b>${x.imp}</b> · ${isEn ? 'Governability (G):' : 'Gobernabilidad (G):'} <b>${x.gob}</b><br>` +
+        `<span style="color:${iq.color};font-weight:700;">${isEn ? iq.name_en : iq.name_es}</span><br>` +
+        `<small style="color:#cbd5e1;">${esc(x.note)}</small>`);
+    };
+    svgBox.onmouseleave = () => tip(null);
+  }
+}
+window.renderIGO = renderIGO;
+
 function renderAll() {
   renderVars();
   renderMatrix();
@@ -5998,6 +7040,7 @@ function renderAll() {
   renderFlowDiagram();
   renderGodetStability();
   renderStability();
+  renderIGO();
 }
 
 // Inicialización de idioma y componentes

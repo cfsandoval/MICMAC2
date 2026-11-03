@@ -47,13 +47,14 @@
   <nav class="tabs" id="tabs">
     <button data-tab="vars" class="active" id="tab-btn-vars" data-i18n="tab_vars">1 · Variables</button>
     <button data-tab="matrix" id="tab-btn-matrix" data-i18n="tab_matrix">2 · Justified Matrix</button>
-    <button data-tab="plane" id="tab-btn-plane" data-i18n="tab_plane">3 · Direct & Indirect Plane</button>
-    <button data-tab="sim" id="tab-btn-sim" data-i18n="tab_sim">4 · Dynamic Simulation</button>
-    <button data-tab="dynamic" id="tab-btn-dynamic" data-i18n="tab_dynamic">5 · 4D Dynamic Signed-MICMAC</button>
-    <button data-tab="flow" id="tab-btn-flow" data-i18n="tab_flow">6 · Causal Network Diagram</button>
-    <button data-tab="godet" id="tab-btn-godet" data-i18n="tab_godet">7 · Godet Order Stability</button>
-    <button data-tab="stability" id="tab-btn-stability" data-i18n="tab_stability">8 · Advanced Stability & Networks</button>
-    <button data-tab="method" id="tab-btn-method" data-i18n="tab_method">9 · Methodology</button>
+    <button data-tab="igo" id="tab-btn-igo" data-i18n="tab_igo">3 · IGO Matrix & Territorial Purposes</button>
+    <button data-tab="plane" id="tab-btn-plane" data-i18n="tab_plane">4 · Direct & Indirect Plane</button>
+    <button data-tab="sim" id="tab-btn-sim" data-i18n="tab_sim">5 · Dynamic Simulation</button>
+    <button data-tab="dynamic" id="tab-btn-dynamic" data-i18n="tab_dynamic">6 · 4D Dynamic Signed-MICMAC</button>
+    <button data-tab="flow" id="tab-btn-flow" data-i18n="tab_flow">7 · Causal Network Diagram</button>
+    <button data-tab="godet" id="tab-btn-godet" data-i18n="tab_godet">8 · Godet Order Stability</button>
+    <button data-tab="stability" id="tab-btn-stability" data-i18n="tab_stability">9 · Advanced Stability & Networks</button>
+    <button data-tab="method" id="tab-btn-method" data-i18n="tab_method">10 · Methodology</button>
   </nav>
 </header>
 
@@ -233,6 +234,7 @@
     <label class="check"><input type="checkbox" id="pl-zoom" checked> <span data-i18n="pl_zoom_lbl">Ampliar diferencias</span></label>
     <label class="check"><input type="checkbox" id="pl-diag" checked> <span data-i18n="pl_diag_lbl">Diagonal estratégica (bisectriz)</span></label>
     <label class="check"><input type="checkbox" id="pl-links"> <span data-i18n="pl_links_lbl">Mostrar vínculos fuertes</span></label>
+    <button type="button" class="btn sm" onclick="switchTab('igo')" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;padding:5px 12px;border-radius:8px;margin-left:auto;" data-i18n="pl_btn_go_igo">🎯 Priorizar en Matriz IGO</button>
   </div>
   <div class="grid-plane">
     <div class="card"><div id="plane-wrap"></div></div>
@@ -1407,7 +1409,12 @@
   </div>
 </section>
 
-<!-- 8 METODOLOGÍA -->
+<!-- 9. MATRIZ IGO (IMPORTANCIA Y GOBERNABILIDAD) Y FINALIDADES GENERALES DEL TERRITORIO -->
+<section id="tab-igo" class="panel">
+  <div id="igo-root"></div>
+</section>
+
+<!-- 10 METODOLOGÍA -->
 <section id="tab-method" class="panel">
   <!-- Spanish Methodology -->
   <div id="method-es" class="method-lang-block" style="display:none">
@@ -2309,9 +2316,9 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="vendor/docx.umd.js"></script>
 <script>if (!window.docx) { document.write('<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"><\/script>'); }</script>
-<script src="i18n.js?v=130"></script>
-<script src="data.js?v=130"></script>
-<script src="app.js?v=130"></script>
-<script src="word-export.js?v=130"></script>
+<script src="i18n.js?v=132"></script>
+<script src="data.js?v=132"></script>
+<script src="app.js?v=132"></script>
+<script src="word-export.js?v=132"></script>
 </body>
 </html>
