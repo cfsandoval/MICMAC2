@@ -2,7 +2,7 @@
 
 Aplicación web integral para el **Análisis Estructural Prospectivo (Método MICMAC de Michel Godet)** y el **Modelo Dinámico Convergente 4D (Operador de Katz-Bonacich / Inversa de Leontief)**.
 
-Desarrollada en tecnologías web estándar (HTML5, Vanilla CSS, JavaScript, SVG y SheetJS), **100% optimizada para despliegue estático continuo en Vercel a través de GitHub** (sin servidores Python, sin Streamlit y sin tiempos de compilación).
+Desarrollada en tecnologías web estándar (HTML5, Vanilla CSS, JavaScript, SVG y SheetJS), **100% optimizada para despliegue estático continuo en Vercel a través de GitHub** (sin servidores Python ni Node en producción).
 
 ---
 
@@ -33,7 +33,8 @@ La aplicación está preconfigurada con [`vercel.json`](./vercel.json) y [`.verc
 
 2. **Plano de Influencia–Dependencia Clásico (Godet):**
    - Análisis directo e indirecto (caminos hasta $k$).
-   - Cuadrantes prospectivos de Godet (Variables Motrices/Determinantes, Variables Críticas/Estratégicas o de Enlace, Variables de Resultado/Salida y Variables Autónomas) con umbrales configurables (media, mediana, punto medio).
+   - Cuadrantes prospectivos de Godet (Variables Motrices/Determinantes, Variables Críticas/Estratégicas o de Enlace, Variables de Resultado/Salida y Variables Autónomas) con umbrales configurables por el usuario.
+   - Coeficientes de poder directivo y dependencia.
 
 3. **Simulación Temporal Continua:**
    - Propagación de perturbaciones y políticas externas (impulsos rápidos o intervenciones sostenidas).
@@ -47,7 +48,7 @@ La aplicación está preconfigurada con [`vercel.json`](./vercel.json) y [`.verc
    - Identificación automática de **Palancas Maestras Consistentes** y **Trampas de Política (Espejismos)**.
 
 5. **Exportación a Excel Multi-Hoja (.xlsx):**
-   - Descarga directa del libro estructurado [`analisis_micmac_convergente.xlsx`](./analisis_micmac_convergente.xlsx) con 11 hojas (Base de variables, Justificaciones, Matrices $A$, $T$, $W$, $S^{bruta}$, $S^{neta}$, Flujos Indirectos, Indicadores 4D e Informe Ejecutivo).
+   - Descarga directa del libro estructurado [`analisis_micmac_convergente.xlsx`](./analisis_micmac_convergente.xlsx) con 11 hojas (Base de variables, Justificaciones, Matrices $A$, $T$, $W$, $S^{[k]}$, $S^{neta}$, resultados directos, resultados indirectos, diagnóstico, y dashboard final).
 
 ---
 
@@ -60,3 +61,9 @@ npx serve .
 # o con python:
 python -m http.server 3000
 ```
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la licencia [MIT](./LICENSE).
