@@ -7,7 +7,7 @@
 <meta name="description" content="Extended MICMAC: justified influence matrix, 4D dynamic plane, Katz-Bonacich convergent propagation, and time simulation.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=122">
+<link rel="stylesheet" href="style.css?v=145">
 </head>
 <body>
 <header class="top">
@@ -34,11 +34,22 @@
           <button type="button" class="lang-btn active" data-lang="en" id="lang-btn-en" onclick="applyLanguage('en')">English</button>
         </div>
       </div>
+      <button type="button" class="btn" id="btn-user-project" onclick="openUserProjectModal('model')" style="background:rgba(15,23,42,0.92);color:#e2e8f0;border:1px solid rgba(56,189,248,0.45);display:inline-flex;align-items:center;gap:6px;padding:6px 11px;font-size:12px;font-weight:600;box-shadow:0 2px 10px rgba(56,189,248,0.14);" title="Cambiar entre el Ejemplo existente o crear un Modelo Propio">
+        <span id="user-project-pill-txt" data-i18n="btn_user_project_short">👤 Usuario / Modelo</span>
+      </button>
+      <button type="button" class="btn ghost" id="btn-tenant-logout" onclick="openUserProjectModal('auth')" style="border:1px solid rgba(248,113,113,0.4);color:#fca5a5;display:inline-flex;align-items:center;gap:5px;padding:6px 10px;font-size:12px;font-weight:600;" title="Ir a la primera página: Login o Crear Usuario">
+        <span data-i18n="btn_switch_user">🔐 Login / Cambiar Usuario</span>
+      </button>
+      <button type="button" class="btn" id="btn-save-changes" data-save-btn onclick="saveChangesManual()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(16,185,129,0.28);border:1px solid rgba(52,211,153,0.4);" title="Guardar todos los cambios realizados (Ctrl+S)">
+        <span data-i18n="btn_save_changes">💾 Guardar cambios</span>
+      </button>
+      <span id="save-status-badge" onclick="saveChangesManual()" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#34d399;background:rgba(16,185,129,0.12);border:1px solid rgba(52,211,153,0.3);padding:4px 9px;border-radius:999px;cursor:pointer;white-space:nowrap;" title="Estado de guardado en el navegador (clic para guardar ahora)">✓ Guardado</span>
+      <button type="button" class="btn ghost" id="btn-versions" onclick="openSnapshotsModal()" title="Guardar o restaurar versiones con nombre (puntos de control)" data-i18n="btn_versions">📌 Versiones</button>
       <button class="btn" id="btn-export-word-top" onclick="exportWordReport()" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;display:inline-flex;align-items:center;gap:6px" title="Generate Word strategy report (.docx)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         <span data-i18n="btn_word">Word Report (.docx)</span>
       </button>
-      <a class="btn primary" href="analisis_micmac_convergente.xlsx" download="analisis_micmac_convergente.xlsx" id="btn-export-excel" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><span>⬇</span><b data-i18n="btn_excel">Multi-Sheet Excel (.xlsx)</b></a>
+      <button type="button" class="btn primary" id="btn-export-excel" onclick="exportExcelReport(event)" style="display:inline-flex;align-items:center;gap:6px"><span>⬇</span><b data-i18n="btn_excel">Multi-Sheet Excel (.xlsx)</b></button>
       <button class="btn ghost" id="btn-export" data-i18n="btn_export_json">Export JSON</button>
       <label class="btn ghost" for="file-import" data-i18n="btn_import_json">Import JSON</label><input type="file" id="file-import" accept=".json" hidden>
       <button class="btn danger" id="btn-reset" data-i18n="btn_reset">Reset Base</button>
@@ -65,6 +76,8 @@
     <div class="card-head">
       <h2 data-i18n="vars_title">Variables del sistema</h2>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button type="button" class="btn sm" onclick="openUserProjectModal()" style="background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;font-weight:700;" data-i18n="btn_new_or_example" title="Partir con un usuario o crear nuevo usuario y elegir entre el proyecto de ejemplo o crear su propio proyecto">✨ Nuevo Proyecto / Ejemplo</button>
+        <button type="button" class="btn sm" data-save-btn onclick="saveChangesManual()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;" data-i18n="btn_save_changes">💾 Guardar cambios</button>
         <button class="btn ghost" id="btn-add-preset" data-i18n="btn_add_preset" title="Incorporar variables predefinidas al sistema">＋ Variables predefinidas</button>
         <button class="btn" id="add-var" data-i18n="vars_add">+ Agregar variable</button>
       </div>
@@ -94,21 +107,23 @@
     <div class="card-head" style="flex-wrap:wrap;gap:10px;">
       <div>
         <h2 id="vars-net-title" data-i18n="vars_net_title">🕸 Red de Influencias Directas</h2>
-        <p class="muted" id="vars-net-desc" style="margin:4px 0 0;" data-i18n="vars_net_desc">Cada cuadro representa una variable. Las flechas muestran las relaciones de la matriz de influencias directas: <span style="color:#38bdf8;font-weight:700;">azul = refuerza (+)</span> · <span style="color:#fb7185;font-weight:700;">rojo = reduce (−)</span> · grosor según intensidad (1–3).</p>
+        <p class="muted" id="vars-net-desc" style="margin:4px 0 0;" data-i18n="vars_net_desc">Cada cuadro representa una variable. Las flechas muestran las relaciones de la matriz de influencias directas (escala 0 a 3): <span style="color:#0284c7;font-weight:700;">1 = Débil</span> · <span style="color:#2563eb;font-weight:700;">2 = Moderada</span> · <span style="color:#059669;font-weight:700;">3 = Fuerte</span>.</p>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-        <select id="vnet-filter" style="width:140px;padding:4px 8px;font-size:12px;" title="Filtrar vínculos">
-          <option value="all" data-i18n="vnet_filter_all">Todos los vínculos</option>
-          <option value="strong" data-i18n="vnet_filter_strong">Fuertes (±2, ±3)</option>
-          <option value="vstrong" data-i18n="vnet_filter_vstrong">Solo fuertes (±3)</option>
-          <option value="pos" data-i18n="vnet_filter_pos">Solo positivos (+)</option>
-          <option value="neg" data-i18n="vnet_filter_neg">Solo negativos (−)</option>
+        <select id="vnet-filter" style="width:170px;padding:4px 8px;font-size:12px;" title="Filtrar vínculos">
+          <option value="all" data-i18n="vnet_filter_all">Todos los vínculos (1–3)</option>
+          <option value="strong" data-i18n="vnet_filter_strong">Moderados y fuertes (2, 3)</option>
+          <option value="vstrong" data-i18n="vnet_filter_vstrong">Solo fuertes (3)</option>
+          <option value="weak" data-i18n="vnet_filter_weak">Solo débiles (1)</option>
         </select>
-        <select id="vnet-layout" style="width:150px;padding:4px 8px;font-size:12px;" title="Distribución">
-          <option value="force" data-i18n="vnet_layout_force">Fuerza orgánica</option>
+        <select id="vnet-layout" style="width:235px;padding:4px 8px;font-size:12px;border-color:rgba(56,189,248,0.45);font-weight:600;" title="Distribución de Red (Force-Directed predefinido)">
+          <option value="force" selected data-i18n="vnet_layout_force">⚡ Force-Directed Layout (Predefinido)</option>
+          <option value="force_kk" data-i18n="vnet_layout_force_kk">Force-Directed (Kamada-Kawai / Resortes)</option>
+          <option value="force_hier" data-i18n="vnet_layout_force_hier">Force-Directed (Jerárquico Motriz)</option>
           <option value="circle" data-i18n="vnet_layout_circle">Circular</option>
           <option value="grid" data-i18n="vnet_layout_grid">Rejilla</option>
         </select>
+        <button type="button" class="btn sm" onclick="vnetTriggerForceAnimation()" style="background:rgba(56,189,248,0.16);border:1px solid rgba(56,189,248,0.45);color:#38bdf8;font-size:11.5px;padding:4px 9px;font-weight:700;" title="Re-ejecutar simulación física Force-Directed Layout">⚡ Force-Directed</button>
         <button type="button" class="btn ghost sm" id="vnet-fit" style="padding:4px 10px;font-size:12px;" title="Ajustar al lienzo" data-i18n="vnet_fit">⊡ Ajustar</button>
         <button type="button" class="btn ghost sm" id="vnet-fullscreen" style="padding:4px 9px;font-size:12px;" title="Pantalla completa">⛶</button>
         <button type="button" class="btn sm" id="vnet-btn-sim" onclick="switchTab('flow')" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 11px;font-weight:600;" title="Abrir Diagrama de Red con Simulación Temporal" data-i18n="vnet_btn_sim">▶ Simular en Red Causal</button>
@@ -141,7 +156,7 @@
       <!-- Zoom & legend overlay -->
       <div style="position:absolute;bottom:12px;left:14px;display:flex;flex-direction:column;gap:6px;z-index:10;pointer-events:none;">
         <div style="background:rgba(8,12,24,.82);backdrop-filter:blur(8px);border:1px solid rgba(148,163,255,.18);border-radius:8px;padding:6px 12px;font-size:11.5px;color:var(--mut);" data-i18n="vnet_legend_overlay">
-          <span style="color:#38bdf8;">●</span> Refuerza (+) &nbsp; <span style="color:#fb7185;">●</span> Reduce (−) &nbsp;·&nbsp; Grosor = Fuerza (1–3)
+          <span style="color:#38bdf8;">●</span> 1 · Débil &nbsp; <span style="color:#60a5fa;">●</span> 2 · Moderada &nbsp; <span style="color:#34d399;">●</span> 3 · Fuerte &nbsp;·&nbsp; Grosor = Intensidad (1–3)
         </div>
       </div>
       <div style="position:absolute;bottom:12px;right:14px;display:flex;gap:3px;z-index:10;background:rgba(8,12,24,.7);padding:2px;border-radius:8px;border:1px solid rgba(148,163,255,.15);">
@@ -166,26 +181,31 @@
 <section id="tab-matrix" class="panel">
   <div class="grid-2">
     <div class="card">
-      <div class="card-head"><h2 data-i18n="matrix_title">Matriz de influencias directas</h2><span class="chip" id="completeness"></span></div>
-      <p class="muted" data-i18n="matrix_desc">Lea <b>fila → columna</b>: “la variable de la fila influye en la de la columna”. Clic en una celda para ver/editar su valor y su justificación. Signo <b>+</b> refuerza, <b>−</b> reduce.</p>
+      <div class="card-head">
+        <h2 data-i18n="matrix_title">Matriz de influencias directas</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span class="chip" id="completeness"></span>
+          <button type="button" class="btn sm" data-save-btn onclick="saveChangesManual()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;" data-i18n="btn_save_changes">💾 Guardar cambios</button>
+        </div>
+      </div>
+      <p class="muted" data-i18n="matrix_desc">Lea <b>fila → columna</b>: “la variable de la fila influye directamente en la de la columna” en escala de <b>0 a 3</b> (<b>0</b> = Nula, <b>1</b> = Débil, <b>2</b> = Moderada, <b>3</b> = Fuerte). Puede <b>valorar directamente sobre cada celda de la matriz</b> (desplegable 0–3, teclado 0–3 o doble clic). La justificación es <b>optativa</b>.</p>
       <div class="table-wrap"><table id="matrix"></table></div>
       <div class="legend" id="matrix-legend"></div>
     </div>
     <div class="card sticky" id="cell-editor"></div>
   </div>
   <div class="card">
-    <div class="card-head"><h2 data-i18n="rubric_title">Rúbrica de valoración</h2></div>
+    <div class="card-head"><h2 data-i18n="rubric_title">Rúbrica de valoración (Escala 0 a 3)</h2></div>
     <div class="rubric" id="rubric"></div>
   </div>
   <div class="card">
-    <div class="card-head"><h2 data-i18n="log_title">Registro de justificaciones</h2>
+    <div class="card-head"><h2 data-i18n="log_title">Registro de vínculos y justificaciones (opcional)</h2>
       <select id="log-filter">
-        <option value="all" data-i18n="filter_all">Todos los vínculos</option>
-        <option value="missing" data-i18n="filter_missing">Solo sin justificar</option>
-        <option value="3" data-i18n="filter_3">Fuertes (±3)</option>
-        <option value="2" data-i18n="filter_2">Moderados (±2)</option>
-        <option value="1" data-i18n="filter_1">Débiles (±1)</option>
-        <option value="neg" data-i18n="filter_neg">Negativos</option>
+        <option value="all" data-i18n="filter_all">Todos los vínculos (1–3)</option>
+        <option value="3" data-i18n="filter_3">Fuertes (3)</option>
+        <option value="2" data-i18n="filter_2">Moderados (2)</option>
+        <option value="1" data-i18n="filter_1">Débiles (1)</option>
+        <option value="missing" data-i18n="filter_missing">Sin justificación (opcional)</option>
       </select>
     </div>
     <div class="table-wrap"><table id="log"></table></div>
@@ -266,6 +286,7 @@
           <input type="color" id="cfg-color-neg" value="#ef4444" style="width:26px;height:26px;padding:0;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:none;">
         </label>
         <button type="button" class="btn ghost sm" id="btn-invert-colors" style="padding:3px 10px;font-size:11.5px;margin-left:6px;" data-i18n="btn_invert_colors" title="Intercambiar colores favorable y adverso">⇄ Invertir paleta</button>
+        <button type="button" class="btn sm" data-save-btn onclick="saveChangesManual()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;padding:4px 10px;font-size:11.5px;" data-i18n="btn_save_changes">💾 Guardar cambios</button>
       </div>
     </div>
     <div id="sim-x0-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:14px;"></div>
@@ -375,7 +396,7 @@
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           <span data-i18n="btn_word_tab">📄 Informe Word Detallado (.docx)</span>
         </button>
-        <a class="btn primary" href="analisis_micmac_convergente.xlsx" download="analisis_micmac_convergente.xlsx" style="text-decoration:none;white-space:nowrap" data-i18n="btn_excel">⬇ Descargar Excel Multi-Hoja</a>
+        <button type="button" class="btn primary" id="btn-export-excel-tab" onclick="exportExcelReport(event)" style="white-space:nowrap" data-i18n="btn_excel">⬇ Descargar Excel Multi-Hoja</button>
       </div>
     </div>
 
@@ -650,22 +671,24 @@
           <span style="font-size:12px;color:var(--mut);" data-i18n="flow_filter_lbl">Vínculos:</span>
           <select id="flow-filter-select" style="width:190px;padding:4px 8px;font-size:12px;">
             <option value="active" selected data-i18n="flow_filter_active">⚡ Solo flujo del periodo (t)</option>
-            <option value="all" data-i18n="flow_filter_all">Todos los vínculos</option>
-            <option value="strong" data-i18n="flow_filter_strong">Fuertes (±2, ±3)</option>
-            <option value="vstrong" data-i18n="flow_filter_vstrong">Muy fuertes (±3)</option>
-            <option value="pos" data-i18n="flow_filter_pos">Solo positivos (+)</option>
-            <option value="neg" data-i18n="flow_filter_neg">Solo negativos (−)</option>
+            <option value="all" data-i18n="flow_filter_all">Todos los vínculos (1–3)</option>
+            <option value="strong" data-i18n="flow_filter_strong">Moderados y fuertes (2, 3)</option>
+            <option value="vstrong" data-i18n="flow_filter_vstrong">Muy fuertes (3)</option>
+            <option value="weak" data-i18n="flow_filter_weak">Solo débiles (1)</option>
           </select>
         </div>
 
         <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:12px;color:var(--mut);" data-i18n="flow_btn_layout">Auto-ordenar:</span>
-          <select id="flow-layout-select" style="width:190px;padding:4px 8px;font-size:12px;">
-            <option value="causal" selected data-i18n="flow_layout_causal">Flujo Causal (Cuadrantes)</option>
-            <option value="force" data-i18n="flow_layout_force">Fuerza Orgánica (Red)</option>
+          <span style="font-size:12px;color:var(--mut);" data-i18n="flow_btn_layout">Layout:</span>
+          <select id="flow-layout-select" style="width:240px;padding:4px 8px;font-size:12px;border-color:rgba(56,189,248,0.45);font-weight:600;">
+            <option value="force" selected data-i18n="flow_layout_force">⚡ Force-Directed Layout (Predefinido)</option>
+            <option value="force_kk" data-i18n="flow_layout_force_kk">Force-Directed (Kamada-Kawai / Resortes)</option>
+            <option value="force_hier" data-i18n="flow_layout_force_hier">Force-Directed (Jerárquico Motriz)</option>
+            <option value="causal" data-i18n="flow_layout_causal">Flujo Causal (Cuadrantes)</option>
             <option value="circle" data-i18n="flow_layout_circle">Bucle Circular (Causal Loop)</option>
             <option value="grid" data-i18n="flow_layout_grid">Rejilla Estructurada (3x3)</option>
           </select>
+          <button type="button" class="btn sm" onclick="flowTriggerForceAnimation()" style="background:rgba(56,189,248,0.16);border:1px solid rgba(56,189,248,0.45);color:#38bdf8;font-size:11.5px;padding:4px 9px;font-weight:700;" title="Re-ejecutar simulación física Force-Directed Layout">⚡ Force-Directed</button>
         </div>
 
         <!-- Zoom Controls -->
@@ -1429,10 +1452,10 @@
       <p>Flujo: <b>variables → matriz justificada → influencia/dependencia → cuadrantes → simulación dinámica</b>. Todo el cálculo se realiza en el navegador y los datos se guardan en <code>localStorage</code>.</p></div>
 
     <div class="card method" id="m2"><h3>2 · Matriz de influencias directas (W)</h3>
-      <p>W es una matriz <i>n × n</i>; <code>W[i][j]</code> es la influencia de la variable <i>i</i> (fila) sobre la <i>j</i> (columna). La diagonal es 0 (no hay auto-influencia).</p>
+      <p>W es una matriz <i>n × n</i>; <code>W[i][j]</code> es la influencia de la variable <i>i</i> (fila) sobre la <i>j</i> (columna), valorada en una escala de <b>0 a 3 sin valores negativos</b>. La diagonal es 0 (no hay auto-influencia).</p>
       <table class="mt"><tr><th>Valor</th><th>Significado</th></tr>
-      <tr><td>0</td><td>Sin mecanismo causal directo plausible</td></tr><tr><td>±1</td><td>Débil: indirecta, lenta o condicionada</td></tr><tr><td>±2</td><td>Moderada: reconocible con atenuantes</td></tr><tr><td>±3</td><td>Fuerte: directa, rápida y poco sustituible</td></tr></table>
-      <p>El <b>signo</b> indica polaridad (+ refuerza, − reduce). El signo se usa <u>solo en la simulación</u>; en el análisis estructural (secciones 3–5) se usa el <b>valor absoluto</b> |W|, porque lo que importa ahí es la intensidad del vínculo, no su sentido.</p></div>
+      <tr><td>0</td><td>Nula: Sin mecanismo causal directo plausible</td></tr><tr><td>1</td><td>Débil: indirecta, lenta o condicionada</td></tr><tr><td>2</td><td>Moderada: reconocible con atenuantes</td></tr><tr><td>3</td><td>Fuerte: directa, rápida y poco sustituible</td></tr></table>
+      <p>La valoración se registra directamente de <b>0 a 3</b> y la justificación cualitativa (concepto, evidencia y fuente) es <b>optativa</b>.</p></div>
 
     <div class="card method" id="m3"><h3>3 · Influencia y dependencia directas</h3>
       <p class="fm">Influencia bruta (i) = Σⱼ |W[i][j]|  &nbsp;·&nbsp;  Dependencia bruta (j) = Σᵢ |W[i][j]|</p>
@@ -2312,13 +2335,80 @@
   </div>
 </div>
 
+<!-- Modal de Guardado con Nombre de Modelo / Retomar Modelos y Versiones -->
+<div id="snapshots-modal" class="modal-backdrop" onclick="if(event.target===this)closeSnapshotsModal()">
+  <div class="modal-window" style="max-width:780px;width:96%;">
+    <div class="modal-header" style="background:linear-gradient(135deg,#090f20 0%,#131f3a 55%,#0f172a 100%);border-bottom:1px solid rgba(52,211,153,0.3);">
+      <div>
+        <h2 style="margin:0;font-size:17.5px;color:#f8fafc;" id="snap-modal-title">💾 Guardar Modelo con Nombre y Retomar Modelos</h2>
+        <p class="muted" style="margin:4px 0 0;font-size:12px;" id="snap-modal-subtitle">Asigne un nombre a su modelo para identificarlo y poder retomarlo en cualquier momento</p>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeSnapshotsModal()" title="Cerrar">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:16px 20px;max-height:78vh;overflow-y:auto;">
+      <!-- 1. Asignar nombre al modelo actual o guardar como nuevo modelo -->
+      <div style="background:linear-gradient(145deg,rgba(6,95,70,0.22),rgba(15,23,42,0.92));border:1.5px solid rgba(52,211,153,0.45);border-radius:11px;padding:14px 16px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+          <label style="font-size:13px;font-weight:700;color:#34d399;margin:0;" id="save-model-name-lbl">✏️ Nombre del modelo para guardarlo y poder retomarlo después:</label>
+          <span class="badge" style="background:rgba(52,211,153,0.18);border:1px solid #34d399;color:#34d399;font-size:10.5px;" id="save-model-status-pill">✓ Datos sincronizados</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <input type="text" id="save-model-name-input" placeholder="Ej.: Modelo Prospectivo Innovación 2030 / Escenario Base..." onkeydown="if(event.key==='Enter')saveAndRenameActiveModel()" style="flex:1;min-width:240px;padding:9px 12px;font-size:13.5px;font-weight:600;background:#080d1a;color:#fff;border:1.5px solid rgba(52,211,153,0.5);border-radius:8px;">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="btn sm" onclick="saveAndRenameActiveModel()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;padding:8px 16px;font-size:12.5px;" id="btn-save-rename-current">
+            💾 Guardar modelo con este nombre
+          </button>
+          <button type="button" class="btn sm" onclick="saveAsNewNamedModel()" style="background:linear-gradient(135deg,#0284c7,#2563eb);color:#fff;font-weight:700;padding:8px 14px;font-size:12.5px;" id="btn-save-as-new-model">
+            ➕ Guardar como nuevo modelo aparte
+          </button>
+          <button type="button" class="btn ghost sm" onclick="document.getElementById('btn-export').click()" style="padding:8px 12px;font-size:12px;margin-left:auto;" id="snap-btn-download">
+            ⬇ Descargar .JSON
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Lista de Modelos Guardados del Usuario para Retomar -->
+      <div style="background:rgba(8,12,24,0.78);border:1px solid rgba(56,189,248,0.28);border-radius:11px;padding:13px 15px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:9px;">
+          <div style="font-size:13px;font-weight:700;color:#38bdf8;" id="saved-models-list-hdr">📂 Modelos guardados disponibles para retomar:</div>
+          <button type="button" class="btn ghost sm" onclick="closeSnapshotsModal();openUserProjectModal('model');" style="font-size:11px;padding:3px 9px;" id="btn-goto-portal-models">
+            ✨ Crear otro modelo / Ir al menú de inicio
+          </button>
+        </div>
+        <div id="saved-models-in-modal-container" style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;"></div>
+      </div>
+
+      <!-- 3. Historial de puntos de control / versiones internas -->
+      <div style="background:rgba(15,23,42,0.55);border:1px solid rgba(148,163,255,0.16);border-radius:10px;padding:12px 14px;">
+        <label style="font-size:12px;font-weight:700;color:#cbd5e1;display:block;margin-bottom:6px;" id="snap-lbl-new">📌 Opcional · Guardar copia / punto de control histórico dentro de este modelo:</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <input type="text" id="snap-name-input" placeholder="Ej.: Versión previa al taller / Calibración inicial..." style="flex:1;min-width:200px;padding:6px 10px;font-size:12px;background:#080d1a;color:#fff;border:1px solid rgba(148,163,255,0.28);border-radius:7px;">
+          <button type="button" class="btn ghost sm" onclick="createNamedSnapshot()" style="border-color:rgba(52,211,153,0.4);color:#34d399;font-weight:600;padding:6px 12px;" id="snap-btn-create">📌 Crear punto de control</button>
+        </div>
+        <div style="font-size:11.5px;font-weight:700;color:#94a3b8;margin-bottom:6px;" id="snap-list-hdr">📋 Puntos de control de este modelo:</div>
+        <div id="snapshots-list-container" style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;"></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;">
+      <span class="muted" style="font-size:11.5px;" id="snap-footer-hint">💡 Al guardar un modelo con nombre podrá retomarlo siempre desde aquí o desde la pantalla inicial.</span>
+      <button type="button" class="btn ghost sm" onclick="closeSnapshotsModal()" id="snap-btn-close">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRIMERA PÁGINA: Acceso Login o Registro y Selección de Ejemplo Existente o Modelo Propio -->
+<div id="user-project-modal" class="modal-backdrop open" style="z-index:99999;background:radial-gradient(ellipse at 20% 15%, #111c35 0%, #070b16 65%, #03060c 100%);padding:18px;overflow-y:auto;">
+  <div class="modal-window" style="max-width:1040px;width:100%;margin:auto;border:1px solid rgba(56,189,248,0.32);box-shadow:0 24px 64px rgba(0,0,0,0.85);" id="user-project-modal-content"></div>
+</div>
+
 <div id="tip" class="tip"></div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="vendor/docx.umd.js"></script>
 <script>if (!window.docx) { document.write('<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"><\/script>'); }</script>
-<script src="i18n.js?v=132"></script>
-<script src="data.js?v=132"></script>
-<script src="app.js?v=132"></script>
-<script src="word-export.js?v=132"></script>
+<script src="i18n.js?v=146"></script>
+<script src="data.js?v=146"></script>
+<script src="app.js?v=146"></script>
+<script src="word-export.js?v=146"></script>
 </body>
 </html>

@@ -60,6 +60,12 @@ td input.code{width:70px;font-family:'JetBrains Mono';text-transform:uppercase}t
 #matrix td.cell{width:46px;height:40px;cursor:pointer;transition:.12s;position:relative}
 #matrix td.cell:hover{outline:2px solid var(--acc2);z-index:2}
 #matrix td.cell.sel{outline:2px solid #fff;z-index:3}
+#matrix td.cell:hover::after{content:'▾';position:absolute;right:3px;bottom:2px;font-size:9px;color:rgba(255,255,255,.7);pointer-events:none;line-height:1}
+#matrix .matrix-cell-select{width:100%;height:100%;border:0;background:transparent;color:#fff;font:700 13px 'JetBrains Mono',monospace;text-align:center;text-align-last:center;padding:0;margin:0;cursor:pointer;appearance:none;-webkit-appearance:none;-moz-appearance:none;border-radius:0}
+#matrix .matrix-cell-select.is-zero{color:rgba(232,236,248,.32);font-weight:500}
+#matrix td.cell:hover .matrix-cell-select.is-zero{color:rgba(255,255,255,.85)}
+#matrix .matrix-cell-select:focus{outline:none}
+#matrix .matrix-cell-select option{background:#0f172a;color:#f8fafc;font:700 13px 'JetBrains Mono',monospace;text-align:center}
 #matrix td.diag{background:repeating-linear-gradient(45deg,#0b0f1a,#0b0f1a 4px,#131a2e 4px,#131a2e 8px)}
 #matrix td.tot{padding:0 10px;font-weight:600;color:var(--acc2)}
 #matrix td.miss::after{content:'!';position:absolute;top:1px;right:3px;color:#fbbf24;font-size:10px}

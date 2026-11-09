@@ -56,8 +56,9 @@ function defaults(lang = (typeof currentLang !== 'undefined' ? currentLang : 'en
   const links = {};
   sourceLinks.forEach(([a, b, v, concept, evidence, src]) => {
     const k = key(byCode[a], byCode[b]);
-    const t = (typeof DEFAULT_DELAYS !== 'undefined' ? DEFAULT_DELAYS[a + '>' + b] : 1.5) ?? (v ? 1.5 : 0);
-    links[k] = { v, t, concept, evidence, src };
+    const cleanV = Math.min(3, Math.max(0, Math.abs(Math.round(Number(v) || 0))));
+    const t = (typeof DEFAULT_DELAYS !== 'undefined' ? DEFAULT_DELAYS[a + '>' + b] : 1.5) ?? (cleanV ? 1.5 : 0);
+    links[k] = { v: cleanV, t, concept, evidence, src };
   });
   return { vars, links, ints: [{ vid: byCode.V1 || byCode.INV, type: 'sust', mag: 2, start: 3, dur: 18 }], params: { beta: .15, lambda: .05, steps: 50, engine: 'euler', dt: 0.1 } };
 }
@@ -75,6 +76,13 @@ let S = (() => {
     if (s && s.vars) {
       uid = 1000;
       s.vars.forEach(v => { if (!v.polar) v.polar = '+'; });
+      if (s.links) {
+        Object.values(s.links).forEach(lnk => {
+          if (lnk && lnk.v !== undefined) {
+            lnk.v = Math.min(3, Math.max(0, Math.abs(Math.round(Number(lnk.v) || 0))));
+          }
+        });
+      }
       if (!s.params) s.params = { beta: .15, lambda: .05, steps: 50, engine: 'euler', dt: 0.1 };
       if (!s.params.engine) s.params.engine = 'euler';
       if (!s.params.dt) s.params.dt = 0.1;
@@ -84,11 +92,452 @@ let S = (() => {
   return defaults();
 })();
 
-const save = () => localStorage.setItem(LS, JSON.stringify(S));
+const LS_SNAPS = 'micmac-snapshots-v1';
+
+function updateSaveStatusBadge() {
+  const badge = document.getElementById('save-status-badge');
+  if (!badge) return;
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const dt = S && S.lastSavedAt ? new Date(S.lastSavedAt) : new Date();
+  const hh = String(dt.getHours()).padStart(2, '0');
+  const mm = String(dt.getMinutes()).padStart(2, '0');
+  const ss = String(dt.getSeconds()).padStart(2, '0');
+  badge.textContent = `${isEn ? '✓ Saved' : '✓ Guardado'} · ${hh}:${mm}:${ss}`;
+  badge.style.color = '#34d399';
+  badge.style.borderColor = 'rgba(52,211,153,0.35)';
+}
+
+const save = () => {
+  try {
+    S.lastSavedAt = new Date().toISOString();
+    localStorage.setItem(LS, JSON.stringify(S));
+    if (typeof vnetState !== 'undefined' && vnetState.positions && Object.keys(vnetState.positions).length) {
+      localStorage.setItem('micmac_vnet_positions', JSON.stringify(vnetState.positions));
+    }
+    if (typeof flowState !== 'undefined' && flowState.positions && Object.keys(flowState.positions).length) {
+      localStorage.setItem('micmac_flow_positions', JSON.stringify(flowState.positions));
+    }
+    if (typeof syncActiveProjectOnSave === 'function') {
+      syncActiveProjectOnSave();
+    }
+    updateSaveStatusBadge();
+  } catch (e) {
+    console.warn('Error saving state:', e);
+  }
+};
+
+function showSaveToast(msg, bg = '#065f46', border = '#10b981') {
+  const existing = document.getElementById('micmac-save-toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'micmac-save-toast';
+  toast.innerHTML = msg;
+  Object.assign(toast.style, {
+    position: 'fixed',
+    bottom: '24px',
+    right: '24px',
+    background: bg,
+    color: '#ecfdf5',
+    border: `1.5px solid ${border}`,
+    padding: '11px 18px',
+    borderRadius: '10px',
+    fontSize: '13px',
+    fontWeight: '600',
+    zIndex: '10000',
+    boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    transition: 'opacity 0.25s ease, transform 0.25s ease'
+  });
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(8px)';
+    setTimeout(() => toast.remove(), 260);
+  }, 3000);
+}
+
+function saveChangesManual(customMsg, skipModal = false) {
+  // Flush any active input element in case onchange hasn't fired yet
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) {
+    active.dispatchEvent(new Event('input', { bubbles: true }));
+    active.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  save();
+  // Save an automatic rolling recovery checkpoint
+  try {
+    localStorage.setItem('micmac-autosnap-latest', JSON.stringify({
+      savedAt: S.lastSavedAt,
+      state: S
+    }));
+  } catch (e) {}
+
+  if (typeof renderAll === 'function') renderAll();
+
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const dt = new Date(S.lastSavedAt);
+  const timeStr = dt.toTimeString().slice(0, 8);
+  const nVars = (S.vars || []).length;
+  const nLinks = Object.values(S.links || {}).filter(l => l && l.v).length;
+
+  // Animate save buttons briefly
+  document.querySelectorAll('[data-save-btn], #btn-save-changes').forEach(btn => {
+    const prevTransform = btn.style.transform;
+    btn.style.transform = 'scale(0.96)';
+    setTimeout(() => { btn.style.transform = prevTransform; }, 160);
+  });
+
+  const defaultMsg = isEn
+    ? `✅ <b>Changes saved (${timeStr})</b> · ${nVars} variables & ${nLinks} links stored. Give your model a name to resume it later.`
+    : `✅ <b>Cambios guardados (${timeStr})</b> · ${nVars} variables y ${nLinks} vínculos guardados. Asigne un nombre al modelo para retomarlo después.`;
+  showSaveToast(customMsg || defaultMsg);
+
+  if (!skipModal && !customMsg) {
+    openSnapshotsModal(true);
+  }
+}
+window.saveChangesManual = saveChangesManual;
+
+/* ---------- Gestor de Guardado con Nombre de Modelo y Versiones ---------- */
+function getTenantSnapshotStorageKey() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('micmac-users-projects-v1'));
+    if (raw && raw.activeUserId && raw.activeProjectId) {
+      return `${LS_SNAPS}_${raw.activeUserId}_${raw.activeProjectId}`;
+    }
+  } catch (e) {}
+  return LS_SNAPS;
+}
+
+function getSavedSnapshots() {
+  try {
+    return JSON.parse(localStorage.getItem(getTenantSnapshotStorageKey()) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function setSavedSnapshots(list) {
+  try {
+    localStorage.setItem(getTenantSnapshotStorageKey(), JSON.stringify(list.slice(0, 25)));
+  } catch (e) {}
+}
+
+function renderSnapshotsList() {
+  const box = document.getElementById('snapshots-list-container');
+  const modelsBox = document.getElementById('saved-models-in-modal-container');
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const snaps = getSavedSnapshots();
+
+  // Translate modal static labels according to currentLang
+  const titleEl = document.getElementById('snap-modal-title');
+  if (titleEl) titleEl.textContent = isEn ? '💾 Save Model with Name & Resume Saved Models' : '💾 Guardar Modelo con Nombre y Retomar Modelos';
+  const subEl = document.getElementById('snap-modal-subtitle');
+  if (subEl) subEl.textContent = isEn
+    ? 'Include a name for your model so you can easily identify and resume it anytime'
+    : 'Asigne un nombre a su modelo para identificarlo y poder retomarlo en cualquier momento';
+  const lblModelName = document.getElementById('save-model-name-lbl');
+  if (lblModelName) lblModelName.textContent = isEn
+    ? '✏️ Model Name (to save and resume later):'
+    : '✏️ Nombre del modelo para guardarlo y poder retomarlo después:';
+  const statusPill = document.getElementById('save-model-status-pill');
+  if (statusPill) statusPill.textContent = isEn ? '✓ Data synchronized' : '✓ Datos sincronizados';
+  const btnRenameCur = document.getElementById('btn-save-rename-current');
+  if (btnRenameCur) btnRenameCur.textContent = isEn ? '💾 Save model with this name' : '💾 Guardar modelo con este nombre';
+  const btnSaveNew = document.getElementById('btn-save-as-new-model');
+  if (btnSaveNew) btnSaveNew.textContent = isEn ? '➕ Save as new separate model' : '➕ Guardar como nuevo modelo aparte';
+  const hdrModels = document.getElementById('saved-models-list-hdr');
+  if (hdrModels) hdrModels.textContent = isEn ? '📂 Saved models available to resume:' : '📂 Modelos guardados disponibles para retomar:';
+  const btnGotoPortal = document.getElementById('btn-goto-portal-models');
+  if (btnGotoPortal) btnGotoPortal.textContent = isEn ? '✨ Create another model / Start menu' : '✨ Crear otro modelo / Ir al menú de inicio';
+
+  const lblNew = document.getElementById('snap-lbl-new');
+  if (lblNew) lblNew.textContent = isEn ? '📌 Optional · Save historical checkpoint inside this model:' : '📌 Opcional · Guardar copia / punto de control histórico dentro de este modelo:';
+  const inp = document.getElementById('snap-name-input');
+  if (inp) inp.placeholder = isEn ? 'E.g.: Pre-workshop checkpoint / Initial calibration...' : 'Ej.: Versión previa al taller / Calibración inicial...';
+  const btnCreate = document.getElementById('snap-btn-create');
+  if (btnCreate) btnCreate.textContent = isEn ? '📌 Save Checkpoint' : '📌 Crear punto de control';
+  const btnDl = document.getElementById('snap-btn-download');
+  if (btnDl) btnDl.textContent = isEn ? '⬇ Download .JSON' : '⬇ Descargar .JSON';
+  const hdr = document.getElementById('snap-list-hdr');
+  if (hdr) hdr.textContent = isEn ? '📋 Checkpoints inside this model:' : '📋 Puntos de control de este modelo:';
+  const hint = document.getElementById('snap-footer-hint');
+  if (hint) hint.textContent = isEn ? '💡 Saving your model with a name lets you resume it anytime from here or the start screen.' : '💡 Al guardar un modelo con nombre podrá retomarlo siempre desde aquí o desde la pantalla inicial.';
+  const btnClose = document.getElementById('snap-btn-close');
+  if (btnClose) btnClose.textContent = isEn ? 'Close' : 'Cerrar';
+
+  // Populate active model name input & user saved models list
+  if (typeof loadUserProjectsStore === 'function') {
+    const store = loadUserProjectsStore();
+    const activeProj = store.projects.find(p => p.id === store.activeProjectId);
+    const modelInp = document.getElementById('save-model-name-input');
+    if (modelInp && activeProj && !modelInp.dataset.userEdited) {
+      modelInp.value = activeProj.name || '';
+    }
+    if (modelsBox) {
+      const userProjs = store.projects.filter(p => p.userId === store.activeUserId);
+      if (!userProjs.length) {
+        modelsBox.innerHTML = `<div style="padding:12px;text-align:center;color:#94a3b8;font-size:12px;">${isEn ? 'No saved models yet.' : 'Aún no hay modelos guardados.'}</div>`;
+      } else {
+        modelsBox.innerHTML = userProjs.map(p => {
+          const isAct = p.id === store.activeProjectId;
+          const nV = p.state?.vars?.length || 0;
+          const nL = Object.values(p.state?.links || {}).filter(l => l && l.v).length;
+          const dt = new Date(p.updatedAt || p.createdAt);
+          const dStr = dt.toLocaleDateString() + ' ' + dt.toTimeString().slice(0, 5);
+          return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;border-radius:8px;background:${isAct ? 'rgba(16,185,129,0.14)' : 'rgba(15,23,42,0.85)'};border:1px solid ${isAct ? '#10b981' : 'rgba(148,163,255,0.16)'};">
+            <div style="min-width:0;">
+              <div style="font-weight:700;font-size:13px;color:#f8fafc;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <span>📁 ${esc(p.name)}</span>
+                ${isAct ? `<span class="badge" style="background:#10b981;color:#042f2e;font-size:9.5px;font-weight:800;">${isEn ? 'Current Model' : 'En uso actual'}</span>` : ''}
+              </div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">
+                <b>${nV}</b> vars · <b>${nL}</b> ${isEn ? 'links' : 'vínculos'} · 🕒 ${esc(dStr)}
+              </div>
+            </div>
+            <div style="display:flex;gap:5px;align-items:center;">
+              <button type="button" class="btn sm" onclick="resumeSavedModelFromModal('${p.id}')" style="background:${isAct ? '#059669' : '#2563eb'};color:#fff;font-size:11.5px;padding:4px 11px;font-weight:700;">
+                ▶ ${isEn ? (isAct ? 'Active' : 'Resume Model') : (isAct ? 'Activo' : 'Retomar modelo')}
+              </button>
+              <button type="button" class="btn ghost sm" onclick="renameSavedModelInline('${p.id}')" style="font-size:11.5px;padding:4px 8px;" title="${isEn ? 'Rename model' : 'Cambiar nombre del modelo'}">✏️</button>
+              <button type="button" class="btn ghost sm" onclick="duplicateSavedUserProject('${p.id}');renderSnapshotsList();" style="font-size:11.5px;padding:4px 8px;" title="${isEn ? 'Duplicate model' : 'Duplicar modelo'}">📋</button>
+              ${store.projects.length > 1 ? `<button type="button" class="btn danger sm" onclick="deleteSavedUserProject('${p.id}');renderSnapshotsList();" style="font-size:11.5px;padding:4px 8px;" title="${isEn ? 'Delete model' : 'Eliminar modelo'}">✕</button>` : ''}
+            </div>
+          </div>`;
+        }).join('');
+      }
+    }
+  }
+
+  if (!box) return;
+  if (!snaps.length) {
+    box.innerHTML = `<div style="padding:10px 14px;text-align:center;color:#94a3b8;background:rgba(8,12,24,0.5);border-radius:7px;border:1px dashed rgba(148,163,255,0.18);font-size:12px;">
+      ${isEn
+        ? 'No historical checkpoints saved inside this model yet.'
+        : 'Aún no hay puntos de control históricos dentro de este modelo.'}
+    </div>`;
+    return;
+  }
+
+  box.innerHTML = snaps.map(sn => {
+    const dt = new Date(sn.createdAt);
+    const dateStr = dt.toLocaleDateString() + ' ' + dt.toTimeString().slice(0, 8);
+    const nV = sn.state?.vars?.length || 0;
+    const nL = Object.values(sn.state?.links || {}).filter(l => l && l.v).length;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 11px;background:rgba(15,23,42,0.85);border:1px solid rgba(148,163,255,0.18);border-radius:8px;">
+      <div>
+        <div style="font-weight:700;font-size:12.5px;color:#f8fafc;">📌 ${esc(sn.name)}</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px;">
+          <span>🕒 ${esc(dateStr)}</span> · <span><b>${nV}</b> vars</span> · <span><b>${nL}</b> ${isEn ? 'links' : 'vínculos'}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button type="button" class="btn sm" onclick="restoreSnapshot('${sn.id}')" style="background:#2563eb;color:#fff;font-size:11px;padding:4px 9px;">↺ ${isEn ? 'Restore' : 'Restaurar'}</button>
+        <button type="button" class="btn danger sm" onclick="deleteSnapshot('${sn.id}')" style="font-size:11px;padding:4px 7px;">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openSnapshotsModal(focusNameInput = false) {
+  save();
+  const modal = document.getElementById('snapshots-modal');
+  if (!modal) return;
+  const modelInp = document.getElementById('save-model-name-input');
+  if (modelInp) delete modelInp.dataset.userEdited;
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  renderSnapshotsList();
+  if (focusNameInput && modelInp) {
+    setTimeout(() => {
+      modelInp.focus();
+      modelInp.select();
+    }, 60);
+  }
+}
+window.openSnapshotsModal = openSnapshotsModal;
+
+function saveAndRenameActiveModel() {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const modelInp = document.getElementById('save-model-name-input');
+  const rawName = (modelInp ? modelInp.value.trim() : '');
+  if (!rawName) {
+    alert(isEn ? 'Please enter a name for the model.' : 'Por favor escriba un nombre para el modelo.');
+    if (modelInp) modelInp.focus();
+    return;
+  }
+  save();
+  const store = loadUserProjectsStore();
+  const activeProj = store.projects.find(p => p.id === store.activeProjectId);
+  if (activeProj) {
+    activeProj.name = rawName;
+    activeProj.updatedAt = new Date().toISOString();
+    activeProj.state = JSON.parse(JSON.stringify(S));
+    saveUserProjectsStore(store);
+    updateUserProjectPill();
+  }
+  renderSnapshotsList();
+  showSaveToast(
+    isEn
+      ? `✅ Model saved with name "<b>${esc(rawName)}</b>". You can resume it anytime.`
+      : `✅ Modelo guardado con el nombre "<b>${esc(rawName)}</b>". Podrá retomarlo cuando desee.`
+  );
+  closeSnapshotsModal();
+}
+window.saveAndRenameActiveModel = saveAndRenameActiveModel;
+
+function saveAsNewNamedModel() {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const modelInp = document.getElementById('save-model-name-input');
+  let rawName = (modelInp ? modelInp.value.trim() : '');
+  if (!rawName) {
+    alert(isEn ? 'Please enter a name for the new model.' : 'Por favor ingrese un nombre para el nuevo modelo.');
+    if (modelInp) modelInp.focus();
+    return;
+  }
+  save();
+  const store = loadUserProjectsStore();
+  const activeProj = store.projects.find(p => p.id === store.activeProjectId);
+  if (activeProj && activeProj.name === rawName) {
+    rawName = `${rawName} (${new Date().toLocaleDateString()})`;
+  }
+  const now = new Date().toISOString();
+  const newProj = {
+    id: 'proj_' + Date.now(),
+    userId: store.activeUserId,
+    name: rawName,
+    desc: activeProj ? activeProj.desc : '',
+    mode: 'custom',
+    createdAt: now,
+    updatedAt: now,
+    state: JSON.parse(JSON.stringify(S))
+  };
+  store.projects.unshift(newProj);
+  store.activeProjectId = newProj.id;
+  saveUserProjectsStore(store);
+  updateUserProjectPill();
+  if (modelInp) modelInp.value = rawName;
+  renderSnapshotsList();
+  showSaveToast(
+    isEn
+      ? `➕ Saved as new model "<b>${esc(rawName)}</b>". Ready to resume anytime.`
+      : `➕ Guardado como nuevo modelo "<b>${esc(rawName)}</b>". Disponible para retomar cuando quiera.`
+  );
+  closeSnapshotsModal();
+}
+window.saveAsNewNamedModel = saveAsNewNamedModel;
+
+function resumeSavedModelFromModal(projId) {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  save();
+  const store = loadUserProjectsStore();
+  const proj = store.projects.find(p => p.id === projId);
+  if (!proj) return;
+  store.activeProjectId = proj.id;
+  store.activeUserId = proj.userId;
+  saveUserProjectsStore(store);
+  applyProjectToWorkspace(proj);
+  updateUserProjectPill();
+  closeSnapshotsModal();
+  showSaveToast(
+    isEn
+      ? `📂 Resumed model: "<b>${esc(proj.name)}</b>"`
+      : `📂 Modelo retomado: "<b>${esc(proj.name)}</b>"`
+  );
+}
+window.resumeSavedModelFromModal = resumeSavedModelFromModal;
+
+function renameSavedModelInline(projId) {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const store = loadUserProjectsStore();
+  const proj = store.projects.find(p => p.id === projId);
+  if (!proj) return;
+  const newName = prompt(
+    isEn ? 'Enter the new name for this model:' : 'Ingrese el nuevo nombre para este modelo:',
+    proj.name || ''
+  );
+  if (!newName || !newName.trim()) return;
+  proj.name = newName.trim();
+  proj.updatedAt = new Date().toISOString();
+  saveUserProjectsStore(store);
+  updateUserProjectPill();
+  const modelInp = document.getElementById('save-model-name-input');
+  if (modelInp && proj.id === store.activeProjectId) {
+    modelInp.value = proj.name;
+  }
+  renderSnapshotsList();
+  if (typeof renderUserProjectModal === 'function') renderUserProjectModal();
+  showSaveToast(
+    isEn
+      ? `✏️ Model renamed to "<b>${esc(proj.name)}</b>"`
+      : `✏️ Nombre del modelo actualizado a "<b>${esc(proj.name)}</b>"`
+  );
+}
+window.renameSavedModelInline = renameSavedModelInline;
+
+function closeSnapshotsModal() {
+  const modal = document.getElementById('snapshots-modal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
+}
+window.closeSnapshotsModal = closeSnapshotsModal;
+
+function createNamedSnapshot() {
+  save();
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const inp = document.getElementById('snap-name-input');
+  const rawName = (inp ? inp.value.trim() : '') || (isEn ? `Version ${new Date().toLocaleTimeString()}` : `Versión ${new Date().toLocaleTimeString()}`);
+  const snaps = getSavedSnapshots();
+  snaps.unshift({
+    id: 'snap_' + Date.now(),
+    name: rawName,
+    createdAt: new Date().toISOString(),
+    state: JSON.parse(JSON.stringify(S))
+  });
+  setSavedSnapshots(snaps);
+  if (inp) inp.value = '';
+  renderSnapshotsList();
+  showSaveToast(isEn ? `📌 Version "<b>${esc(rawName)}</b>" saved.` : `📌 Versión "<b>${esc(rawName)}</b>" guardada.`);
+}
+window.createNamedSnapshot = createNamedSnapshot;
+
+function restoreSnapshot(snapId) {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const snaps = getSavedSnapshots();
+  const found = snaps.find(s => s.id === snapId);
+  if (!found || !found.state) return;
+  if (!confirm(isEn ? `Restore version "${found.name}"? Current unsaved changes will be replaced.` : `¿Restaurar la versión "${found.name}"? Se cargará el estado guardado en ese punto.`)) return;
+  S = JSON.parse(JSON.stringify(found.state));
+  uid = 1000;
+  ui.sel = ui.selVar = null;
+  save();
+  renderAll();
+  closeSnapshotsModal();
+  showSaveToast(isEn ? `✅ Restored version "<b>${esc(found.name)}</b>"` : `✅ Versión "<b>${esc(found.name)}</b>" restaurada.`);
+}
+window.restoreSnapshot = restoreSnapshot;
+
+function deleteSnapshot(snapId) {
+  const snaps = getSavedSnapshots().filter(s => s.id !== snapId);
+  setSavedSnapshots(snaps);
+  renderSnapshotsList();
+}
+window.deleteSnapshot = deleteSnapshot;
+
+// Atajo de teclado global Ctrl+S / Cmd+S para guardar cambios
+window.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+    e.preventDefault();
+    saveChangesManual();
+  }
+});
 const V = () => S.vars;
 const idx = id => V().findIndex(v => v.id === id);
 const L = (a, b) => S.links[key(a, b)];
-const val = (a, b) => (L(a, b)?.v) || 0;
+const val = (a, b) => Math.min(3, Math.max(0, Math.abs(Math.round(Number(L(a, b)?.v) || 0))));
 const del = (a, b) => S.links[key(a, b)]?.t ?? ((typeof DEFAULT_DELAYS !== 'undefined' ? DEFAULT_DELAYS[code(a) + '>' + code(b)] : 1.5) ?? (val(a, b) ? 1.5 : 0));
 const ui = { sel: null, selVar: null, hidden: new Set(), view: 'abs', dynSel: null, compareBase: true };
 
@@ -108,10 +557,10 @@ function getQuad() {
 }
 const QUAD = new Proxy({}, { get: (target, prop) => getQuad()[prop] });
 const quadOf = (infl, dep, ty, tx) => infl >= ty ? (dep >= tx ? 'conflict' : 'power') : (dep >= tx ? 'result' : 'auto');
-const cellBg = v => v === 0 ? 'transparent' : (v > 0 ? `rgba(56,189,248,${.18 + .25 * v})` : `rgba(251,113,133,${.18 + .25 * -v})`);
-const pillBg = v => v === 0 ? '#475569' : v > 0 ? '#38bdf8' : '#fb7185';
+const cellBg = v => { const a = Math.min(3, Math.max(0, Math.abs(Number(v) || 0))); return a === 0 ? 'transparent' : `rgba(56,189,248,${.18 + .25 * a})`; };
+const pillBg = v => { const a = Math.min(3, Math.max(0, Math.abs(Number(v) || 0))); return a === 0 ? '#475569' : '#38bdf8'; };
 const varColor = i => `hsl(${(i * 360 / Math.max(V().length, 1) + 200) % 360},72%,62%)`;
-const sgn = v => (v > 0 ? '+' : '') + v;
+const sgn = v => String(Math.min(3, Math.max(0, Math.abs(Math.round(Number(v) || 0)))));
 const code = id => V()[idx(id)]?.code || '?';
 const name = id => V()[idx(id)]?.name || '?';
 
@@ -187,6 +636,8 @@ function vnetNodeColors(quadKey) {
 /* Inicializar posiciones */
 function vnetInitLayout(preset) {
   vnetState.layout = preset || 'force';
+  const selLayout = document.getElementById('vnet-layout');
+  if (selLayout && selLayout.value !== vnetState.layout) selLayout.value = vnetState.layout;
   const vars = V();
   if (!vars.length) return;
   const n = vars.length;
@@ -209,30 +660,38 @@ function vnetInitLayout(preset) {
       };
     });
   } else {
-    /* force: seed con cuadrícula, luego iteraciones de repulsión/atracción */
-    const cols = Math.ceil(Math.sqrt(n * 1.3));
+    /* Force-Directed Layouts: 'force' (Fruchterman-Reingold), 'force_kk' (Kamada-Kawai), 'force_hier' (Jerárquico Motriz) */
+    const cx = 700, cy = 380;
     vars.forEach((v, i) => {
+      const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+      const rad = 280 + (i % 2) * 85;
       vnetState.positions[v.id] = {
-        x: 100 + (i % cols) * (VNET_NODE_W + 110) + (Math.random() - 0.5) * 30,
-        y: 80 + Math.floor(i / cols) * (VNET_NODE_H + 110) + (Math.random() - 0.5) * 30
+        x: Math.round(cx + rad * Math.cos(angle) - VNET_NODE_W / 2),
+        y: Math.round(cy + rad * Math.sin(angle) - VNET_NODE_H / 2)
       };
     });
-    vnetRunForce(120);
+    vnetRunForce(160, preset || 'force');
   }
 }
 
-function vnetRunForce(iters) {
+function vnetRunForce(iters = 160, mode = 'force') {
   const vars = V();
   if (vars.length < 2) return;
+  if (!PD) PD = planeData();
   const ids = vars.map(v => v.id);
   const pos = vnetState.positions;
-  const K_rep = 18000, K_spring = 0.018, L_rest = 340;
+  const isKK = mode === 'force_kk';
+  const isHier = mode === 'force_hier';
+  const K_rep = isKK ? 14000 : 22000;
+  const K_spring = isKK ? 0.032 : 0.020;
+  const L_rest = isKK ? 300 : 340;
+  const cx = 700, cy = 380;
 
   for (let it = 0; it < iters; it++) {
     const fx = {}, fy = {};
     ids.forEach(id => { fx[id] = 0; fy[id] = 0; });
 
-    /* Repulsión entre todos los pares */
+    /* Repulsión electrostática entre todos los pares de nodos */
     for (let a = 0; a < ids.length; a++) {
       for (let b = a + 1; b < ids.length; b++) {
         const ia = ids[a], ib = ids[b];
@@ -245,7 +704,7 @@ function vnetRunForce(iters) {
       }
     }
 
-    /* Atracción por enlace */
+    /* Atracción elástica por enlace directo (ley de Hooke ponderada por |v|) */
     Object.entries(S.links).forEach(([k, lnk]) => {
       if (!lnk || !lnk.v) return;
       const [a, b] = k.split('>');
@@ -253,20 +712,71 @@ function vnetRunForce(iters) {
       const dx = (pos[b].x + VNET_NODE_W / 2) - (pos[a].x + VNET_NODE_W / 2);
       const dy = (pos[b].y + VNET_NODE_H / 2) - (pos[a].y + VNET_NODE_H / 2);
       const d = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-      const f = K_spring * (d - L_rest) * Math.abs(lnk.v) / 3;
+      const idealLen = isKK ? (L_rest - Math.abs(lnk.v) * 28) : L_rest;
+      const f = K_spring * (d - idealLen) * (0.5 + Math.abs(lnk.v) / 3);
       fx[a] += f * dx / d; fy[a] += f * dy / d;
       fx[b] -= f * dx / d; fy[b] -= f * dy / d;
     });
 
-    const cool = 0.88 - (it / iters) * 0.5;
+    /* Gravedad centrípeta suave o jerárquica según modo Force-Directed */
+    vars.forEach((v, i) => {
+      const id = v.id;
+      if (isHier && PD && PD.sc) {
+        const diff = (PD.sc.inf[i] || 50) - (PD.sc.dep[i] || 50);
+        const targetX = cx - diff * 4.5;
+        const targetY = cy - ((PD.sc.inf[i] || 50) - 50) * 3.0;
+        fx[id] += (targetX - (pos[id].x + VNET_NODE_W / 2)) * 0.045;
+        fy[id] += (targetY - (pos[id].y + VNET_NODE_H / 2)) * 0.045;
+      } else {
+        fx[id] += (cx - (pos[id].x + VNET_NODE_W / 2)) * 0.012;
+        fy[id] += (cy - (pos[id].y + VNET_NODE_H / 2)) * 0.012;
+      }
+    });
+
+    const cool = 0.88 - (it / iters) * 0.55;
     ids.forEach(id => {
-      pos[id].x = Math.round(pos[id].x + Math.max(-30, Math.min(30, fx[id] * cool)));
-      pos[id].y = Math.round(pos[id].y + Math.max(-30, Math.min(30, fy[id] * cool)));
-      pos[id].x = Math.max(-50, pos[id].x);
-      pos[id].y = Math.max(-50, pos[id].y);
+      pos[id].x = Math.round(pos[id].x + Math.max(-32, Math.min(32, fx[id] * cool)));
+      pos[id].y = Math.round(pos[id].y + Math.max(-32, Math.min(32, fy[id] * cool)));
+      pos[id].x = Math.max(-80, pos[id].x);
+      pos[id].y = Math.max(-80, pos[id].y);
     });
   }
 }
+
+function vnetTriggerForceAnimation() {
+  const selLayout = document.getElementById('vnet-layout');
+  const mode = (selLayout && selLayout.value.startsWith('force')) ? selLayout.value : 'force';
+  if (selLayout) selLayout.value = mode;
+  vnetState.layout = mode;
+  const vars = V();
+  if (!vars.length) return;
+  const n = vars.length;
+  const cx = 700, cy = 380;
+  vars.forEach((v, i) => {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2 + (Math.random() - 0.5) * 0.25;
+    const rad = 260 + (i % 2) * 90;
+    vnetState.positions[v.id] = {
+      x: Math.round(cx + rad * Math.cos(angle) - VNET_NODE_W / 2),
+      y: Math.round(cy + rad * Math.sin(angle) - VNET_NODE_H / 2)
+    };
+  });
+  let step = 0;
+  const totalSteps = 24;
+  function tick() {
+    vnetRunForce(7, mode);
+    renderVarsNetworkNodes();
+    renderVarsNetworkLinks();
+    step++;
+    if (step < totalSteps) {
+      requestAnimationFrame(tick);
+    } else {
+      try { localStorage.setItem('micmac_vnet_positions', JSON.stringify(vnetState.positions)); } catch (e) {}
+      vnetFitScreen();
+    }
+  }
+  requestAnimationFrame(tick);
+}
+window.vnetTriggerForceAnimation = vnetTriggerForceAnimation;
 
 function vnetApplyTransform() {
   const svg = $('#vnet-svg');
@@ -523,19 +1033,18 @@ function renderVarsNetworkLinks() {
     if (!lnk || !lnk.v) return;
     const [idA, idB] = k.split('>');
     if (!byId[idA] || !byId[idB]) return;
-    const v = lnk.v;
+    const v = Math.min(3, Math.max(0, Math.abs(Math.round(Number(lnk.v) || 0))));
+    if (!v) return;
 
-    if (filter === 'strong' && Math.abs(v) < 2) return;
-    if (filter === 'vstrong' && Math.abs(v) < 3) return;
-    if (filter === 'pos' && v <= 0) return;
-    if (filter === 'neg' && v >= 0) return;
+    if (filter === 'strong' && v < 2) return;
+    if (filter === 'vstrong' && v < 3) return;
+    if (filter === 'weak' && v !== 1) return;
 
     const pA = vnetState.positions[idA] || { x: 0, y: 0 };
     const pB = vnetState.positions[idB] || { x: 300, y: 0 };
-    const isPos = v > 0;
-    const color = isPos ? '#38bdf8' : '#fb7185';
-    const marker = isPos ? 'url(#vnet-arrow-pos)' : 'url(#vnet-arrow-neg)';
-    const sw = Math.abs(v) >= 3 ? 3.2 : (Math.abs(v) === 2 ? 2.2 : 1.5);
+    const color = v === 3 ? '#34d399' : (v === 2 ? '#60a5fa' : '#38bdf8');
+    const marker = 'url(#vnet-arrow-pos)';
+    const sw = v >= 3 ? 3.2 : (v === 2 ? 2.2 : 1.5);
     const connectedToSel = sel ? (idA === sel || idB === sel) : true;
     const opacity = sel && !connectedToSel ? 0.07 : (connectedToSel && sel ? 1 : 0.75);
 
@@ -544,13 +1053,13 @@ function renderVarsNetworkLinks() {
     const pathD = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
 
     /* glow for selected connections */
-    const filterAttr = connectedToSel && sel ? `filter="url(#vnet-glow-${isPos ? 'pos' : 'neg'})"` : '';
+    const filterAttr = connectedToSel && sel ? `filter="url(#vnet-glow-pos)"` : '';
 
     lHtml += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-opacity="${opacity}" marker-end="${marker}" ${filterAttr}/>`;
 
     /* badge */
-    const bgPill = isPos ? '#0284c7' : '#be123c';
-    const badgeTxt = (v > 0 ? '+' : '') + v;
+    const bgPill = v === 3 ? '#059669' : (v === 2 ? '#2563eb' : '#0284c7');
+    const badgeTxt = String(v);
     bHtml += `<g style="opacity:${opacity}">
       <rect x="${mx - 13}" y="${my - 10}" width="26" height="20" rx="10" fill="#0a1020" stroke="${color}" stroke-width="1.4"/>
       <rect x="${mx - 11}" y="${my - 8}" width="22" height="16" rx="8" fill="${bgPill}" opacity="0.92"/>
@@ -835,32 +1344,41 @@ $('#preset-add-btn').onclick = () => {
   setTimeout(() => toast.remove(), 2800);
 };
 
-/* ---------- 2. Matriz ---------- */
-const hasJust = l => l && (l.concept || '').trim().length > 10 && (l.evidence || '').trim().length > 10;
+/* ---------- 2. Matriz (Escala 0 a 3, sin negativos, justificación optativa) ---------- */
+const hasJust = l => l && ((l.concept || '').trim().length > 0 || (l.evidence || '').trim().length > 0);
 function sums() {
   const n = V().length, inf = Array(n).fill(0), dep = Array(n).fill(0);
-  V().forEach((a, i) => V().forEach((b, j) => { if (i !== j) { const x = Math.abs(val(a.id, b.id)); inf[i] += x; dep[j] += x; } }));
+  V().forEach((a, i) => V().forEach((b, j) => { if (i !== j) { const x = val(a.id, b.id); inf[i] += x; dep[j] += x; } }));
   return { inf, dep };
 }
 function renderMatrix() {
   const { inf, dep } = sums();
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const optLabels = isEn
+    ? ['0 · None', '1 · Weak', '2 · Moderate', '3 · Strong']
+    : ['0 · Nula', '1 · Débil', '2 · Moderada', '3 · Fuerte'];
   let h = `<tr><th></th>${V().map((v, i) => `<th class="th-var col-hdr" data-vid="${v.id}" title="${esc(v.name)}"><div class="col-hdr-box"><span class="hdr-num">${i + 1}</span><span class="hdr-code">${esc(v.code)}</span></div></th>`).join('')}<th>${t('th_sum_infl')}</th></tr>`;
   V().forEach((a, i) => {
     h += `<tr><th class="th-var row-hdr" data-vid="${a.id}" title="${esc(a.name)}"><span class="hdr-num">${i + 1}</span> <span class="hdr-code">${esc(a.code)}</span></th>`;
     V().forEach((b, j) => {
       if (i === j) { h += `<td class="diag"></td>`; return; }
-      const l = L(a.id, b.id), v = l?.v || 0, miss = v !== 0 && !hasJust(l);
+      const v = val(a.id, b.id);
       const sel = ui.sel && ui.sel[0] === a.id && ui.sel[1] === b.id;
-      h += `<td class="cell${sel ? ' sel' : ''}${miss ? ' miss' : ''}" data-a="${a.id}" data-b="${b.id}" style="background:${cellBg(v)}">${v === 0 ? '<span style="opacity:.25">·</span>' : sgn(v)}</td>`;
+      h += `<td class="cell${sel ? ' sel' : ''}" data-a="${a.id}" data-b="${b.id}" style="background:${cellBg(v)}"><select class="matrix-cell-select${v === 0 ? ' is-zero' : ''}" data-a="${a.id}" data-b="${b.id}" aria-label="${esc(a.code)} → ${esc(b.code)}">${[0, 1, 2, 3].map(n => `<option value="${n}" ${v === n ? 'selected' : ''} title="${optLabels[n]}">${n}</option>`).join('')}</select></td>`;
     });
     h += `<td class="tot">${inf[i]}</td></tr>`;
   });
   h += `<tr><th>${t('th_sum_dep')}</th>${dep.map(d => `<td class="tot">${d}</td>`).join('')}<td></td></tr>`;
   $('#matrix').innerHTML = h;
-  const nz = Object.values(S.links).filter(l => l.v), ok = nz.filter(hasJust).length;
-  $('#completeness').textContent = `${t('completeness_prefix')} ${ok}/${nz.length}`;
-  $('#completeness').style.color = ok === nz.length ? '#34d399' : '#fbbf24';
-  $('#matrix-legend').innerHTML = [-3, -2, -1, 0, 1, 2, 3].map(v => `<span><span class="sw" style="background:${v === 0 ? '#1c2540' : cellBg(v)}"></span>${sgn(v)}</span>`).join('') + `<span>${t('legend_note')}</span>`;
+  const nz = Object.values(S.links).filter(l => l && Math.abs(l.v) > 0), ok = nz.filter(hasJust).length;
+  $('#completeness').textContent = isEn
+    ? `Active links (1–3): ${nz.length} · With notes (optional): ${ok}`
+    : `Vínculos activos (1–3): ${nz.length} · Con justificación (opcional): ${ok}`;
+  $('#completeness').style.color = '#34d399';
+  const scaleLabels = isEn
+    ? ['0 · None', '1 · Weak', '2 · Moderate', '3 · Strong']
+    : ['0 · Nula', '1 · Débil', '2 · Moderada', '3 · Fuerte'];
+  $('#matrix-legend').innerHTML = [0, 1, 2, 3].map(v => `<span><span class="sw" style="background:${v === 0 ? '#1c2540' : cellBg(v)}"></span>${scaleLabels[v]}</span>`).join('') + `<span>${t('legend_note')}</span>`;
 }
 function renderRubric() {
   const r = $('#rubric');
@@ -870,12 +1388,65 @@ function renderRubric() {
     <div><b>${t('r_1_title')}</b>${t('r_1_desc')}</div>
     <div><b>${t('r_2_title')}</b>${t('r_2_desc')}</div>
     <div><b>${t('r_3_title')}</b>${t('r_3_desc')}</div>
-    <div><b>${t('r_sign_title')}</b>${t('r_sign_desc')}</div>
     <div><b>${t('r_how_title')}</b>${t('r_how_desc')}</div>
   `;
 }
 renderRubric();
-$('#matrix').onclick = e => { const c = e.target.closest('.cell'); if (c) { ui.sel = [c.dataset.a, c.dataset.b]; renderMatrix(); renderEditor(); } };
+function selectMatrixCellInPlace(c) {
+  if (!c) return;
+  const a = c.dataset.a, b = c.dataset.b;
+  if (!a || !b) return;
+  $$('#matrix td.cell.sel').forEach(td => td.classList.remove('sel'));
+  c.classList.add('sel');
+  ui.sel = [a, b];
+  renderEditor();
+}
+$('#matrix').onclick = e => {
+  const c = e.target.closest('.cell');
+  if (c) selectMatrixCellInPlace(c);
+};
+$('#matrix').onfocusin = e => {
+  const c = e.target.closest('.cell');
+  if (c) selectMatrixCellInPlace(c);
+};
+$('#matrix').onchange = e => {
+  const selEl = e.target.closest('.matrix-cell-select');
+  if (!selEl) return;
+  const a = selEl.dataset.a, b = selEl.dataset.b;
+  ui.sel = [a, b];
+  const k = key(a, b);
+  S.links[k] = S.links[k] || { v: 0, t: del(a, b), concept: '', evidence: '', src: '' };
+  S.links[k].v = Math.max(0, Math.min(3, parseInt(selEl.value, 10) || 0));
+  save();
+  renderAll();
+};
+$('#matrix').onkeydown = e => {
+  if (!['0', '1', '2', '3'].includes(e.key)) return;
+  const c = e.target.closest('.cell');
+  if (!c) return;
+  e.preventDefault();
+  const a = c.dataset.a, b = c.dataset.b;
+  ui.sel = [a, b];
+  const k = key(a, b);
+  S.links[k] = S.links[k] || { v: 0, t: del(a, b), concept: '', evidence: '', src: '' };
+  S.links[k].v = parseInt(e.key, 10);
+  save();
+  renderAll();
+  const nextSel = $(`#matrix .matrix-cell-select[data-a="${a}"][data-b="${b}"]`);
+  if (nextSel) nextSel.focus();
+};
+$('#matrix').ondblclick = e => {
+  const c = e.target.closest('.cell');
+  if (!c) return;
+  const a = c.dataset.a, b = c.dataset.b;
+  ui.sel = [a, b];
+  const k = key(a, b);
+  S.links[k] = S.links[k] || { v: 0, t: del(a, b), concept: '', evidence: '', src: '' };
+  const cur = val(a, b);
+  S.links[k].v = (cur + 1) % 4; // Cicla 0 -> 1 -> 2 -> 3 -> 0
+  save();
+  renderAll();
+};
 $('#matrix').onmousemove = e => {
   const th = e.target.closest('.th-var');
   if (th && th.dataset.vid) {
@@ -888,10 +1459,11 @@ $('#matrix').onmousemove = e => {
   const c = e.target.closest('.cell');
   if (c) {
     const l = L(c.dataset.a, c.dataset.b);
+    const v = val(c.dataset.a, c.dataset.b);
     const ia = idx(c.dataset.a), ib = idx(c.dataset.b);
     const va = V()[ia], vb = V()[ib];
-    const valColor = (l?.v || 0) > 0 ? '#38bdf8' : (l?.v || 0) < 0 ? '#fb7185' : '#94a3b8';
-    return tip(e, `<div style="min-width:240px"><span class="hdr-num">(N° ${ia + 1})</span> <b style="color:var(--acc2)">${esc(va?.code || '?')}</b> <span style="color:#cbd5e1">(${esc(va?.name || '')})</span> <span style="color:#94a3ff">→</span> <span class="hdr-num">(N° ${ib + 1})</span> <b style="color:var(--acc2)">${esc(vb?.code || '?')}</b> <span style="color:#cbd5e1">(${esc(vb?.name || '')})</span> <b style="color:${valColor}">[${sgn(l?.v || 0)}]</b><div style="margin-top:6px;color:#c3cbe6;line-height:1.4">${l?.concept ? esc(l.concept.slice(0, 180)) + (l.concept.length > 180 ? '…' : '') : t('tip_matrix_no_dir')}</div></div>`);
+    const valColor = v > 0 ? '#38bdf8' : '#94a3b8';
+    return tip(e, `<div style="min-width:240px"><span class="hdr-num">(N° ${ia + 1})</span> <b style="color:var(--acc2)">${esc(va?.code || '?')}</b> <span style="color:#cbd5e1">(${esc(va?.name || '')})</span> <span style="color:#94a3ff">→</span> <span class="hdr-num">(N° ${ib + 1})</span> <b style="color:var(--acc2)">${esc(vb?.code || '?')}</b> <span style="color:#cbd5e1">(${esc(vb?.name || '')})</span> <b style="color:${valColor}">[${v}]</b><div style="margin-top:6px;color:#c3cbe6;line-height:1.4">${l?.concept ? esc(l.concept.slice(0, 180)) + (l.concept.length > 180 ? '…' : '') : (v > 0 ? (currentLang === 'en' ? 'Direct impact scored (justification optional).' : 'Impacto directo valorado (justificación opcional).') : t('tip_matrix_no_dir'))}</div></div>`);
   }
   tip(null);
 };
@@ -906,25 +1478,37 @@ function autoZero(a, b) {
 }
 function renderEditor() {
   const box = $('#cell-editor');
+  if (!ui.sel && V().length >= 2) {
+    ui.sel = [V()[0].id, V()[1].id];
+  }
   if (!ui.sel) { box.innerHTML = `<h2>${t('ed_title')}</h2><p class="muted">${t('ed_empty')}</p>`; return; }
   const [a, b] = ui.sel, l = L(a, b) || { v: 0, concept: '', evidence: '', src: '' };
+  const curV = val(a, b);
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const btnLabels = isEn
+    ? ['0 · None', '1 · Weak', '2 · Moderate', '3 · Strong']
+    : ['0 · Nula', '1 · Débil', '2 · Moderada', '3 · Fuerte'];
   box.innerHTML = `<div class="ed"><h2>${t('ed_title')}</h2>
   <div class="link-title">${esc(name(a))} <span style="color:var(--acc2)">→</span> ${esc(name(b))}</div>
   <label>${t('ed_val_lbl')}</label>
-  <div class="scale">${[-3, -2, -1, 0, 1, 2, 3].map(v => `<button data-v="${v}" class="${l.v === v ? 'on' : ''}" style="${l.v === v ? 'background:' + pillBg(v) : ''}">${sgn(v)}</button>`).join('')}</div>
-  ${l.v === 0 ? `<p class="muted" style="margin-top:12px">${esc(autoZero(a, b))}</p>` : ''}
+  <div class="scale">${[0, 1, 2, 3].map(v => `<button data-v="${v}" class="${curV === v ? 'on' : ''}" style="${curV === v ? 'background:' + pillBg(v) : ''}">${btnLabels[v]}</button>`).join('')}</div>
+  ${curV === 0 ? `<p class="muted" style="margin-top:10px;font-size:12px;">${esc(autoZero(a, b))}</p>` : `<p class="muted" style="margin-top:8px;font-size:11.5px;color:#34d399;">✓ ${isEn ? 'Value saved automatically (0–3). Filling out the justification below is optional.' : 'Valor asignado (0–3). Completar la justificación inferior es opcional.'}</p>`}
   <label>${t('ed_concept_lbl')}</label><textarea data-f="concept" placeholder="${t('ed_concept_ph')}">${esc(l.concept)}</textarea>
   <label>${t('ed_evidence_lbl')}</label><textarea data-f="evidence" placeholder="${t('ed_evidence_ph')}">${esc(l.evidence)}</textarea>
   <div style="display:grid;grid-template-columns:120px 1fr;gap:10px;margin-top:8px">
     <div><label style="margin:6px 0 2px">${t('ed_delay_lbl')}</label><input type="number" min="0" max="20" step="0.5" data-f="t" value="${esc(del(a, b))}"></div>
     <div><label style="margin:6px 0 2px">${t('ed_source_lbl')}</label><input data-f="src" value="${esc(l.src || '')}" placeholder="${t('ed_source_ph')}"></div>
   </div>
-  ${l.v !== 0 && !hasJust(l) ? `<div class="warn">${t('ed_warn_missing')}</div>` : ''}</div>`;
+  <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+    <button type="button" class="btn sm" data-save-btn onclick="saveChangesManual()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;padding:6px 14px;">${t('btn_save_changes')}</button>
+  </div>
+  </div>`;
 }
 $('#cell-editor').onclick = e => {
   const v = e.target.dataset.v; if (v === undefined || !ui.sel) return;
   const k = key(...ui.sel); S.links[k] = S.links[k] || { v: 0, t: del(...ui.sel), concept: '', evidence: '', src: '' };
-  S.links[k].v = +v; save(); renderMatrix(); renderEditor(); renderLog(); renderDynamic();
+  S.links[k].v = Math.min(3, Math.max(0, Math.abs(Math.round(+v || 0))));
+  save(); renderAll();
 };
 $('#cell-editor').oninput = e => {
   const f = e.target.dataset.f; if (!f || !ui.sel) return;
@@ -934,11 +1518,11 @@ $('#cell-editor').oninput = e => {
 };
 function renderLog() {
   const f = $('#log-filter').value;
-  const rows = Object.entries(S.links).filter(([k, l]) => l.v && idx(k.split('>')[0]) >= 0 && idx(k.split('>')[1]) >= 0)
-    .filter(([k, l]) => f === 'all' || (f === 'missing' && !hasJust(l)) || (f === 'neg' && l.v < 0) || (['1', '2', '3'].includes(f) && Math.abs(l.v) === +f))
+  const rows = Object.entries(S.links).filter(([k, l]) => l && Math.abs(l.v) > 0 && idx(k.split('>')[0]) >= 0 && idx(k.split('>')[1]) >= 0)
+    .filter(([k, l]) => f === 'all' || (f === 'missing' && !hasJust(l)) || (['1', '2', '3'].includes(f) && Math.abs(l.v) === +f))
     .sort((x, y) => Math.abs(y[1].v) - Math.abs(x[1].v));
   $('#log').innerHTML = `<tr><th>${t('th_origin')} → ${t('th_dest')}</th><th>${t('th_val')}</th><th>${t('th_concept')}</th><th>${t('th_evidence')}</th><th>${t('th_source')}</th></tr>` +
-    (rows.map(([k, l]) => { const [a, b] = k.split('>'); return `<tr class="clickable" data-a="${a}" data-b="${b}"><td><b>${esc(code(a))} → ${esc(code(b))}</b></td><td><span class="pill" style="background:${pillBg(l.v)}">${sgn(l.v)}</span></td><td>${esc(l.concept) || '<i class="muted">—</i>'}</td><td>${esc(l.evidence) || '<i class="muted">—</i>'}</td><td>${esc(l.src)}</td></tr>`; }).join('') || `<tr><td colspan="5" class="muted">${currentLang === 'en' ? 'No results.' : 'Sin resultados.'}</td></tr>`);
+    (rows.map(([k, l]) => { const [a, b] = k.split('>'); const cleanV = Math.min(3, Math.max(0, Math.abs(Math.round(l.v || 0)))); return `<tr class="clickable" data-a="${a}" data-b="${b}"><td><b>${esc(code(a))} → ${esc(code(b))}</b></td><td><span class="pill" style="background:${pillBg(cleanV)}">${cleanV}</span></td><td>${esc(l.concept) || '<i class="muted">—</i>'}</td><td>${esc(l.evidence) || '<i class="muted">—</i>'}</td><td>${esc(l.src) || '<i class="muted">—</i>'}</td></tr>`; }).join('') || `<tr><td colspan="5" class="muted">${currentLang === 'en' ? 'No results.' : 'Sin resultados.'}</td></tr>`);
 }
 $('#log-filter').onchange = renderLog;
 $('#log').onclick = e => { const r = e.target.closest('tr.clickable'); if (r) { ui.sel = [r.dataset.a, r.dataset.b]; renderMatrix(); renderEditor(); scrollTo({ top: 0, behavior: 'smooth' }); } };
@@ -2173,6 +2757,11 @@ $('#dyn-matrix-switch').onclick = e => {
 });
 
 /* ---------- 6. Diagrama Sistémico de Red Causal ---------- */
+if (!localStorage.getItem('micmac-force-default-v2')) {
+  localStorage.removeItem('micmac_flow_positions');
+  localStorage.removeItem('micmac_vnet_positions');
+  localStorage.setItem('micmac-force-default-v2', '1');
+}
 const flowState = {
   zoom: 1.0,
   panX: 50,
@@ -2189,7 +2778,7 @@ const flowState = {
   speed: 350,
   filter: 'active',
   focusChanges: true,
-  layout: 'causal',
+  layout: 'force',
   selectedVar: null,
   dragTarget: null,
   dragStart: null,
@@ -2249,36 +2838,46 @@ function getVarSimTheme(v, quadKey) {
   return { theme: 'theme-slate', icon: '🧩', gauge: 'blue', unit: 'pts' };
 }
 
-function flowRunForce(iters = 140) {
+function flowRunForce(iters = 160, mode = 'force') {
   const vars = V();
   if (!vars.length) return;
   if (!PD) PD = planeData();
 
   const CARD_W = 224;
   const CARD_H = 214;
-  const cx = 620, cy = 380;
+  const cx = 640, cy = 400;
+  const n = vars.length;
+  const isKK = mode === 'force_kk';
+  const isHier = mode === 'force_hier';
 
   const nodes = vars.map((v, i) => {
     const q = PD.q ? PD.q[i] : 'auto';
-    let targetX = 520;
-    let targetY = 360;
-    if (q === 'power') { targetX = 120; }
-    else if (q === 'conflict') { targetX = 520; }
-    else if (q === 'result') { targetX = 920; }
-    else if (q === 'auto') { targetX = 520; targetY = 640; }
+    let targetX = cx;
+    let targetY = cy;
+    if (isHier) {
+      if (q === 'power') { targetX = 140; targetY = 260; }
+      else if (q === 'conflict') { targetX = 560; targetY = 260; }
+      else if (q === 'result') { targetX = 980; targetY = 380; }
+      else if (q === 'auto') { targetX = 560; targetY = 660; }
+    } else {
+      const angle = (i / Math.max(n, 1)) * Math.PI * 2 - Math.PI / 2;
+      const rad = 360 + (i % 2) * 110;
+      targetX = cx + rad * Math.cos(angle);
+      targetY = cy + rad * Math.sin(angle);
+    }
 
-    const cur = flowState.positions[v.id] || {
-      x: targetX + (Math.random() - 0.5) * 60,
-      y: targetY + (Math.random() - 0.5) * 80
-    };
+    const angleSeed = (i / Math.max(n, 1)) * Math.PI * 2 - Math.PI / 2;
+    const seedR = isKK ? 320 : 390;
+    const initX = isHier ? targetX + ((i % 3) - 1) * 45 : cx + seedR * Math.cos(angleSeed) - CARD_W / 2;
+    const initY = isHier ? targetY + (Math.floor(i / 3) - 1) * 65 : cy + seedR * Math.sin(angleSeed) - CARD_H / 2;
 
     return {
       id: v.id,
       q,
       targetX,
       targetY,
-      x: cur.x,
-      y: cur.y,
+      x: initX,
+      y: initY,
       vx: 0,
       vy: 0
     };
@@ -2311,10 +2910,10 @@ function flowRunForce(iters = 140) {
         const distSq = dx * dx + dy * dy;
         const dist = Math.sqrt(distSq) || 1;
 
-        const minDist = 270;
+        const minDist = isKK ? 265 : 295;
         const repForce = dist < minDist 
-          ? (minDist - dist) * 1.8 * temp
-          : (50000 / Math.max(distSq, 10000)) * temp;
+          ? (minDist - dist) * 2.1 * temp
+          : ((isKK ? 42000 : 62000) / Math.max(distSq, 9000)) * temp;
 
         const fx = (dx / dist) * repForce;
         const fy = (dy / dist) * repForce;
@@ -2332,28 +2931,31 @@ function flowRunForce(iters = 140) {
       const dx = (b.x + CARD_W / 2) - (a.x + CARD_W / 2);
       const dy = (b.y + CARD_H / 2) - (a.y + CARD_H / 2);
       const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      const idealDist = 310 - l.w * 22;
-      const springForce = (dist - idealDist) * (0.022 + l.w * 0.008) * temp;
+      const idealDist = (isKK ? 300 : 350) - l.w * 24;
+      const springK = isKK ? (0.032 + l.w * 0.010) : (0.022 + l.w * 0.008);
+      const springForce = (dist - idealDist) * springK * temp;
 
       const fx = (dx / dist) * springForce;
       const fy = (dy / dist) * springForce;
 
-      a.vx -= fx;
-      a.vy -= fy;
-      b.vx += fx;
-      b.vy += fy;
+      a.vx += fx;
+      a.vy += fy;
+      b.vx -= fx;
+      b.vy -= fy;
     });
 
     nodes.forEach(n => {
-      const dx = (n.targetX - n.x);
-      n.vx += dx * 0.038 * temp;
-
-      const dy = (cy - (n.y + CARD_H / 2));
-      n.vy += dy * 0.012 * temp;
+      if (isHier) {
+        n.vx += (n.targetX - n.x) * 0.042 * temp;
+        n.vy += (n.targetY - n.y) * 0.025 * temp;
+      } else {
+        n.vx += (cx - (n.x + CARD_W / 2)) * 0.014 * temp;
+        n.vy += (cy - (n.y + CARD_H / 2)) * 0.014 * temp;
+      }
     });
 
     nodes.forEach(n => {
-      const maxV = 32 * temp;
+      const maxV = 34 * temp;
       n.vx = Math.max(-maxV, Math.min(maxV, n.vx * 0.72));
       n.vy = Math.max(-maxV, Math.min(maxV, n.vy * 0.72));
       n.x += n.vx;
@@ -2370,13 +2972,15 @@ function flowRunForce(iters = 140) {
 }
 
 function initFlowLayout(preset = flowState.layout) {
-  flowState.layout = preset;
+  flowState.layout = preset || 'force';
+  const selEl = document.getElementById('flow-layout-select');
+  if (selEl && selEl.value !== flowState.layout) selEl.value = flowState.layout;
   const vars = V();
   if (!vars.length) return;
   if (!PD) PD = planeData();
 
-  if (preset === 'force') {
-    flowRunForce(140);
+  if (preset === 'force' || preset === 'force_kk' || preset === 'force_hier') {
+    flowRunForce(160, preset);
   } else if (preset === 'causal') {
     const cols = { power: [], conflict: [], result: [], auto: [] };
     vars.forEach((v, i) => {
@@ -2433,6 +3037,16 @@ function initFlowLayout(preset = flowState.layout) {
   renderFlowCards();
   renderFlowLinks();
 }
+
+function flowTriggerForceAnimation() {
+  const selEl = document.getElementById('flow-layout-select');
+  const mode = (selEl && selEl.value.startsWith('force')) ? selEl.value : 'force';
+  if (selEl) selEl.value = mode;
+  flowState.layout = mode;
+  initFlowLayout(mode);
+  flowFitToScreen();
+}
+window.flowTriggerForceAnimation = flowTriggerForceAnimation;
 
 function applyFlowTransform() {
   const stage = $('#flow-stage');
@@ -2631,12 +3245,12 @@ function renderFlowLinks() {
     const vB = byId[idB];
     if (!vA || !vB || !link || !link.v) return;
 
-    const val = link.v;
-    // Filtros de fuerza o polaridad seleccionados por el usuario
-    if (filter === 'strong' && Math.abs(val) < 2) return;
-    if (filter === 'vstrong' && Math.abs(val) < 3) return;
-    if (filter === 'pos' && val <= 0) return;
-    if (filter === 'neg' && val >= 0) return;
+    const val = Math.min(3, Math.max(0, Math.abs(Math.round(Number(link.v) || 0))));
+    if (!val) return;
+    // Filtros de intensidad (1, 2, 3) seleccionados por el usuario
+    if (filter === 'strong' && val < 2) return;
+    if (filter === 'vstrong' && val < 3) return;
+    if (filter === 'weak' && val !== 1) return;
 
     // Detección dinámica y rigurosa del flujo causal del periodo actual (step)
     const idxA = idx(idA);
@@ -4051,6 +4665,409 @@ $('#btn-export').onclick = async () => {
     setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1500);
   } catch (e) { alert(t('alert_export_error') + ' ' + e.message); }
 };
+
+function exportExcelReport(ev) {
+  if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+  if (typeof window.XLSX === 'undefined') {
+    alert(currentLang === 'en' ? 'Excel library (XLSX) is not loaded.' : 'La librería Excel (XLSX) no está cargada.');
+    return;
+  }
+  try {
+    const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+    const vars = V();
+    const n = vars.length;
+    if (n === 0) {
+      alert(isEn ? 'No variables in the current model to export.' : 'No hay variables en el modelo actual para exportar.');
+      return;
+    }
+
+    const activeProj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+    const activeUser = typeof getActiveUser === 'function' ? getActiveUser() : null;
+    const modelTitle = (S && S.modelName) || (activeProj && activeProj.name) || (isEn ? 'Active MICMAC Model' : 'Modelo MICMAC Activo');
+    const userLabel = activeUser ? `${activeUser.name || activeUser.email || ''}${activeUser.org ? ' · ' + activeUser.org : ''}` : '';
+
+    const lamEl = document.getElementById('dyn-lambda');
+    const lam = lamEl ? (+lamEl.value || 0.10) : 0.10;
+    const alphaRatioEl = document.getElementById('dyn-alpha-ratio');
+    const alphaRatio = alphaRatioEl ? (+alphaRatioEl.value || 0.80) : 0.80;
+    const omegaTrampaEl = document.getElementById('dyn-omega-trampa');
+    const omegaTrampa = omegaTrampaEl ? (+omegaTrampaEl.value || 30) : 30;
+    const critEl = document.getElementById('dyn-criterio');
+    const crit = critEl ? (critEl.value || 'mediana') : 'mediana';
+
+    const { inf, dep } = sums();
+    const res = computeDynamicMicmac(lam, alphaRatio);
+    const meanOmega = n > 0 ? res.Omega.reduce((a, b) => a + b, 0) / n : 0;
+
+    const wb = XLSX.utils.book_new();
+    const makeSheet = (aoa, colWidths) => {
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      if (colWidths && colWidths.length) {
+        ws['!cols'] = colWidths.map(w => ({ wch: w }));
+      } else if (aoa.length > 0) {
+        const maxCols = Math.max(...aoa.map(r => (r ? r.length : 0)));
+        ws['!cols'] = Array.from({ length: maxCols }, (_, c) => {
+          let maxLen = 13;
+          aoa.forEach((r, rIdx) => {
+            if (rIdx < 2) return;
+            const cellVal = r && r[c] !== undefined && r[c] !== null ? String(r[c]) : '';
+            if (cellVal.length > maxLen) maxLen = Math.min(52, cellVal.length + 2);
+          });
+          return { wch: maxLen };
+        });
+      }
+      return ws;
+    };
+
+    // 1. 1_Base_Variables
+    const aoaVars = [
+      [isEn ? `ACTIVE MODEL · SYSTEM VARIABLES (${modelTitle})` : `MODELO ACTIVO · VARIABLES DEL SISTEMA (${modelTitle})`],
+      [isEn ? 'Variable definitions, conceptual scope, and initial baseline value (x₀)' : 'Definición de variables del modelo en trabajo y valor basal inicial (x₀)'],
+      [
+        'N°',
+        isEn ? 'Code' : 'Código',
+        isEn ? 'Variable Name' : 'Nombre de la Variable',
+        isEn ? 'Conceptual Definition & Scope' : 'Definición y Alcance Conceptual',
+        isEn ? 'Initial Value (x₀)' : 'Valor Inicial (x₀)',
+        isEn ? 'Polarity / Direction' : 'Sentido / Polaridad'
+      ],
+      ...vars.map((v, i) => [
+        i + 1,
+        v.code,
+        v.name,
+        v.desc || '',
+        Number(v.x0 ?? 50),
+        v.dir === 'neg'
+          ? (isEn ? 'Adverse (higher = worse)' : 'Adverso (mayor valor = peor)')
+          : (isEn ? 'Favorable (higher = better)' : 'Favorable (mayor valor = mejor)')
+      ])
+    ];
+    XLSX.utils.book_append_sheet(wb, makeSheet(aoaVars, [6, 14, 34, 65, 18, 28]), '1_Base_Variables');
+
+    // 2. 2_Base_Matriz_Directa
+    const varHeaders = vars.map((v, i) => `${i + 1}. ${v.code} · ${v.name}`);
+    const totalDirect = inf.reduce((a, b) => a + b, 0);
+    const aoaDirect = [
+      [isEn ? `DIRECT INFLUENCE MATRIX (0 TO 3 SCALE) · ${modelTitle}` : `MATRIZ DE IMPACTOS DIRECTOS (ESCALA 0 A 3) · ${modelTitle}`],
+      [isEn ? 'Read Row → Column: direct impact of Row variable on Column variable (0 = None, 1 = Weak, 2 = Moderate, 3 = Strong).' : 'Lectura Fila → Columna: impacto directo de la variable Fila sobre la Columna (0 = Nula, 1 = Débil, 2 = Moderada, 3 = Fuerte).'],
+      [isEn ? 'Variable (Row \\ Col)' : 'Variable (Fila \\ Col)', ...varHeaders, isEn ? 'Σ Direct Influence (Motricity)' : 'Σ Influencia Directa (Motricidad)'],
+      ...vars.map((a, i) => [
+        `${i + 1}. ${a.code} · ${a.name}`,
+        ...vars.map((b, j) => (i === j ? '—' : val(a.id, b.id))),
+        inf[i]
+      ]),
+      [isEn ? 'Σ Direct Dependence' : 'Σ Dependencia Directa', ...dep, totalDirect]
+    ];
+    XLSX.utils.book_append_sheet(wb, makeSheet(aoaDirect), '2_Base_Matriz_Directa');
+
+    // 3. 3_Base_Justificaciones
+    const aoaJust = [
+      [isEn ? `ACTIVE LINKS & JUSTIFICATIONS · ${modelTitle}` : `REGISTRO DE VÍNCULOS ACTIVOS Y JUSTIFICACIONES · ${modelTitle}`],
+      [isEn ? 'All scored direct causal links (1 to 3) with optional conceptual mechanism, practical evidence, and source.' : 'Relaciones causales valoradas (1 a 3) con su mecanismo conceptual, evidencia práctica y fuente (opcional).'],
+      [
+        isEn ? 'Origin No.' : 'N° Origen',
+        isEn ? 'Origin Code' : 'Código Origen',
+        isEn ? 'Origin Variable' : 'Variable Origen',
+        isEn ? 'Target No.' : 'N° Destino',
+        isEn ? 'Target Code' : 'Código Destino',
+        isEn ? 'Target Variable' : 'Variable Destino',
+        isEn ? 'Impact (0–3)' : 'Impacto (0–3)',
+        isEn ? 'Delay T (years)' : 'Retardo T (años)',
+        isEn ? 'Conceptual Causal Mechanism (optional)' : 'Mecanismo Causal Conceptual (opcional)',
+        isEn ? 'Observable Practical Evidence (optional)' : 'Evidencia Práctica Observable (opcional)',
+        isEn ? 'Indicator / Source (optional)' : 'Indicador / Fuente (opcional)'
+      ]
+    ];
+    vars.forEach((a, i) => {
+      vars.forEach((b, j) => {
+        if (i === j) return;
+        const v = val(a.id, b.id);
+        if (v > 0) {
+          const l = L(a.id, b.id) || {};
+          aoaJust.push([
+            i + 1,
+            a.code,
+            a.name,
+            j + 1,
+            b.code,
+            b.name,
+            v,
+            del(a.id, b.id),
+            l.concept || '',
+            l.evidence || '',
+            l.src || ''
+          ]);
+        }
+      });
+    });
+    XLSX.utils.book_append_sheet(wb, makeSheet(aoaJust, [10, 14, 30, 10, 14, 30, 14, 16, 48, 48, 30]), '3_Base_Justificaciones');
+
+    // 4. 4_Matriz_IGO_Priorizacion
+    if (typeof ensureIGOState === 'function' && typeof planeData === 'function') {
+      ensureIGOState();
+      const pd = planeData();
+      const sm = S.igo.scaleMode;
+      const allItems = vars.map((v, i) => {
+        const sc = S.igo.scores[v.id] || { imp: 3, gob: 3, fg: 'FG1' };
+        return { v, i, imp: toDisplayScale(sc.imp, sm), gob: toDisplayScale(sc.gob, sm), fg: sc.fg };
+      });
+      const avgI = mean(allItems.map(x => x.imp));
+      const avgG = mean(allItems.map(x => x.gob));
+      const aoaIGO = [
+        [isEn ? `IGO PRIORITIZATION MATRIX & TERRITORIAL PURPOSES · ${modelTitle}` : `MATRIZ IGO (IMPORTANCIA Y GOBERNABILIDAD) Y FINALIDADES TERRITORIALES · ${modelTitle}`],
+        [isEn ? 'Strategic prioritization combining MICMAC structural motricity/dependence with Importance (I) and Governability (G).' : 'Priorización estratégica que articula los resultados MICMAC con Importancia (I), Gobernabilidad (G) y Finalidades Territoriales.'],
+        [
+          'N°',
+          isEn ? 'Code' : 'Código',
+          isEn ? 'Variable' : 'Variable',
+          isEn ? 'MICMAC Quadrant' : 'Cuadrante MICMAC',
+          isEn ? 'MICMAC I (%)' : 'I MICMAC (%)',
+          isEn ? 'MICMAC D (%)' : 'D MICMAC (%)',
+          isEn ? 'Bisector (I-D)' : 'Bisectriz (I-D)',
+          isEn ? 'Territorial Purpose' : 'Finalidad Territorial',
+          isEn ? 'Importance (I)' : 'Importancia (I)',
+          isEn ? 'Governability (G)' : 'Gobernabilidad (G)',
+          isEn ? 'IGO Quadrant' : 'Cuadrante IGO',
+          isEn ? 'Strategic Action' : 'Acción Estratégica'
+        ],
+        ...allItems.map(x => {
+          const qk = getIGOQuadKey(x.imp, x.gob, avgI, avgG);
+          const iq = IGO_QUADS[qk];
+          const diff = pd.sc.inf[x.i] - pd.sc.dep[x.i];
+          return [
+            x.i + 1,
+            x.v.code,
+            x.v.name,
+            QUAD[pd.q[x.i]]?.name || pd.q[x.i],
+            Number(pd.sc.inf[x.i].toFixed(2)),
+            Number(pd.sc.dep[x.i].toFixed(2)),
+            Number(diff.toFixed(2)),
+            x.fg,
+            x.imp,
+            x.gob,
+            isEn ? iq.name_en : iq.name_es,
+            isEn ? iq.whatToDo_en : iq.whatToDo_es
+          ];
+        })
+      ];
+      XLSX.utils.book_append_sheet(wb, makeSheet(aoaIGO, [6, 12, 32, 26, 14, 14, 14, 18, 15, 16, 26, 48]), '4_Matriz_IGO');
+    }
+
+    // 5. 5_Matriz_T_Retardos
+    const aoaT = [
+      [isEn ? `MATRIX T · ESTIMATED TEMPORAL DELAYS (t_ij) · ${modelTitle}` : `MATRIZ T · RETARDOS TEMPORALES ESTIMADOS (t_ij) · ${modelTitle}`],
+      [isEn ? 'Estimated time delay (years/periods) for direct impact materialization.' : 'Retardo estimado en años/periodos (t_ij) para la materialización del impacto causal directo.'],
+      [isEn ? 'Variable' : 'Variable', ...varHeaders],
+      ...vars.map((a, i) => [
+        `${i + 1}. ${a.code} · ${a.name}`,
+        ...vars.map((b, j) => (i === j ? '—' : Number(res.T[i][j])))
+      ])
+    ];
+    XLSX.utils.book_append_sheet(wb, makeSheet(aoaT), '5_Matriz_T_Retardos');
+
+    // 6. 6_Matriz_W_Efectiva
+    const aoaW = [
+      [isEn ? `DISCOUNTED MATRIX W (λ = ${lam.toFixed(2)}) · ${modelTitle}` : `MATRIZ W DESCONTADA POR FRICCIÓN TEMPORAL (λ = ${lam.toFixed(2)}) · ${modelTitle}`],
+      [isEn ? 'Effective direct impact discounted by temporal friction: w_ij = a_ij · exp(-λ · t_ij).' : 'Impacto efectivo descontado por fricción temporal: w_ij = a_ij · exp(-λ · t_ij).'],
+      [isEn ? 'Variable' : 'Variable', ...varHeaders],
+      ...vars.map((a, i) => [
+        `${i + 1}. ${a.code} · ${a.name}`,
+        ...vars.map((b, j) => (i === j ? '—' : Number(res.W[i][j].toFixed(4))))
+      ])
+    ];
+    XLSX.utils.book_append_sheet(wb, makeSheet(aoaW), '6_Matriz_W_Efectiva');
+
+    // 7. 7_Matriz_S_Bruta_Leontief
+    const aoaSBruta = [
+      [isEn ? `GROSS RESOLVENT MATRIX S^bruta (KATZ-BONACICH, α = ${res.alpha.toFixed(4)})` : `MATRIZ S^bruta · OPERADOR KATZ-BONACICH (α = ${res.alpha.toFixed(4)})`],
+      [isEn ? 'S^bruta = |W|(I - α|W|)⁻¹. Convergent accumulation of all direct and indirect causal chains.' : 'S^bruta = |W|(I - α|W|)⁻¹. Acumulación convergente de todas las cadenas causales directas e indirectas.'],
+      [isEn ? 'Variable' : 'Variable', ...varHeaders, isEn ? 'Σ Gross Motricity' : 'Σ Motricidad Bruta'],
+      ...vars.map((a, i) => [
+        `${i + 1}. ${a.code} · ${a.name}`,
+        ...vars.map((b, j) => Number(res.S_bruta[i][j].toFixed(4))),
+        Number(res.M_bruta_sum[i].toFixed(4))
+      ]),
+      [isEn ? 'Σ Gross Dependence' : 'Σ Dependencia Bruta', ...res.D_bruta_sum.map(d => Number(d.toFixed(4))), Number(res.M_bruta_sum.reduce((a, b) => a + b, 0).toFixed(4))]
+    ];
+    XLSX.utils.book_append_sheet(wb, makeSheet(aoaSBruta), '7_Matriz_S_Bruta_Leontief');
+
+    // 8. 8_Matriz_S_Neta_Leontief
+    const aoaSNeta = [
+      [isEn ? `NET RESOLVENT MATRIX S^neta (WITH FEEDBACK LOOPS)` : `MATRIZ S^neta · EFECTOS NETOS Y RETROALIMENTACIÓN`],
+      [isEn ? 'S^neta = W(I - αW)⁻¹. Total net effects; main diagonal represents Self-Feedback Loop (F_i).' : 'S^neta = W(I - αW)⁻¹. Efectos netos totales; la diagonal principal representa el Bucle Propio (F_i).'],
+      [isEn ? 'Variable' : 'Variable', ...varHeaders, isEn ? 'Σ Net Motricity (off-diag)' : 'Σ Motricidad Neta (sin diag)'],
+      ...vars.map((a, i) => [
+        `${i + 1}. ${a.code} · ${a.name}`,
+        ...vars.map((b, j) => Number(res.S_neta[i][j].toFixed(4))),
+        Number(res.M_neta_sum[i].toFixed(4))
+      ]),
+      [isEn ? 'Σ Net Dependence (off-diag)' : 'Σ Dependencia Neta (sin diag)', ...res.D_neta_sum.map(d => Number(d.toFixed(4))), Number(res.M_neta_sum.reduce((a, b) => a + b, 0).toFixed(4))]
+    ];
+    XLSX.utils.book_append_sheet(wb, makeSheet(aoaSNeta), '8_Matriz_S_Neta_Leontief');
+
+    // 9. 9_Flujos_Netos_Indirectos
+    const aoaInd = [
+      [isEn ? `INDIRECT NET FLOWS MATRIX (S^neta - W)` : `MATRIZ DE FLUJOS NETOS INDIRECTOS (S^neta - W)`],
+      [isEn ? 'Isolates the effect transmitted exclusively through indirect mediations and feedback loops.' : 'Aísla el efecto transmitido exclusivamente a través de bucles y mediaciones indirectas.'],
+      [isEn ? 'Variable' : 'Variable', ...varHeaders],
+      ...vars.map((a, i) => [
+        `${i + 1}. ${a.code} · ${a.name}`,
+        ...vars.map((b, j) => Number((res.S_neta[i][j] - res.W[i][j]).toFixed(4)))
+      ])
+    ];
+    XLSX.utils.book_append_sheet(wb, makeSheet(aoaInd), '9_Flujos_Netos_Indirectos');
+
+    // 10. 10_Indicadores_4D
+    const rankClas = res.M_clas.map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v);
+    const rClasMap = {};
+    rankClas.forEach((item, r) => { rClasMap[item.i] = r + 1; });
+    const rankNet = res.M_neta_sum.map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v);
+    const rNetMap = {};
+    rankNet.forEach((item, r) => { rNetMap[item.i] = r + 1; });
+
+    const uDep = crit === 'media' ? res.D_neta_sum.reduce((a, b) => a + b, 0) / n : crit === 'moda' ? moda(res.D_neta_sum) : quantile(res.D_neta_sum, 0.5);
+    const uMot = crit === 'media' ? res.M_neta_sum.reduce((a, b) => a + b, 0) / n : crit === 'moda' ? moda(res.M_neta_sum) : quantile(res.M_neta_sum, 0.5);
+    const medClas = quantile(res.M_clas, 0.5);
+    const medMn = quantile(res.M_neta_sum, 0.5);
+    const medOm = quantile(res.Omega, 0.5);
+    const q3F = quantile(res.F, 0.75);
+
+    const palancas = [];
+    const trampas = [];
+    const amplificadores = [];
+
+    const aoaInd4D = [
+      [isEn ? `4D STRUCTURAL INDICATORS DASHBOARD · ${modelTitle}` : `TABLERO DE INDICADORES ESTRUCTURALES 4D · ${modelTitle}`],
+      [isEn ? 'Classical vs. Dynamic Convergent comparison, Self-Feedback F, Ambiguity Ω, Quadrants, and Strategic Roles.' : 'Comparación Clásico vs. Dinámico Convergente, Índice de Retorno F, Ambigüedad Ω, Cuadrantes y Rol Estratégico.'],
+      [
+        'N°',
+        isEn ? 'Code' : 'Código',
+        isEn ? 'Variable' : 'Variable',
+        isEn ? 'Direct Motricity' : 'Motricidad Clásica',
+        isEn ? 'Direct Dependence' : 'Dependencia Clásica',
+        isEn ? 'Classical Rank' : 'Rango Clásico',
+        isEn ? 'Gross Motricity' : 'Motricidad Bruta',
+        isEn ? 'Net Motricity' : 'Motricidad Neta',
+        isEn ? 'Net Dependence' : 'Dependencia Neta',
+        isEn ? 'Dynamic Rank' : 'Rango Dinámico',
+        'Δ Rango',
+        isEn ? 'Self-Loop (F)' : 'Bucle Propio (F)',
+        isEn ? 'Ambiguity Ω (%)' : 'Ambigüedad Ω (%)',
+        isEn ? 'Dynamic Quadrant' : 'Cuadrante Dinámico',
+        isEn ? 'Policy Trap' : 'Trampa de Política',
+        isEn ? 'Diagnostic Strategic Role' : 'Rol Estratégico Diagnóstico'
+      ]
+    ];
+
+    vars.forEach((v, i) => {
+      const mn = res.M_neta_sum[i];
+      const dn = res.D_neta_sum[i];
+      const mb = res.M_bruta_sum[i];
+      const f_i = res.F[i];
+      const om_i = res.Omega[i];
+
+      let quadKey = 'auto';
+      if (mn >= uMot) quadKey = dn >= uDep ? 'conflict' : 'power';
+      else quadKey = dn >= uDep ? 'result' : 'auto';
+      const quadName = QUAD[quadKey]?.name || quadKey;
+
+      const esTrampa = (res.M_clas[i] >= medClas) && (om_i > omegaTrampa);
+      const esPalanca = (mn >= medMn) && (om_i <= medOm);
+      if (esPalanca) palancas.push({ v, mn, om_i });
+      if (esTrampa) trampas.push({ v, mb, mn, om_i });
+      if (f_i > 0 && f_i >= q3F) amplificadores.push({ v, f_i });
+
+      const roles = [];
+      if (esPalanca) roles.push(isEn ? 'Consistent Master Lever' : 'Palanca maestra consistente');
+      if (esTrampa) roles.push(isEn ? 'Policy Trap (Mirage)' : 'Trampa de política (espejismo)');
+      if (f_i > 0 && f_i >= q3F) roles.push(isEn ? 'Snowball / Reinforcing Node' : 'Nodo de efecto bola de nieve');
+      if (!roles.length) roles.push(isEn ? 'Regular Evolution Variable' : 'Variable de evolución regular');
+
+      aoaInd4D.push([
+        i + 1,
+        v.code,
+        v.name,
+        res.M_clas[i],
+        res.D_clas[i],
+        rClasMap[i],
+        Number(mb.toFixed(4)),
+        Number(mn.toFixed(4)),
+        Number(dn.toFixed(4)),
+        rNetMap[i],
+        rClasMap[i] - rNetMap[i],
+        Number(f_i.toFixed(4)),
+        Number(om_i.toFixed(2)),
+        quadName,
+        esTrampa ? (isEn ? 'Yes' : 'Sí') : 'No',
+        roles.join('; ')
+      ]);
+    });
+    XLSX.utils.book_append_sheet(wb, makeSheet(aoaInd4D), '10_Indicadores_4D');
+
+    // 11. 11_Diagnostico_Prospectivo
+    const aoaDiag = [
+      [isEn ? `EXECUTIVE REPORT · STRATEGIC DIAGNOSIS & RECOMMENDATIONS (${modelTitle})` : `INFORME EJECUTIVO · DIAGNÓSTICO ESTRATÉGICO Y RECOMENDACIONES (${modelTitle})`],
+      [isEn ? 'Analytical synthesis of the active model for prospective decision-making' : 'Interpretación analítica del modelo en trabajo para la toma de decisiones'],
+      [],
+      [isEn ? '0. ACTIVE MODEL IDENTIFICATION' : '0. IDENTIFICACIÓN DEL MODELO EN TRABAJO'],
+      [isEn ? 'Model Name' : 'Nombre del Modelo', modelTitle],
+      [isEn ? 'User / Institution' : 'Usuario / Institución', userLabel || (isEn ? 'Active Session' : 'Sesión Activa')],
+      [isEn ? 'Export Date' : 'Fecha de Exportación', new Date().toLocaleString()],
+      [isEn ? 'Number of Variables (n)' : 'Número de Variables (n)', n],
+      [],
+      [isEn ? '1. MATHEMATICAL MODEL PARAMETERS' : '1. PARÁMETROS DEL MODELO MATEMÁTICO'],
+      [isEn ? 'Temporal Friction Rate (λ)' : 'Tasa de fricción temporal (λ)', `${lam.toFixed(2)} (w_ij = a_ij · e^(-λt))`],
+      [isEn ? 'Spectral Radius ρ(|W|)' : 'Radio espectral de |W| ρ(|W|)', res.rho.toFixed(4)],
+      [isEn ? 'Katz Convergence Parameter α' : 'Parámetro de Katz α', `${res.alpha.toFixed(4)} (α · ρ = ${alphaRatio.toFixed(2)} < 1)`],
+      [isEn ? 'Mean System Ambiguity Ω' : 'Ambigüedad promedio del sistema Ω', `${meanOmega.toFixed(2)} %`],
+      [],
+      [isEn ? '2. PROSPECTIVE CLASSIFICATION BY STRATEGIC ROLES' : '2. CLASIFICACIÓN PROSPECTIVA POR ROLES ESTRATÉGICOS'],
+      [isEn ? '• CONSISTENT MASTER LEVERS (High net motricity & low causal ambiguity):' : '• PALANCAS MAESTRAS CONSISTENTES (Alta motricidad neta y baja ambigüedad causal):'],
+      ...(palancas.length
+        ? palancas.map(p => [`   - ${p.v.code} · ${p.v.name}`, `Motricidad neta: ${p.mn.toFixed(2)} | Ω: ${p.om_i.toFixed(1)}%`])
+        : [[isEn ? '   (None identified under current thresholds)' : '   (Ninguna identificada bajo los umbrales actuales)', '']]),
+      [isEn ? '• POLICY TRAPS / MIRAGES (High classical motricity but high ambiguity Ω):' : '• TRAMPAS DE POLÍTICA O ESPEJISMOS (Alta motricidad clásica pero elevada ambigüedad Ω):'],
+      ...(trampas.length
+        ? trampas.map(tItem => [`   - ${tItem.v.code} · ${tItem.v.name}`, `Motricidad bruta: ${tItem.mb.toFixed(2)} | Motricidad neta: ${tItem.mn.toFixed(2)} | Ω: ${tItem.om_i.toFixed(1)}%`])
+        : [[isEn ? '   (No policy traps detected — consistent direct and indirect effects)' : '   (Sin trampas de política detectadas — efectos consistentes)', '']]),
+      [isEn ? '• SNOWBALL / REINFORCING NODES (High positive self-loop F > 0):' : '• NODOS DE EFECTO BOLA DE NIEVE (Bucle propio F > 0 alto: refuerzo expansivo):'],
+      ...(amplificadores.length
+        ? amplificadores.map(aItem => [`   - ${aItem.v.code} · ${aItem.v.name}`, `Bucle propio F: +${aItem.f_i.toFixed(3)}`])
+        : [[isEn ? '   (None identified)' : '   (Ninguno identificado)', '']])
+    ];
+    XLSX.utils.book_append_sheet(wb, makeSheet(aoaDiag, [46, 72]), '11_Diagnostico_Prospectivo');
+
+    // 12. 12_Simulacion_Trayectorias
+    if (typeof simulate === 'function') {
+      const sim = simulate();
+      if (sim && Array.isArray(sim) && sim.length > 0) {
+        const aoaSim = [
+          [isEn ? `DYNAMIC SIMULATION TRAJECTORIES (t = 0 .. ${sim.length - 1}) · ${modelTitle}` : `TRAYECTORIAS DE SIMULACIÓN DINÁMICA (t = 0 .. ${sim.length - 1}) · ${modelTitle}`],
+          [isEn ? `Parameters: β = ${S.params?.beta ?? 0.15}, λ = ${S.params?.lambda ?? 0.05}, steps = ${sim.length - 1}` : `Parámetros: β = ${S.params?.beta ?? 0.15}, λ = ${S.params?.lambda ?? 0.05}, horizonte = ${sim.length - 1} pasos`],
+          [isEn ? 'Period (t)' : 'Periodo (t)', ...vars.map((v, i) => `${i + 1}. ${v.code} · ${v.name}`)],
+          ...sim.map((stepVals, tStep) => [
+            tStep,
+            ...stepVals.map(valNum => Number((valNum ?? 0).toFixed(2)))
+          ])
+        ];
+        XLSX.utils.book_append_sheet(wb, makeSheet(aoaSim), '12_Simulacion_Trayectorias');
+      }
+    }
+
+    const safeSlug = modelTitle
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 45) || 'modelo_activo';
+    const fileName = `analisis_micmac_${safeSlug}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  } catch (err) {
+    console.error('Error exporting Excel:', err);
+    alert((currentLang === 'en' ? 'Error generating Excel file: ' : 'Error al generar el archivo Excel: ') + err.message);
+  }
+}
+window.exportExcelReport = exportExcelReport;
 $('#file-import').onchange = e => {
   const f = e.target.files[0];
   if (!f) return;
@@ -4134,13 +5151,14 @@ function applyLanguage(lang) {
       const esItem = esByCode[codeKey] || esVars[idx];
       const enItem = enByCode[codeKey] || enVars[idx];
       if (target && esItem && enItem) {
-        if (!v.name || v.name === esItem[1] || v.name === enItem[1]) {
+        if (v.name === esItem[1] || v.name === enItem[1]) {
           v.name = target[1];
         }
-        if (!v.desc || v.desc === esItem[2] || v.desc === enItem[2]) {
+        if (v.desc === esItem[2] || v.desc === enItem[2]) {
           v.desc = target[2];
         }
-      } else if (v.name === 'New variable' || v.name === 'Nueva variable') {
+      }
+      if (v.name === 'New variable' || v.name === 'Nueva variable') {
         v.name = lang === 'en' ? 'New variable' : 'Nueva variable';
       }
     });
@@ -4161,13 +5179,13 @@ function applyLanguage(lang) {
       const esLnk = esLinkMap[cKey];
       const enLnk = enLinkMap[cKey];
       if (target && esLnk && enLnk) {
-        if (!lnk.concept || lnk.concept === esLnk[3] || lnk.concept === enLnk[3]) {
+        if (lnk.concept === esLnk[3] || lnk.concept === enLnk[3]) {
           lnk.concept = target[3];
         }
-        if (!lnk.evidence || lnk.evidence === esLnk[4] || lnk.evidence === enLnk[4]) {
+        if (lnk.evidence === esLnk[4] || lnk.evidence === enLnk[4]) {
           lnk.evidence = target[4];
         }
-        if (!lnk.src || lnk.src === esLnk[5] || lnk.src === enLnk[5]) {
+        if (lnk.src === esLnk[5] || lnk.src === enLnk[5]) {
           lnk.src = target[5];
         }
       }
@@ -4176,6 +5194,9 @@ function applyLanguage(lang) {
   save();
   if (typeof renderPresetPanel === 'function' && $('#preset-panel') && $('#preset-panel').style.display !== 'none') {
     renderPresetPanel();
+  }
+  if (typeof renderUserProjectModal === 'function' && $('#user-project-modal') && $('#user-project-modal').classList.contains('open')) {
+    renderUserProjectModal();
   }
 
   // Re-render components
@@ -6609,6 +7630,9 @@ function renderIGO() {
           </p>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button type="button" class="btn sm" data-save-btn onclick="saveChangesManual()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;" title="${isEn ? 'Save all IGO Matrix & Territorial Purposes changes (Ctrl+S)' : 'Guardar todos los cambios realizados en la Matriz IGO y Finalidades (Ctrl+S)'}">
+            💾 ${isEn ? 'Save Changes' : 'Guardar cambios'}
+          </button>
           <button type="button" class="btn primary sm" onclick="calibrateIGOFromMICMAC()" title="${isEn ? 'Auto-calibrate I and G scores from MICMAC structural position and territorial purposes' : 'Sugerir puntajes I y G a partir del peso estratégico MICMAC y las finalidades territoriales'}">
             ⚡ ${isEn ? 'Calibrate I & G from MICMAC' : 'Sugerir I y G desde MICMAC'}
           </button>
@@ -6947,11 +7971,15 @@ function renderIGO() {
   if (diagChk) diagChk.onchange = e => { S.igo.showDiag = e.target.checked; save(); renderIGO(); };
 
   const visInp = $('#igo-vision-input', root);
-  if (visInp) visInp.onchange = e => {
-    if (currentLang === 'en') S.igo.vision_en = e.target.value;
-    else S.igo.vision_es = e.target.value;
-    save();
-  };
+  if (visInp) {
+    const syncVision = e => {
+      if (currentLang === 'en') S.igo.vision_en = e.target.value;
+      else S.igo.vision_es = e.target.value;
+      save();
+    };
+    visInp.oninput = syncVision;
+    visInp.onchange = syncVision;
+  }
 
   root.querySelectorAll('.igo-purpose-lv-btn').forEach(btn => {
     btn.onclick = () => {
@@ -7041,8 +8069,858 @@ function renderAll() {
   renderGodetStability();
   renderStability();
   renderIGO();
+  if (typeof updateUserProjectPill === 'function') updateUserProjectPill();
 }
+
+/* ============================================================
+   10. SISTEMA DE USUARIOS Y PROYECTOS (EJEMPLO vs. PROYECTO PROPIO)
+   ============================================================ */
+const LS_UP = 'micmac-users-projects-v1';
+
+function getBlankStarterState(lang = 'es', customVision = '') {
+  const isEn = lang === 'en';
+  uid = 10;
+  const vars = [
+    {
+      id: 'v1',
+      code: 'V1',
+      name: isEn ? 'Strategic Variable 1 (Edit name)' : 'Variable Estratégica 1 (Editar nombre)',
+      desc: isEn ? 'Describe the scope and definition of this variable in your project' : 'Describa el alcance y definición de esta variable en su proyecto',
+      x0: 50,
+      polar: '+'
+    },
+    {
+      id: 'v2',
+      code: 'V2',
+      name: isEn ? 'Strategic Variable 2 (Edit name)' : 'Variable Estratégica 2 (Editar nombre)',
+      desc: isEn ? 'Describe the scope and definition of this variable in your project' : 'Describa el alcance y definición de esta variable en su proyecto',
+      x0: 50,
+      polar: '+'
+    },
+    {
+      id: 'v3',
+      code: 'V3',
+      name: isEn ? 'Strategic Variable 3 (Edit name)' : 'Variable Estratégica 3 (Editar nombre)',
+      desc: isEn ? 'Describe the scope and definition of this variable in your project' : 'Describa el alcance y definición de esta variable en su proyecto',
+      x0: 50,
+      polar: '+'
+    }
+  ];
+  const visionText = (customVision || '').trim();
+  return {
+    vars,
+    links: {},
+    ints: [],
+    params: { beta: 0.15, lambda: 0.05, steps: 50, engine: 'euler', dt: 0.1 },
+    igo: {
+      vision_es: visionText || 'Defina aquí la Finalidad General o Visión de Futuro del Territorio / Proyecto.',
+      vision_en: visionText || 'Define here the Overarching Territorial / Project Vision or General Purpose.',
+      filterMode: 'all',
+      scaleMode: 'classic',
+      thrMode: 'mean',
+      showDiag: true,
+      selVar: 'v1',
+      purposes: getDefaultIGOPurposes(),
+      scores: {
+        v1: { imp: 5, gob: 5, fg: 'FG1', note_es: 'Variable inicial editable.', note_en: 'Editable starter variable.' },
+        v2: { imp: 3, gob: 3, fg: 'FG2', note_es: 'Variable inicial editable.', note_en: 'Editable starter variable.' },
+        v3: { imp: 5, gob: 1, fg: 'FG3', note_es: 'Variable inicial editable.', note_en: 'Editable starter variable.' }
+      }
+    },
+    lastSavedAt: new Date().toISOString()
+  };
+}
+
+let mtPortalStep = 'auth'; // 'auth' (Paso 1: Login / Crear Usuario) | 'model' (Paso 2: Elegir Ejemplo o Crear Modelo Propio)
+
+function loadUserProjectsStore() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS_UP));
+    if (raw && Array.isArray(raw.users) && raw.users.length && Array.isArray(raw.projects)) {
+      raw.users.forEach(u => {
+        if (!u.username) u.username = (u.name || 'demo').toLowerCase().replace(/[^a-z0-9_.-]/g, '') || 'demo';
+      });
+      raw.projects.forEach(p => {
+        if (p && p.state && p.state.links) {
+          Object.values(p.state.links).forEach(lnk => {
+            if (lnk && lnk.v !== undefined) {
+              lnk.v = Math.min(3, Math.max(0, Math.abs(Math.round(Number(lnk.v) || 0))));
+            }
+          });
+        }
+      });
+      return raw;
+    }
+  } catch (e) {}
+
+  // Inicializar con un Tenant / Usuario base y el modelo demostrativo existente (15 variables)
+  const now = new Date().toISOString();
+  const defaultUser = {
+    id: 'u_default',
+    username: 'demo',
+    name: 'Usuario Demo / Base',
+    org: 'CEPAL - ILPES / Prospectiva Estructural',
+    password: '',
+    createdAt: now
+  };
+  const defaultProj = {
+    id: 'proj_example_default',
+    userId: 'u_default',
+    name: 'Modelo Ejemplo Existente (15 Variables MICMAC + IGO)',
+    desc: 'Caso demostrativo completo con 15 variables estratégicas, matriz justificada y Matriz IGO.',
+    mode: 'example',
+    createdAt: now,
+    updatedAt: now,
+    state: JSON.parse(JSON.stringify(S))
+  };
+  const initStore = {
+    activeUserId: defaultUser.id,
+    activeProjectId: defaultProj.id,
+    selectedModalUserId: defaultUser.id,
+    users: [defaultUser],
+    projects: [defaultProj]
+  };
+  try {
+    localStorage.setItem(LS_UP, JSON.stringify(initStore));
+  } catch (e) {}
+  return initStore;
+}
+
+function saveUserProjectsStore(store) {
+  try {
+    localStorage.setItem(LS_UP, JSON.stringify(store));
+  } catch (e) {
+    console.warn('Error saving user/project store:', e);
+  }
+}
+
+function syncActiveProjectOnSave() {
+  const store = loadUserProjectsStore();
+  const activeProj = store.projects.find(p => p.id === store.activeProjectId);
+  if (activeProj) {
+    if (typeof vnetState !== 'undefined' && vnetState.positions && Object.keys(vnetState.positions).length) {
+      S.vnetPositions = vnetState.positions;
+    }
+    if (typeof flowState !== 'undefined' && flowState.positions && Object.keys(flowState.positions).length) {
+      S.flowPositions = flowState.positions;
+    }
+    activeProj.state = JSON.parse(JSON.stringify(S));
+    activeProj.updatedAt = S.lastSavedAt || new Date().toISOString();
+    saveUserProjectsStore(store);
+  }
+  updateUserProjectPill();
+}
+
+function updateUserProjectPill() {
+  const el = document.getElementById('user-project-pill-txt');
+  if (!el) return;
+  const store = loadUserProjectsStore();
+  const u = store.users.find(x => x.id === store.activeUserId) || store.users[0];
+  const p = store.projects.find(x => x.id === store.activeProjectId);
+  const uName = u ? u.name : 'Usuario';
+  const orgTag = u && u.org ? `<span style="color:#a78bfa;font-weight:700;">🏢 ${esc(u.org.length > 18 ? u.org.slice(0, 17) + '…' : u.org)}</span> <span style="opacity:.4">·</span> ` : '';
+  const pName = p ? p.name : 'Modelo';
+  const shortP = pName.length > 26 ? pName.slice(0, 25) + '…' : pName;
+  el.innerHTML = `${orgTag}👤 <b style="color:#38bdf8;">${esc(uName)}</b> <span style="opacity:.45">·</span> 📁 <span style="color:#f8fafc;">${esc(shortP)}</span>`;
+}
+
+function applyProjectToWorkspace(proj) {
+  if (!proj || !proj.state) return;
+  S = JSON.parse(JSON.stringify(proj.state));
+  if (S.links) {
+    Object.values(S.links).forEach(lnk => {
+      if (lnk && lnk.v !== undefined) {
+        lnk.v = Math.min(3, Math.max(0, Math.abs(Math.round(Number(lnk.v) || 0))));
+      }
+    });
+  }
+  uid = 1000;
+  ui.sel = V().length >= 2 ? [V()[0].id, V()[1].id] : null;
+  ui.selVar = null;
+  ui.hidden.clear();
+  vnetState.positions = S.vnetPositions ? JSON.parse(JSON.stringify(S.vnetPositions)) : {};
+  vnetState.initialized = Object.keys(vnetState.positions).length > 0;
+  flowState.positions = S.flowPositions ? JSON.parse(JSON.stringify(S.flowPositions)) : {};
+  flowState.initialized = Object.keys(flowState.positions).length > 0;
+  localStorage.removeItem('micmac_vnet_positions');
+  localStorage.removeItem('micmac_flow_positions');
+  ensureIGOState();
+  save();
+  renderAll();
+  setTimeout(() => {
+    if (typeof vnetFitScreen === 'function') vnetFitScreen();
+    if (typeof flowFitToScreen === 'function') flowFitToScreen();
+  }, 90);
+}
+
+function setMtPortalStep(step) {
+  mtPortalStep = step === 'model' ? 'model' : 'auth';
+  renderUserProjectModal();
+}
+window.setMtPortalStep = setMtPortalStep;
+
+function renderUserProjectModal() {
+  const box = document.getElementById('user-project-modal-content');
+  if (!box) return;
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const store = loadUserProjectsStore();
+  const selUserId = store.selectedModalUserId || store.activeUserId || store.users[0]?.id;
+  const selUser = store.users.find(u => u.id === selUserId) || store.users[0];
+  const userProjects = store.projects.filter(p => p.userId === selUser.id);
+  const activeProj = store.projects.find(p => p.id === store.activeProjectId);
+  const hasEnteredBefore = sessionStorage.getItem('micmac_user_chosen') === '1';
+
+  box.innerHTML = `
+    <!-- CABECERA INSTITUCIONAL DE LA PRIMERA PÁGINA -->
+    <div class="modal-header" style="background:linear-gradient(135deg,#090f20 0%,#131f3a 55%,#0f172a 100%);border-bottom:1px solid rgba(56,189,248,0.3);padding:16px 24px;">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#2563eb,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:800;box-shadow:0 4px 16px rgba(37,99,235,0.4);">◈</div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <h2 style="margin:0;font-size:19px;color:#f8fafc;letter-spacing:-0.2px;">
+              ${isEn ? 'Extended MICMAC · Structural & Territorial Foresight Platform' : 'MICMAC Extendido · Plataforma de Prospectiva Estructural y Territorial'}
+            </h2>
+            <span class="badge" style="background:rgba(56,189,248,0.18);border:1px solid #38bdf8;color:#38bdf8;font-size:10.5px;font-weight:700;">v2.4</span>
+          </div>
+          <p class="muted" style="margin:3px 0 0;font-size:12.5px;color:#94a3b8;">
+            ${isEn
+              ? 'Personal workspace per User & Institution · Step 1: Login or Create User → Step 2: Choose Existing Example or Create Own Model'
+              : 'Espacio de trabajo por Usuario e Institución · Paso 1: Login o Crear Usuario → Paso 2: Elegir Ejemplo Existente o Crear Modelo Propio'}
+          </p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <!-- Selector de idioma en la primera página -->
+        <div style="display:inline-flex;background:#080d1a;border:1px solid rgba(148,163,255,0.25);border-radius:8px;padding:2px;">
+          <button type="button" onclick="applyLanguage('es')" style="padding:4px 9px;font-size:11.5px;font-weight:700;border:none;border-radius:6px;cursor:pointer;background:${!isEn ? '#2563eb' : 'transparent'};color:${!isEn ? '#fff' : '#94a3b8'};">ES</button>
+          <button type="button" onclick="applyLanguage('en')" style="padding:4px 9px;font-size:11.5px;font-weight:700;border:none;border-radius:6px;cursor:pointer;background:${isEn ? '#2563eb' : 'transparent'};color:${isEn ? '#fff' : '#94a3b8'};">EN</button>
+        </div>
+        ${hasEnteredBefore ? `
+          <button type="button" class="modal-close-btn" onclick="closeUserProjectModal()" title="${isEn ? 'Return to active model' : 'Volver al modelo activo'}">&times;</button>
+        ` : ''}
+      </div>
+    </div>
+
+      <!-- BARRA DE PROGRESO DE 2 PASOS EN LA PRIMERA PÁGINA -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 24px;background:rgba(8,13,26,0.92);border-bottom:1px solid rgba(148,163,255,0.14);flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button type="button" onclick="setMtPortalStep('auth')"
+          style="display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:700;cursor:pointer;transition:all .15s;border:1.5px solid ${mtPortalStep === 'auth' ? '#38bdf8' : 'rgba(148,163,255,0.22)'};background:${mtPortalStep === 'auth' ? 'rgba(56,189,248,0.18)' : 'rgba(15,23,42,0.7)'};color:${mtPortalStep === 'auth' ? '#38bdf8' : '#cbd5e1'};">
+          <span style="width:20px;height:20px;border-radius:50%;background:${mtPortalStep === 'auth' ? '#0284c7' : '#334155'};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;">1</span>
+          <span>${isEn ? 'Access: Login or Register' : 'Acceso: Login o Registro'}</span>
+        </button>
+        <span style="color:#64748b;font-weight:700;">➔</span>
+        <button type="button" ${hasEnteredBefore || mtPortalStep === 'model' ? `onclick="setMtPortalStep('model')"` : 'disabled'}
+          style="display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:700;cursor:${hasEnteredBefore || mtPortalStep === 'model' ? 'pointer' : 'not-allowed'};opacity:${hasEnteredBefore || mtPortalStep === 'model' ? '1' : '0.55'};transition:all .15s;border:1.5px solid ${mtPortalStep === 'model' ? '#34d399' : 'rgba(148,163,255,0.22)'};background:${mtPortalStep === 'model' ? 'rgba(52,211,153,0.18)' : 'rgba(15,23,42,0.7)'};color:${mtPortalStep === 'model' ? '#34d399' : '#cbd5e1'};">
+          <span style="width:20px;height:20px;border-radius:50%;background:${mtPortalStep === 'model' ? '#059669' : '#334155'};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;">2</span>
+          <span>${isEn ? 'Choose Existing Example, Resume or Create Own Model' : 'Elegir Ejemplo, Retomar o Crear Modelo Propio'}</span>
+        </button>
+      </div>
+      ${mtPortalStep === 'model' ? `
+      <div style="font-size:12px;color:#94a3b8;display:flex;align-items:center;gap:6px;">
+        <span>🟢 ${isEn ? 'Active Account:' : 'Cuenta activa:'}</span>
+        <b style="color:#38bdf8;">👤 ${esc(selUser.email || selUser.name)}</b>
+      </div>
+      ` : ''}
+    </div>
+
+    <div class="modal-body" style="padding:24px;max-height:76vh;overflow-y:auto;">
+      ${mtPortalStep === 'auth' ? `
+        <!-- =========================================================
+             PASO 1 DE LA PRIMERA PÁGINA: LOGIN O CREAR NUEVO USUARIO (EMAIL Y CONTRASEÑA)
+             ========================================================= -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;align-items:stretch;">
+          
+          <!-- COLUMNA IZQUIERDA: INICIAR SESIÓN (LOGIN) -->
+          <div style="background:rgba(15,23,42,0.85);border:1.5px solid rgba(56,189,248,0.35);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;gap:16px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+                <h3 style="margin:0;font-size:16.5px;color:#38bdf8;display:flex;align-items:center;gap:8px;">
+                  <span>🔐</span>
+                  <span>${isEn ? 'Option 1 · Sign In (Login)' : 'Opción 1 · Acceso Login (Iniciar Sesión)'}</span>
+                </h3>
+                <span class="badge" style="background:#0284c7;color:#fff;font-size:10px;">Login</span>
+              </div>
+              <p style="margin:0 0 14px;font-size:12.5px;color:#94a3b8;line-height:1.5;">
+                ${isEn
+                  ? 'Enter your registered email and password to access your saved models.'
+                  : 'Ingrese su correo electrónico (email) y contraseña para acceder a sus modelos.'}
+              </p>
+
+              <div style="display:flex;flex-direction:column;gap:12px;background:rgba(8,12,24,0.85);border:1px solid rgba(56,189,248,0.22);border-radius:10px;padding:16px;">
+                <div>
+                  <label style="font-size:12px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:5px;">${isEn ? 'Email *:' : 'Email (Correo electrónico) *:'}</label>
+                  <input type="email" id="mt-login-username" placeholder="${isEn ? 'user@domain.com' : 'usuario@correo.com'}"
+                    onkeydown="if(event.key==='Enter')loginTenantFromPortal()"
+                    style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.35);border-radius:7px;">
+                </div>
+                <div>
+                  <label style="font-size:12px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:5px;">${isEn ? 'Password *:' : 'Contraseña *:'}</label>
+                  <input type="password" id="mt-login-password" placeholder="${isEn ? 'Enter your password' : 'Ingrese su contraseña'}"
+                    onkeydown="if(event.key==='Enter')loginTenantFromPortal()"
+                    style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.28);border-radius:7px;">
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="btn" onclick="loginTenantFromPortal()"
+              style="background:linear-gradient(135deg,#0284c7,#2563eb);color:#fff;font-weight:700;padding:11px 16px;width:100%;font-size:13.5px;box-shadow:0 4px 16px rgba(2,132,199,0.28);">
+              🔐 ${isEn ? 'Login & Continue to Choose Model →' : 'Iniciar Sesión y Pasar a Elegir Modelo →'}
+            </button>
+          </div>
+
+          <!-- COLUMNA DERECHA: REGISTRO (CREAR NUEVO USUARIO SOLO CON EMAIL Y CONTRASEÑA) -->
+          <div style="background:rgba(15,23,42,0.85);border:1.5px solid rgba(52,211,153,0.38);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;gap:16px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+                <h3 style="margin:0;font-size:16.5px;color:#34d399;display:flex;align-items:center;gap:8px;">
+                  <span>➕</span>
+                  <span>${isEn ? 'Option 2 · Register (Create New User)' : 'Opción 2 · Registro (Crear Nuevo Usuario)'}</span>
+                </h3>
+                <span class="badge" style="background:#059669;color:#fff;font-size:10px;">${isEn ? 'Register' : 'Registro'}</span>
+              </div>
+              <p style="margin:0 0 14px;font-size:12.5px;color:#94a3b8;line-height:1.5;">
+                ${isEn
+                  ? 'Enter your email and password to create a new user account and proceed to choose the existing example or create your own model.'
+                  : 'Ingrese su email y contraseña para crear un nuevo usuario y pasar directamente a elegir entre el ejemplo existente o crear su propio modelo.'}
+              </p>
+
+              <div style="display:flex;flex-direction:column;gap:12px;background:rgba(8,12,24,0.85);border:1px solid rgba(52,211,153,0.22);border-radius:10px;padding:16px;">
+                <div>
+                  <label style="font-size:12px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:5px;">${isEn ? 'Email *:' : 'Email (Correo electrónico) *:'}</label>
+                  <input type="email" id="up-new-user-email" placeholder="${isEn ? 'user@domain.com' : 'usuario@correo.com'}"
+                    onkeydown="if(event.key==='Enter')createNewUserFromModal()"
+                    style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(52,211,153,0.35);border-radius:7px;">
+                </div>
+                <div>
+                  <label style="font-size:12px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:5px;">${isEn ? 'Password *:' : 'Contraseña *:'}</label>
+                  <input type="password" id="up-new-user-pass" placeholder="${isEn ? 'Create your password' : 'Cree su contraseña'}"
+                    onkeydown="if(event.key==='Enter')createNewUserFromModal()"
+                    style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.28);border-radius:7px;">
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="btn" onclick="createNewUserFromModal()"
+              style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;padding:11px 16px;width:100%;font-size:13.5px;box-shadow:0 4px 16px rgba(16,185,129,0.28);">
+              ➕ ${isEn ? 'Create User & Proceed to Model Selection →' : 'Crear Usuario y Pasar a Elegir Modelo →'}
+            </button>
+          </div>
+
+        </div>
+      ` : `
+        <!-- =========================================================
+             PASO 2 DE LA PRIMERA PÁGINA: ELEGIR EL EJEMPLO QUE EXISTE O CREAR UN MODELO PROPIO
+             ========================================================= -->
+        <div>
+          <!-- Banner del Usuario Autenticado -->
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 16px;background:linear-gradient(90deg,rgba(2,132,199,0.18),rgba(16,185,129,0.12));border:1px solid rgba(56,189,248,0.35);border-radius:11px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <span class="badge" style="background:#059669;color:#fff;font-size:11px;padding:4px 9px;">✓ ${isEn ? 'SIGNED IN' : 'SESIÓN INICIADA'}</span>
+              <span style="font-size:14px;font-weight:700;color:#f8fafc;">👤 ${esc(selUser.name)} <span style="color:#38bdf8;font-family:'JetBrains Mono',monospace;font-size:12px;">(@${esc(selUser.username || 'user')})</span></span>
+              ${selUser.org ? `<span style="font-size:13px;color:#c4b5fd;font-weight:600;">· 🏢 ${esc(selUser.org)}</span>` : ''}
+            </div>
+            <button type="button" class="btn ghost sm" onclick="setMtPortalStep('auth')" style="border-color:rgba(248,113,113,0.4);color:#fca5a5;font-size:12px;">
+              ← ${isEn ? 'Switch User / Back to Login' : 'Cambiar de Usuario / Volver al Login'}
+            </button>
+          </div>
+
+          <!-- Lista de Modelos ya guardados de este usuario (destacada arriba para retomar directamente) -->
+          <div style="background:linear-gradient(145deg,rgba(8,12,24,0.92),rgba(15,23,42,0.95));border:1.5px solid rgba(245,158,11,0.45);border-radius:12px;padding:14px 16px;margin-bottom:16px;box-shadow:0 6px 20px rgba(0,0,0,0.35);">
+            <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+              <span>📂 ${isEn ? `Saved Models of "${esc(selUser.name)}" — Click to Resume (${userProjects.length}):` : `Modelos guardados con nombre de «${esc(selUser.name)}» — Clic para retomar (${userProjects.length}):`}</span>
+              <span style="font-size:11px;color:#cbd5e1;font-weight:500;">${isEn ? 'Resume your work anytime' : 'Retome cualquiera de sus modelos guardados'}</span>
+            </div>
+            ${userProjects.length ? `
+              <div style="display:flex;flex-direction:column;gap:8px;max-height:210px;overflow-y:auto;">
+                ${userProjects.map(p => {
+                  const isAct = p.id === store.activeProjectId;
+                  const nV = p.state?.vars?.length || 0;
+                  const nL = Object.values(p.state?.links || {}).filter(l => l && l.v).length;
+                  const dt = new Date(p.updatedAt || p.createdAt);
+                  const dStr = dt.toLocaleDateString() + ' ' + dt.toTimeString().slice(0, 5);
+                  return `
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 13px;border-radius:9px;background:${isAct ? 'rgba(16,185,129,0.16)' : 'rgba(15,23,42,0.9)'};border:1.5px solid ${isAct ? '#10b981' : 'rgba(148,163,255,0.2)'};">
+                      <div>
+                        <div style="font-weight:700;font-size:13.5px;color:#f8fafc;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                          <span>📁 ${esc(p.name)}</span>
+                          <span class="badge" style="background:${p.mode === 'custom' ? '#059669' : '#0284c7'};font-size:9.5px;">${p.mode === 'custom' ? (isEn ? 'Own Model' : 'Modelo Propio') : (isEn ? 'Existing Example' : 'Ejemplo Existente')}</span>
+                          ${isAct ? `<span class="badge" style="background:#f59e0b;color:#080d1a;font-size:9.5px;font-weight:800;">${isEn ? 'Last Active' : 'Último en uso'}</span>` : ''}
+                        </div>
+                        <div style="font-size:11.5px;color:#94a3b8;margin-top:3px;">
+                          <b>${nV}</b> vars · <b>${nL}</b> ${isEn ? 'links' : 'vínculos'} · 🕒 ${isEn ? 'Saved:' : 'Guardado:'} ${esc(dStr)}
+                        </div>
+                      </div>
+                      <div style="display:flex;gap:6px;align-items:center;">
+                        <button type="button" class="btn sm" onclick="openSavedUserProject('${p.id}')" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-size:12px;padding:6px 14px;font-weight:700;box-shadow:0 2px 10px rgba(16,185,129,0.3);">
+                          ▶ ${isEn ? 'Resume Model' : 'Retomar Modelo'}
+                        </button>
+                        <button type="button" class="btn ghost sm" onclick="renameSavedModelInline('${p.id}')" style="font-size:11.5px;padding:5px 8px;" title="${isEn ? 'Rename model' : 'Cambiar nombre del modelo'}">✏️</button>
+                        <button type="button" class="btn ghost sm" onclick="duplicateSavedUserProject('${p.id}')" style="font-size:11.5px;padding:5px 8px;" title="${isEn ? 'Duplicate model' : 'Duplicar modelo'}">📋</button>
+                        ${store.projects.length > 1 ? `
+                          <button type="button" class="btn danger sm" onclick="deleteSavedUserProject('${p.id}')" style="font-size:11.5px;padding:5px 8px;" title="${isEn ? 'Delete model' : 'Eliminar modelo'}">✕</button>
+                        ` : ''}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : `
+              <div style="padding:12px;text-align:center;color:#94a3b8;background:rgba(8,12,24,0.5);border-radius:8px;font-size:12px;">
+                ${isEn
+                  ? 'No models saved yet for this user. Choose Option A (Existing Example) or Option B (Create Your Own Model) below!'
+                  : 'Este usuario aún no tiene modelos guardados. ¡Elija abajo la Opción A (Elegir el Ejemplo que Existe) o la Opción B (Crear un Modelo Propio)!'}
+              </div>
+            `}
+          </div>
+
+          <!-- Dos grandes tarjetas: (A) Elegir el Ejemplo que Existe vs (B) Crear un Modelo Propio -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px;">
+            
+            <!-- Opción A: Elegir el Ejemplo que Existe -->
+            <div style="background:linear-gradient(145deg,rgba(15,23,42,0.96),rgba(30,58,138,0.28));border:2px solid rgba(56,189,248,0.5);border-radius:13px;padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between;gap:14px;box-shadow:0 8px 24px rgba(2,132,199,0.12);">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+                  <h3 style="margin:0;font-size:15.5px;color:#38bdf8;">📚 ${isEn ? 'Option A · Choose the Existing Example' : 'Opción A · Elegir el Ejemplo que Existe'}</h3>
+                  <span class="badge" style="background:#0284c7;color:#fff;font-size:10.5px;">15 Vars + IGO</span>
+                </div>
+                <p style="margin:0 0 12px;font-size:12.5px;color:#cbd5e1;line-height:1.55;">
+                  ${isEn
+                    ? 'Work with the complete <b>15-variable MICMAC & IGO demonstration model</b> (justified influence matrix, 4D dynamic plane, Force-Directed causal network, and territorial purposes matrix). Any edits you make will be saved exclusively in your user account.'
+                    : 'Trabaje con el <b>modelo demostrativo completo de 15 variables</b> que existe en el sistema (matriz de influencias justificada, plano 4D, red causal Force-Directed y Matriz IGO de finalidades). Los cambios se guardarán en su cuenta de usuario.'}
+                </p>
+                <label style="font-size:11.5px;color:#94a3b8;font-weight:600;display:block;margin-bottom:4px;">
+                  ${isEn ? 'Model name to save & resume later:' : 'Nombre del modelo para guardarlo y retomarlo:'}
+                </label>
+                <input type="text" id="up-example-proj-name" value="${isEn ? `Existing Example Model (${selUser.name})` : `Modelo Ejemplo Existente (${selUser.name})`}"
+                  style="width:100%;padding:7px 10px;font-size:12.5px;background:#080d1a;color:#fff;border:1px solid rgba(56,189,248,0.35);border-radius:7px;">
+              </div>
+              <button type="button" class="btn" onclick="startExampleProjectForUser()"
+                style="background:linear-gradient(135deg,#0284c7,#2563eb);color:#fff;font-weight:700;padding:11px 16px;width:100%;font-size:13.5px;box-shadow:0 4px 14px rgba(37,99,235,0.35);">
+                📚 ${isEn ? 'Choose Existing Example & Enter System →' : 'Elegir el Ejemplo que Existe e Ingresar →'}
+              </button>
+            </div>
+
+            <!-- Opción B: Crear un Modelo Propio -->
+            <div style="background:linear-gradient(145deg,rgba(15,23,42,0.96),rgba(6,95,70,0.28));border:2px solid rgba(52,211,153,0.5);border-radius:13px;padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between;gap:12px;box-shadow:0 8px 24px rgba(16,185,129,0.12);">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+                  <h3 style="margin:0;font-size:15.5px;color:#34d399;">✨ ${isEn ? 'Option B · Create Your Own Model' : 'Opción B · Crear un Modelo Propio'}</h3>
+                  <span class="badge" style="background:#059669;color:#fff;font-size:10.5px;">${isEn ? 'Custom Model' : 'Modelo Propio'}</span>
+                </div>
+                <p style="margin:0 0 10px;font-size:12.5px;color:#cbd5e1;line-height:1.5;">
+                  ${isEn
+                    ? 'Build your own custom prospective & territorial model from scratch (define your own variables, causal influences, and territorial purposes) or import a JSON model.'
+                    : 'Construya un modelo prospectivo y territorial propio desde cero (definiendo sus variables, matriz de influencias y finalidades territoriales) o importe su archivo JSON.'}
+                </p>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div>
+                    <label style="font-size:11.5px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:3px;">${isEn ? 'Model Name (to save & resume later) *:' : 'Nombre del Modelo Propio (para guardarlo y retomarlo) *:'}</label>
+                    <input type="text" id="up-own-proj-name" placeholder="${isEn ? 'E.g.: Territorial Prospective Model 2035' : 'Ej.: Modelo Prospectivo Territorial 2035'}"
+                      style="width:100%;padding:7px 10px;font-size:12.5px;background:#080d1a;color:#fff;border:1px solid rgba(52,211,153,0.4);border-radius:7px;">
+                  </div>
+                  <div>
+                    <label style="font-size:11.5px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:3px;">${isEn ? 'General Territorial Purpose / Vision (optional):' : 'Finalidad General / Visión del Territorio (opcional):'}</label>
+                    <input type="text" id="up-own-proj-vision" placeholder="${isEn ? 'E.g.: Sustainable, inclusive regional innovation ecosystem...' : 'Ej.: Consolidar un territorio sostenible, inclusivo y competitivo...'}"
+                      style="width:100%;padding:7px 10px;font-size:12.5px;background:#080d1a;color:#fff;border:1px solid rgba(148,163,255,0.28);border-radius:7px;">
+                  </div>
+                  <div>
+                    <label style="font-size:11.5px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:3px;">${isEn ? 'Starting Structure:' : 'Punto de partida del modelo propio:'}</label>
+                    <select id="up-own-proj-mode" style="width:100%;padding:6px 9px;font-size:12px;background:#080d1a;color:#fff;border:1px solid rgba(148,163,255,0.3);border-radius:7px;">
+                      <option value="blank">${isEn ? '📄 Blank Model from Scratch (3 editable starter variables V1–V3, clean matrix)' : '📄 Modelo en blanco desde cero (3 variables iniciales editables V1–V3, matriz limpia)'}</option>
+                      <option value="preset_copy">${isEn ? '📋 Editable Template Copy of the 15 Variables' : '📋 Plantilla editable con las 15 variables (para adaptar libremente)'}</option>
+                      <option value="import_json">${isEn ? '📂 Import Model from a .JSON file on my computer' : '📂 Importar modelo propio desde un archivo .JSON'}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="btn" onclick="createOwnProjectForUser()"
+                style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;padding:11px 16px;width:100%;font-size:13.5px;box-shadow:0 4px 14px rgba(16,185,129,0.35);">
+                ✨ ${isEn ? 'Create My Own Model & Enter System →' : 'Crear un Modelo Propio e Ingresar →'}
+              </button>
+            </div>
+          </div>
+        </div>
+      `}
+    </div>
+
+    <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;background:rgba(8,13,26,0.95);padding:12px 24px;">
+      <span class="muted" style="font-size:11.5px;">
+        🔒 ${mtPortalStep === 'auth'
+          ? (isEn ? 'Enter your email and password to sign in or register a new user account.' : 'Ingrese su email y contraseña para iniciar sesión o crear un nuevo usuario.')
+          : (isEn
+            ? `Active Session · User: ${esc(selUser.email || selUser.name)} · Model: ${esc(activeProj ? activeProj.name : '')}`
+            : `Sesión activa · Usuario: ${esc(selUser.email || selUser.name)} · Modelo: ${esc(activeProj ? activeProj.name : '')}`)}
+      </span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        ${hasEnteredBefore ? `
+          <button type="button" class="btn ghost sm" onclick="closeUserProjectModal()">
+            ${isEn ? 'Return to Active Workspace' : 'Volver al modelo en curso'}
+          </button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function openUserProjectModal(step) {
+  save();
+  if (step === 'auth' || step === 'model') {
+    mtPortalStep = step;
+  }
+  const modal = document.getElementById('user-project-modal');
+  if (!modal) return;
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  renderUserProjectModal();
+}
+window.openUserProjectModal = openUserProjectModal;
+
+function closeUserProjectModal() {
+  const modal = document.getElementById('user-project-modal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
+  sessionStorage.setItem('micmac_user_chosen', '1');
+}
+window.closeUserProjectModal = closeUserProjectModal;
+
+function loginTenantFromPortal() {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const uInp = document.getElementById('mt-login-username');
+  const pInp = document.getElementById('mt-login-password');
+  const rawUser = (uInp ? uInp.value.trim() : '');
+  const rawPass = (pInp ? pInp.value : '');
+  if (!rawUser) {
+    alert(isEn ? 'Please enter your email.' : 'Por favor ingrese su email.');
+    if (uInp) uInp.focus();
+    return;
+  }
+  const store = loadUserProjectsStore();
+  const q = rawUser.toLowerCase();
+  const found = store.users.find(u =>
+    (u.email && u.email.toLowerCase() === q) ||
+    (u.username && u.username.toLowerCase() === q) ||
+    (u.name && u.name.toLowerCase() === q)
+  );
+  if (!found) {
+    alert(isEn
+      ? `Account "${rawUser}" was not found. Please register in "Option 2 · Register (Create New User)" on the right.`
+      : `No se encontró el usuario "${rawUser}". Puede registrarlo en el panel derecho "Opción 2 · Registro (Crear Nuevo Usuario)".`);
+    return;
+  }
+  if (found.password && found.password.trim() !== '' && found.password !== rawPass) {
+    alert(isEn ? 'Incorrect password.' : 'Contraseña incorrecta.');
+    if (pInp) pInp.focus();
+    return;
+  }
+  selectModalUser(found.id, true);
+}
+window.loginTenantFromPortal = loginTenantFromPortal;
+
+function quickLoginTenant(userId) {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const store = loadUserProjectsStore();
+  const found = store.users.find(u => u.id === userId);
+  if (!found) return;
+  if (found.password && found.password.trim() !== '') {
+    const pInp = document.getElementById('mt-login-password');
+    const typedPass = pInp ? pInp.value : '';
+    if (typedPass !== found.password) {
+      const promptPass = prompt(isEn
+        ? `Enter password for user "${found.name}":`
+        : `Ingrese la contraseña del usuario "${found.name}":`);
+      if (promptPass === null) return;
+      if (promptPass !== found.password) {
+        alert(isEn ? 'Incorrect password.' : 'Contraseña incorrecta.');
+        return;
+      }
+    }
+  }
+  selectModalUser(found.id, true);
+}
+window.quickLoginTenant = quickLoginTenant;
+
+function selectModalUser(userId, advanceToModelStep = false) {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const store = loadUserProjectsStore();
+  store.selectedModalUserId = userId;
+  store.activeUserId = userId;
+  const user = store.users.find(u => u.id === userId) || store.users[0];
+  const userProjs = store.projects.filter(p => p.userId === userId);
+  if (userProjs.length) {
+    store.activeProjectId = userProjs[0].id;
+    saveUserProjectsStore(store);
+    applyProjectToWorkspace(userProjs[0]);
+  } else {
+    saveUserProjectsStore(store);
+    updateUserProjectPill();
+  }
+  if (advanceToModelStep) {
+    mtPortalStep = 'model';
+    showSaveToast(isEn
+      ? `🔐 Signed in as "<b>${esc(user.email || user.name)}</b>". Now choose the Existing Example or Create Your Own Model.`
+      : `🔐 Sesión iniciada como "<b>${esc(user.email || user.name)}</b>". Ahora elija el Ejemplo que Existe o Crear un Modelo Propio.`);
+  }
+  renderUserProjectModal();
+}
+window.selectModalUser = selectModalUser;
+
+function createNewUserFromModal() {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const emailInp = document.getElementById('up-new-user-email');
+  const passInp = document.getElementById('up-new-user-pass');
+
+  const rawEmail = (emailInp ? emailInp.value.trim() : '');
+  const passVal = (passInp ? passInp.value : '');
+
+  if (!rawEmail) {
+    alert(isEn ? 'Please enter an email address to create the user.' : 'Por favor ingrese su email para crear el usuario.');
+    if (emailInp) emailInp.focus();
+    return;
+  }
+  if (!passVal) {
+    alert(isEn ? 'Please enter a password for the new user.' : 'Por favor ingrese una contraseña para crear el usuario.');
+    if (passInp) passInp.focus();
+    return;
+  }
+
+  const emailLower = rawEmail.toLowerCase();
+  const store = loadUserProjectsStore();
+  if (store.users.some(u => (u.email || u.username || '').toLowerCase() === emailLower)) {
+    alert(isEn
+      ? `The email "${rawEmail}" is already registered. Please sign in on the left.`
+      : `El email "${rawEmail}" ya está registrado. Por favor inicie sesión en el panel izquierdo.`);
+    return;
+  }
+
+  const newUser = {
+    id: 'u_' + Date.now(),
+    email: rawEmail,
+    username: emailLower,
+    name: rawEmail,
+    org: '',
+    password: passVal,
+    createdAt: new Date().toISOString()
+  };
+  store.users.unshift(newUser);
+  store.activeUserId = newUser.id;
+  store.selectedModalUserId = newUser.id;
+  saveUserProjectsStore(store);
+  updateUserProjectPill();
+  mtPortalStep = 'model';
+  renderUserProjectModal();
+  showSaveToast(isEn
+    ? `👤 User "<b>${esc(newUser.email)}</b>" created! Now choose the Existing Example or Create Your Own Model.`
+    : `👤 Usuario "<b>${esc(newUser.email)}</b>" creado con éxito. Ahora elija el Ejemplo que Existe o Crear un Modelo Propio.`);
+}
+window.createNewUserFromModal = createNewUserFromModal;
+
+function deleteModalUser(userId) {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const store = loadUserProjectsStore();
+  if (store.users.length <= 1) return;
+  const target = store.users.find(u => u.id === userId);
+  if (!target) return;
+  if (!confirm(isEn ? `Delete user "${target.name}" and their saved models?` : `¿Eliminar el usuario "${target.name}" y todos sus modelos asociados?`)) return;
+  store.users = store.users.filter(u => u.id !== userId);
+  store.projects = store.projects.filter(p => p.userId !== userId);
+  if (!store.projects.length) {
+    uid = 1;
+    const exState = defaults(currentLang);
+    store.projects.push({
+      id: 'proj_' + Date.now(),
+      userId: store.users[0].id,
+      name: isEn ? 'Existing Example Model (15 Variables)' : 'Modelo Ejemplo Existente (15 Variables)',
+      mode: 'example',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      state: exState
+    });
+  }
+  store.activeUserId = store.users[0].id;
+  store.selectedModalUserId = store.users[0].id;
+  const firstProj = store.projects.find(p => p.userId === store.activeUserId) || store.projects[0];
+  store.activeProjectId = firstProj.id;
+  saveUserProjectsStore(store);
+  applyProjectToWorkspace(firstProj);
+  renderUserProjectModal();
+}
+window.deleteModalUser = deleteModalUser;
+
+function startExampleProjectForUser() {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const store = loadUserProjectsStore();
+  const userId = store.selectedModalUserId || store.activeUserId || store.users[0].id;
+  const user = store.users.find(u => u.id === userId) || store.users[0];
+  const nameInp = document.getElementById('up-example-proj-name');
+  const projName = (nameInp ? nameInp.value.trim() : '') || (isEn ? `Existing Example Model (${user.name})` : `Modelo Ejemplo Existente (${user.name})`);
+
+  uid = 1;
+  const exampleState = defaults(currentLang);
+  const now = new Date().toISOString();
+  const newProj = {
+    id: 'proj_ex_' + Date.now(),
+    userId: user.id,
+    name: projName,
+    desc: isEn ? '15-Variable MICMAC & IGO Example Model' : 'Modelo de Ejemplo 15 Variables MICMAC + Matriz IGO',
+    mode: 'example',
+    createdAt: now,
+    updatedAt: now,
+    state: exampleState
+  };
+
+  store.activeUserId = user.id;
+  store.selectedModalUserId = user.id;
+  store.projects.unshift(newProj);
+  store.activeProjectId = newProj.id;
+  saveUserProjectsStore(store);
+
+  applyProjectToWorkspace(newProj);
+  closeUserProjectModal();
+  showSaveToast(isEn
+    ? `📚 Loaded Existing Example Model for user "<b>${esc(user.name)}</b>"`
+    : `📚 Modelo de Ejemplo Existente cargado en la cuenta de "<b>${esc(user.name)}</b>"`);
+}
+window.startExampleProjectForUser = startExampleProjectForUser;
+
+function createOwnProjectForUser() {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const store = loadUserProjectsStore();
+  const userId = store.selectedModalUserId || store.activeUserId || store.users[0].id;
+  const user = store.users.find(u => u.id === userId) || store.users[0];
+
+  const nameInp = document.getElementById('up-own-proj-name');
+  const visionInp = document.getElementById('up-own-proj-vision');
+  const modeSel = document.getElementById('up-own-proj-mode');
+
+  const projName = (nameInp ? nameInp.value.trim() : '') || (isEn ? `My Own Model (${user.name})` : `Mi Modelo Propio (${user.name})`);
+  const visionVal = visionInp ? visionInp.value.trim() : '';
+  const startMode = modeSel ? modeSel.value : 'blank';
+
+  let initialState;
+  if (startMode === 'preset_copy') {
+    uid = 1;
+    initialState = defaults(currentLang);
+    if (visionVal) {
+      initialState.igo = {
+        vision_es: visionVal,
+        vision_en: visionVal,
+        filterMode: 'strategic',
+        scaleMode: 'classic',
+        thrMode: 'mean',
+        showDiag: true,
+        selVar: null,
+        purposes: getDefaultIGOPurposes(),
+        scores: {}
+      };
+    }
+  } else {
+    initialState = getBlankStarterState(currentLang, visionVal);
+  }
+
+  const now = new Date().toISOString();
+  const newProj = {
+    id: 'proj_own_' + Date.now(),
+    userId: user.id,
+    name: projName,
+    desc: visionVal || (isEn ? 'Custom User Model' : 'Modelo propio personalizado'),
+    mode: 'custom',
+    createdAt: now,
+    updatedAt: now,
+    state: initialState
+  };
+
+  store.activeUserId = user.id;
+  store.selectedModalUserId = user.id;
+  store.projects.unshift(newProj);
+  store.activeProjectId = newProj.id;
+  saveUserProjectsStore(store);
+
+  applyProjectToWorkspace(newProj);
+  closeUserProjectModal();
+  switchTab('vars');
+
+  if (startMode === 'import_json') {
+    const fileInp = document.getElementById('file-import');
+    if (fileInp) fileInp.click();
+  }
+
+  showSaveToast(isEn
+    ? `✨ Created own model "<b>${esc(projName)}</b>" for user "<b>${esc(user.name)}</b>"`
+    : `✨ Modelo propio "<b>${esc(projName)}</b>" creado para "<b>${esc(user.name)}</b>"`);
+}
+window.createOwnProjectForUser = createOwnProjectForUser;
+
+function duplicateSavedUserProject(projId) {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const store = loadUserProjectsStore();
+  const orig = store.projects.find(p => p.id === projId);
+  if (!orig) return;
+  const now = new Date().toISOString();
+  const copyProj = {
+    id: 'proj_copy_' + Date.now(),
+    userId: orig.userId,
+    name: orig.name + (isEn ? ' (Copy)' : ' (Copia)'),
+    desc: orig.desc || '',
+    mode: orig.mode,
+    createdAt: now,
+    updatedAt: now,
+    state: JSON.parse(JSON.stringify(orig.state))
+  };
+  store.projects.unshift(copyProj);
+  store.activeProjectId = copyProj.id;
+  saveUserProjectsStore(store);
+  applyProjectToWorkspace(copyProj);
+  renderUserProjectModal();
+  showSaveToast(isEn ? `📋 Model duplicated: "<b>${esc(copyProj.name)}</b>"` : `📋 Modelo duplicado: "<b>${esc(copyProj.name)}</b>"`);
+}
+window.duplicateSavedUserProject = duplicateSavedUserProject;
+
+function openSavedUserProject(projId) {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const store = loadUserProjectsStore();
+  const proj = store.projects.find(p => p.id === projId);
+  if (!proj) return;
+  store.activeUserId = proj.userId;
+  store.selectedModalUserId = proj.userId;
+  store.activeProjectId = proj.id;
+  saveUserProjectsStore(store);
+  applyProjectToWorkspace(proj);
+  closeUserProjectModal();
+  const u = store.users.find(x => x.id === proj.userId);
+  showSaveToast(isEn
+    ? `📂 Opened model "<b>${esc(proj.name)}</b>" (${esc(u ? u.name : '')})`
+    : `📂 Modelo "<b>${esc(proj.name)}</b>" abierto (${esc(u ? u.name : '')})`);
+}
+window.openSavedUserProject = openSavedUserProject;
+
+function deleteSavedUserProject(projId) {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const store = loadUserProjectsStore();
+  if (store.projects.length <= 1) return;
+  const proj = store.projects.find(p => p.id === projId);
+  if (!proj) return;
+  if (!confirm(isEn ? `Delete model "${proj.name}"?` : `¿Eliminar el modelo "${proj.name}"?`)) return;
+  store.projects = store.projects.filter(p => p.id !== projId);
+  if (store.activeProjectId === projId) {
+    const nextProj = store.projects.find(p => p.userId === store.activeUserId) || store.projects[0];
+    store.activeProjectId = nextProj.id;
+    saveUserProjectsStore(store);
+    applyProjectToWorkspace(nextProj);
+  } else {
+    saveUserProjectsStore(store);
+  }
+  renderUserProjectModal();
+}
+window.deleteSavedUserProject = deleteSavedUserProject;
 
 // Inicialización de idioma y componentes
 applyLanguage(currentLang);
+updateUserProjectPill();
+
+// Primera página obligatoria al cargar: mostrar siempre la pantalla de Acceso (Login o Registro)
+sessionStorage.removeItem('micmac_user_chosen');
+openUserProjectModal('auth');
 
