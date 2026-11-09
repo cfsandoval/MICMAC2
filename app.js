@@ -2378,6 +2378,7 @@ function renderChart(prefix = '') {
 
   if (prefix === '') {
     renderChart('mx-');
+    if (typeof renderSimSensitivityMatrix === 'function') renderSimSensitivityMatrix(SIM_BASE);
     if (typeof flowState !== 'undefined' && flowState.initialized) {
       renderFlowCards();
       renderFlowLinks();
@@ -2385,6 +2386,156 @@ function renderChart(prefix = '') {
       if (typeof renderFlowChart === 'function') renderFlowChart();
     }
   }
+}
+
+function renderSimSensitivityMatrix(baseSim = null) {
+  const tbl = $('#sim-sens-table');
+  const kpiBox = $('#sim-sens-kpis');
+  if (!tbl || !kpiBox) return;
+
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const vars = V();
+  const n = vars.length;
+  if (!n) {
+    tbl.innerHTML = '';
+    kpiBox.innerHTML = '';
+    return;
+  }
+
+  const titleEl = $('#sim-sens-title');
+  const descEl = $('#sim-sens-desc');
+  const magLbl = $('#sim-sens-mag-lbl');
+  const metricLbl = $('#sim-sens-metric-lbl');
+  if (titleEl) titleEl.textContent = isEn
+    ? '🎯 Comparative Analysis: Which Variable to Intervene & For How Long?'
+    : '🎯 Análisis Comparativo: ¿Qué variable intervenir y por cuánto tiempo?';
+  if (descEl) descEl.innerHTML = isEn
+    ? 'Heatmap automatically simulating an intervention on each variable across <b>1, 3, 5, 10, 15, 20, and 30 periods</b>, measuring total systemic impact on the whole system. <b>Click any cell</b> to load and plot that intervention in the trajectory chart above.'
+    : 'Mapa de calor que simula automáticamente intervenir cada variable durante <b>1, 3, 5, 10, 15, 20 y 30 periodos</b> y mide el <b>Impacto Sistémico Total (Σ|Δx|)</b> sobre todo el modelo. <b>Haga clic en cualquier celda</b> para simular y graficar esa intervención en las trayectorias superiores.';
+  if (magLbl) magLbl.textContent = isEn ? 'Test magnitude:' : 'Magnitud de prueba:';
+  if (metricLbl) metricLbl.textContent = isEn ? 'Metric:' : 'Métrica:';
+
+  const magInput = $('#sim-sens-mag');
+  const metricSel = $('#sim-sens-metric');
+  const testMag = magInput ? (Number(magInput.value) || 3.0) : 3.0;
+  const metricMode = metricSel ? (metricSel.value || 'total') : 'total';
+
+  const T = Number(S.params.steps) || 50;
+  const durations = [1, 3, 5, 10, 15, 20, 30].filter(d => d <= T);
+  if (!durations.includes(T) && T > 1) durations.push(T);
+
+  const SIM_BASE = baseSim || simulate([]);
+  let globalMax = 1e-9;
+  let bestOverall = null;
+  let bestEfficiency = null;
+
+  const varResults = vars.map((v, i) => {
+    const byDur = durations.map(dur => {
+      const simRes = simulate([{ vid: v.id, type: dur === 1 ? 'pulse' : 'sust', mag: testMag, start: 1, dur }]);
+      // Impacto sistémico final en t=T sobre todas las variables
+      let totalFinal = 0;
+      for (let j = 0; j < n; j++) {
+        totalFinal += Math.abs(simRes.x[T][j] - SIM_BASE.x[T][j]);
+      }
+      // Impacto acumulado a lo largo de todos los periodos t=1..T
+      let totalCum = 0;
+      for (let t = 1; t <= T; t++) {
+        for (let j = 0; j < n; j++) {
+          totalCum += Math.abs(simRes.x[t][j] - SIM_BASE.x[t][j]);
+        }
+      }
+      totalCum = totalCum / T; // promedio por paso para escala legible
+      const eff = totalFinal / dur;
+
+      const score = metricMode === 'cum' ? totalCum : (metricMode === 'eff' ? eff : totalFinal);
+      if (score > globalMax) globalMax = score;
+
+      if (!bestOverall || totalFinal > bestOverall.totalFinal) {
+        bestOverall = { v, i, dur, totalFinal, totalCum, eff, score };
+      }
+      if (dur >= 3 && (!bestEfficiency || eff > bestEfficiency.eff)) {
+        bestEfficiency = { v, i, dur, totalFinal, totalCum, eff, score };
+      }
+
+      return { dur, totalFinal, totalCum, eff, score };
+    });
+
+    // Calcular duración recomendada (donde se alcanza >= 80% del impacto máximo de esa variable con el menor tiempo)
+    const maxForVar = Math.max(...byDur.map(x => x.totalFinal), 1e-9);
+    const optDurObj = byDur.find(x => x.totalFinal >= 0.80 * maxForVar) || byDur[byDur.length - 1];
+    return { v, i, byDur, maxScore: Math.max(...byDur.map(x => x.score)), maxForVar, optDur: optDurObj.dur };
+  }).sort((a, b) => b.maxScore - a.maxScore);
+
+  const topVar = varResults[0];
+  kpiBox.innerHTML = `
+    <div class="kpi-card" style="border-color:rgba(52,211,153,0.4);background:rgba(16,185,129,0.08);">
+      <b style="font-size:1.25rem;color:#34d399;">🏆 ${topVar ? esc(topVar.v.code + ' · ' + topVar.v.name) : '—'}</b>
+      <span>${isEn ? 'Highest Systemic Impact Variable' : 'Variable de Mayor Impacto Sistémico en el Sistema'}</span>
+    </div>
+    <div class="kpi-card" style="border-color:rgba(56,189,248,0.4);background:rgba(56,189,248,0.08);">
+      <b style="font-size:1.25rem;color:#38bdf8;">⏱ ${topVar ? topVar.optDur + (isEn ? ' steps' : ' periodos') : '—'}</b>
+      <span>${isEn ? 'Optimal Time Window (>=80% max effect on top lever)' : 'Duración Óptima Recomendada (≥80% del efecto máximo)'}</span>
+    </div>
+    <div class="kpi-card" style="border-color:rgba(251,191,36,0.4);background:rgba(251,191,36,0.08);">
+      <b style="font-size:1.25rem;color:#fbbf24;">⚡ ${bestEfficiency ? esc(bestEfficiency.v.code) + ' (' + bestEfficiency.dur + 'p)' : '—'}</b>
+      <span>${isEn ? 'Highest Return per Period (Sustained Efficiency)' : 'Mayor Retorno por Periodo de Intervención (Eficiencia)'}</span>
+    </div>
+  `;
+
+  const activeInt = S.ints && S.ints.length === 1 ? S.ints[0] : null;
+
+  let h = `<tr>
+    <th style="width:42px;text-align:center;">#</th>
+    <th>${isEn ? 'Intervened Variable' : 'Variable Intervenida'}</th>
+    ${durations.map(d => `<th style="text-align:center;">${d === 1 ? (isEn ? '1 step (Pulse)' : '1 paso (Impulso)') : d + (isEn ? ' steps' : ' pasos')}</th>`).join('')}
+    <th style="text-align:center;">${isEn ? 'Optimal Window' : 'Ventana Óptima'}</th>
+  </tr>`;
+
+  varResults.forEach((row, rankIdx) => {
+    h += `<tr>
+      <td style="text-align:center;"><span class="var-idx sm">${rankIdx + 1}</span></td>
+      <td>
+        <span class="dot" style="background:${varColor(row.i)}"></span>
+        <b>${esc(row.v.code)}</b> <span style="color:var(--mut);font-size:12px;">${esc(row.v.name)}</span>
+      </td>
+      ${row.byDur.map(cell => {
+        const ratio = Math.min(1, Math.max(0, cell.score / globalMax));
+        const bg = ratio > 0.01
+          ? `rgba(16, 185, 129, ${(0.08 + ratio * 0.58).toFixed(2)})`
+          : 'rgba(15, 23, 42, 0.4)';
+        const isCurrent = activeInt && activeInt.vid === row.v.id && Number(activeInt.dur) === cell.dur;
+        const isOpt = cell.dur === row.optDur && row.maxForVar > 0.1;
+        return `<td class="sim-sens-cell" data-vid="${row.v.id}" data-dur="${cell.dur}"
+          title="${isEn ? 'Click to simulate intervening' : 'Clic para simular intervenir'} ${esc(row.v.code)} ${isEn ? 'for' : 'durante'} ${cell.dur} ${isEn ? 'periods' : 'periodos'}"
+          style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:${ratio > 0.6 ? '700' : '500'};background:${bg};cursor:pointer;position:relative;border:1px solid ${isCurrent ? '#fff' : (isOpt ? 'rgba(56,189,248,0.65)' : 'rgba(148,163,255,0.1)')};transition:transform .12s;">
+          ${cell.score.toFixed(1)}${isOpt ? ' <span style="font-size:10px;color:#38bdf8;" title="Ventana óptima">★</span>' : ''}
+        </td>`;
+      }).join('')}
+      <td style="text-align:center;font-family:'JetBrains Mono';font-size:12px;color:#38bdf8;font-weight:700;">
+        ${row.maxForVar > 0.1 ? `★ ${row.optDur} ${isEn ? 'steps' : 'pasos'}` : '—'}
+      </td>
+    </tr>`;
+  });
+
+  tbl.innerHTML = h;
+}
+
+if ($('#sim-sens-mag')) $('#sim-sens-mag').oninput = () => renderSimSensitivityMatrix();
+if ($('#sim-sens-metric')) $('#sim-sens-metric').onchange = () => renderSimSensitivityMatrix();
+if ($('#sim-sens-table')) {
+  $('#sim-sens-table').onclick = e => {
+    const cell = e.target.closest('.sim-sens-cell');
+    if (!cell) return;
+    const vid = cell.dataset.vid;
+    const dur = Math.max(1, parseInt(cell.dataset.dur, 10) || 1);
+    const mag = Number($('#sim-sens-mag')?.value) || 3.0;
+    S.ints = [{ vid, type: dur === 1 ? 'pulse' : 'sust', mag, start: 1, dur }];
+    save();
+    renderInts();
+    renderChart();
+    const chartWrap = $('#chart-wrap');
+    if (chartWrap) chartWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 }
 
 /* ---------- 5. Dynamic Signed-MICMAC (Katz-Bonacich / Leontief) ---------- */
