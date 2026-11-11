@@ -421,9 +421,10 @@
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0;white-space:nowrap;">
           <span id="mc-runs-lbl">Iteraciones:</span>
           <select id="mc-runs-select" style="width:auto;padding:4px 8px;font-size:12px;font-weight:700;">
-            <option value="300">300 escenarios</option>
-            <option value="500" selected>500 escenarios (Recomendado)</option>
+            <option value="300">300 escenarios (Rápido)</option>
+            <option value="500">500 escenarios (Estándar)</option>
             <option value="1000">1.000 escenarios (Alta precisión)</option>
+            <option value="2000" selected>2.000 escenarios (Máxima robustez / Convergencia)</option>
           </select>
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0;white-space:nowrap;">
@@ -435,8 +436,68 @@
           </select>
         </label>
         <button type="button" class="btn" id="btn-run-montecarlo" onclick="runMonteCarloSimulation()" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;padding:6px 16px;box-shadow:0 4px 14px rgba(124,58,237,0.4);border:none;cursor:pointer;">
-          🎲 <span id="mc-btn-run-txt">Ejecutar Monte Carlo</span>
+          🎲 <span id="mc-btn-run-txt">Ejecutar Monte Carlo (2.000 Casos)</span>
         </button>
+      </div>
+    </div>
+
+    <!-- Barra de Progreso Dinámica -->
+    <div id="mc-progress-wrap" style="display:none;width:100%;background:rgba(255,255,255,0.06);border-radius:6px;height:7px;margin:10px 0 6px;overflow:hidden;border:1px solid rgba(167,139,250,0.3);">
+      <div id="mc-progress-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#7c3aed,#38bdf8);transition:width 0.08s ease;"></div>
+    </div>
+
+    <!-- GUÍA VISUAL PEDAGÓGICA: CÓMO ENTENDER LOS RESULTADOS DE MONTE CARLO -->
+    <div style="background:rgba(15,23,42,0.72);border:1px solid rgba(167,139,250,0.3);border-radius:12px;padding:16px 18px;margin:12px 0 16px;box-shadow:0 4px 20px rgba(0,0,0,0.25);">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;">💡</span>
+          <div>
+            <h4 style="margin:0;font-size:14px;color:#c4b5fd;font-weight:700;">Guía Práctica: ¿Cómo interpretar los resultados de la Simulación de Monte Carlo?</h4>
+            <p style="margin:2px 0 0;font-size:12px;color:#94a3b8;">Comprenda qué significan los 2.000 escenarios, los intervalos de confianza y las recomendaciones temporales.</p>
+          </div>
+        </div>
+        <span class="pill" style="background:rgba(167,139,250,0.15);color:#c4b5fd;border:1px solid rgba(167,139,250,0.4);font-size:11px;">
+          🎯 Toma de Decisiones Bajo Incertidumbre
+        </span>
+      </div>
+
+      <!-- Cuadrícula 4 Dimensiones Clave -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;">
+        <!-- 1. Palanca Ganadora -->
+        <div style="background:rgba(8,12,24,0.75);border-radius:10px;padding:12px;border:1px solid rgba(167,139,250,0.25);border-top:3px solid #a855f7;">
+          <b style="color:#c4b5fd;font-size:12px;display:block;margin-bottom:5px;">🏆 1. Palanca Estratégica Ganadora</b>
+          <p style="margin:0;font-size:11.5px;color:#cbd5e1;line-height:1.45;">
+            <b>¿Qué significa?</b> Es la variable más <b>antifrágil</b> del sistema. Mientras en una matriz estática una variable puede parecer influyente por azar o sesgo de expertos, la ganadora de Monte Carlo demuestra ser superior en <b>2.000 futuros posibles</b> con perturbaciones aleatorias de hasta ±20% en las relaciones causales.
+          </p>
+        </div>
+
+        <!-- 2. Rango P10 - P50 - P90 -->
+        <div style="background:rgba(8,12,24,0.75);border-radius:10px;padding:12px;border:1px solid rgba(56,189,248,0.25);border-top:3px solid #38bdf8;">
+          <b style="color:#38bdf8;font-size:12px;display:block;margin-bottom:5px;">📊 2. Intervalo P10 – P50 – P90 (Riesgo vs. Certeza)</b>
+          <p style="margin:0;font-size:11.5px;color:#cbd5e1;line-height:1.45;">
+            <b>P10 (Piso Pesimista):</b> El 90% de las veces el impacto será mayor a este nivel (mínimo garantizado).<br>
+            <b>P50 (Mediana):</b> El resultado central más probable.<br>
+            <b>P90 (Techo Optimista):</b> El potencial máximo.<br>
+            <i>Una barra estrecha significa certidumbre y predictibilidad; una barra ancha significa alto potencial pero mayor volatilidad.</i>
+          </p>
+        </div>
+
+        <!-- 3. Momento Óptimo t -->
+        <div style="background:rgba(8,12,24,0.75);border-radius:10px;padding:12px;border:1px solid rgba(52,211,153,0.25);border-top:3px solid #34d399;">
+          <b style="color:#34d399;font-size:12px;display:block;margin-bottom:5px;">⏱ 3. Momento Óptimo de Activación (t*)</b>
+          <p style="margin:0;font-size:11.5px;color:#cbd5e1;line-height:1.45;">
+            <b>¿Por qué no siempre empezar en t=1?</b> Ciertas políticas públicas o inversiones rinden mucho más cuando se activan en un momento en que el sistema ya ha madurado ciertas condiciones de base. El análisis estocástico revela la <b>ventana temporal de resonancia</b> donde cada unidad de esfuerzo produce el mayor efecto multiplicador.
+          </p>
+        </div>
+
+        <!-- 4. Duración Óptima y Pico -->
+        <div style="background:rgba(8,12,24,0.75);border-radius:10px;padding:12px;border:1px solid rgba(251,191,36,0.25);border-top:3px solid #fbbf24;">
+          <b style="color:#fbbf24;font-size:12px;display:block;margin-bottom:5px;">⏳ 4. Duración Recomendada (τ*) y Momento Pico</b>
+          <p style="margin:0;font-size:11.5px;color:#cbd5e1;line-height:1.45;">
+            <b>Duración (τ*):</b> Cantidad ideal de periodos para mantener el estímulo activo antes de que la disipación sistémica y los rendimientos decrecientes hagan ineficiente seguir inyectando recursos.<br>
+            <b>Momento Pico (t_pico):</b> Cuándo se alcanza la máxima intensidad transformadora en el conjunto del sistema.
+          </p>
+        </div>
       </div>
     </div>
 
@@ -483,6 +544,22 @@
           </table>
         </div>
       </div>
+    </div>
+
+    <!-- FICHA TÁCTICA Y DESGLOSE ESTOCÁSTICO DETALLADO DE LA VARIABLE SELECCIONADA -->
+    <div id="mc-detail-card" style="display:none;background:rgba(8,12,24,0.85);border:1.5px solid rgba(167,139,250,0.35);border-radius:12px;padding:16px 20px;margin-top:16px;box-shadow:0 8px 30px rgba(0,0,0,0.35);">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:24px;" id="mc-det-icon">🎯</span>
+          <div>
+            <h3 style="margin:0;font-size:15px;color:#c4b5fd;" id="mc-det-title">Ficha Táctica Detallada: Variable</h3>
+            <p style="margin:2px 0 0;font-size:12px;color:#94a3b8;" id="mc-det-sub">Análisis exhaustivo sobre los 2.000 escenarios estocásticos simulados</p>
+          </div>
+        </div>
+        <div id="mc-det-action-btn"></div>
+      </div>
+      <div id="mc-det-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:12px;"></div>
+      <div id="mc-det-narrative" style="background:rgba(15,23,42,0.65);border-radius:8px;padding:12px 14px;font-size:12.5px;color:#e2e8f0;line-height:1.5;border-left:3px solid #a855f7;"></div>
     </div>
   </div>
 </section>
