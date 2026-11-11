@@ -426,32 +426,125 @@
       </div>
     </div>
 
-    <!-- EXPLICACIÓN SENCILLA Y DIRECTA DE QUÉ HACE ESTE MODELO -->
-    <div style="background:linear-gradient(135deg,rgba(15,23,42,0.85),rgba(30,58,138,0.22));border:1.5px solid rgba(56,189,248,0.32);border-radius:12px;padding:14px 18px;margin-bottom:16px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span style="font-size:16px;">💡</span>
-        <b style="font-size:13.5px;color:#38bdf8;" data-i18n="dyn_easy_title">¿Cómo entender este modelo en palabras sencillas?</b>
+    <!-- EXPLICACIÓN VISUAL Y PRÁCTICA CON EJEMPLOS DE LOS RATIOS -->
+    <div style="background:linear-gradient(135deg,rgba(15,23,42,0.92),rgba(30,58,138,0.28));border:1.5px solid rgba(56,189,248,0.35);border-radius:14px;padding:16px 20px;margin-bottom:18px;box-shadow:0 8px 30px rgba(0,0,0,0.35);">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;background:rgba(56,189,248,0.18);border:1px solid #38bdf8;padding:4px 8px;border-radius:8px;">💡</span>
+          <div>
+            <h3 style="margin:0;font-size:15.5px;color:#38bdf8;" data-i18n="dyn_guide_title">Guía Visual de Ratios: ¿Cómo leer e interpretar cada valor con ejemplos?</h3>
+            <p style="margin:2px 0 0;font-size:12px;color:#94a3b8;" data-i18n="dyn_guide_subtitle">Entienda qué significa cada métrica calculada, cómo interpretarla en la toma de decisiones y qué ejemplo práctico ilustra su funcionamiento.</p>
+          </div>
+        </div>
+        <span class="badge" style="background:#0284c7;color:#fff;font-size:10px;padding:4px 8px;">Guía de Interpretación</span>
       </div>
-      <p style="margin:0 0 10px;font-size:12.5px;color:#cbd5e1;line-height:1.55;" data-i18n="dyn_easy_p1">
-        El MICMAC clásico de Michel Godet solo suma impactos directos e indirectos asumiendo que todo suma de inmediato. En la realidad, <b>los impactos toman tiempo en madurar</b> y muchos efectos <b>se contradicen o cancelan entre sí</b> (por ejemplo: bucles de resistencia al cambio o bucles de refuerzo). Este modelo 4D resuelve eso respondiendo 4 preguntas clave:
-      </p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;font-size:12px;">
-        <div style="background:rgba(8,12,24,0.7);padding:10px 12px;border-radius:8px;border:1px solid rgba(52,211,153,0.25);">
-          <b style="color:#34d399;display:block;margin-bottom:3px;">🎯 1. Palancas Maestras</b>
-          <span style="color:#94a3b8;">Variables que <b>realmente mueven el sistema</b> con fuerza neta y sin generar contradicciones ocultas.</span>
+
+      <!-- Cuadrícula de 6 Tarjetas con Ratios + Ejemplos Prácticos -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px;">
+        
+        <!-- Tarjeta 1: Fricción Temporal lambda -->
+        <div style="background:rgba(8,12,24,0.85);border:1px solid rgba(167,139,250,0.28);border-left:4px solid #a78bfa;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <b style="color:#c4b5fd;font-size:13px;">⏱ 1. Fricción del Tiempo (λ) y Retardos (t)</b>
+              <code style="font-size:11px;color:#a78bfa;background:rgba(167,139,250,0.15);padding:2px 6px;border-radius:4px;">w = a · e^(-λt)</code>
+            </div>
+            <p style="margin:0 0 6px;font-size:11.8px;color:#cbd5e1;line-height:1.45;">
+              <b>¿Qué mide?</b> El descuento del impacto cuando una causa tarda años en madurar. No pesa igual una acción inmediata que una que tarda 6 años.
+            </p>
+          </div>
+          <div style="background:rgba(15,23,42,0.8);border-radius:6px;padding:8px 10px;font-size:11.2px;color:#94a3b8;line-height:1.4;margin-top:6px;border-left:2px solid #a78bfa;">
+            <b style="color:#f8fafc;">Ejemplo:</b> Una ley que entra en vigor en 6 meses mantiene casi su fuerza <b>3.0</b>. Una reforma cultural que tarda 6 años baja a <b>1.64</b> por cambios políticos y fatiga social.
+          </div>
         </div>
-        <div style="background:rgba(8,12,24,0.7);padding:10px 12px;border-radius:8px;border:1px solid rgba(251,113,133,0.25);">
-          <b style="color:#fb7185;display:block;margin-bottom:3px;">⚠️ 2. Trampas o Espejismos</b>
-          <span style="color:#94a3b8;">Variables que <i>parecen</i> muy poderosas en el papel, pero en la práctica sus efectos <b>se disipan o chocan</b> con resistencias.</span>
+
+        <!-- Tarjeta 2: Radio Espectral rho y factor alpha -->
+        <div style="background:rgba(8,12,24,0.85);border:1px solid rgba(56,189,248,0.28);border-left:4px solid #38bdf8;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <b style="color:#38bdf8;font-size:13px;">⚡ 2. Radio Espectral ρ y Atenuador α</b>
+              <code style="font-size:11px;color:#38bdf8;background:rgba(56,189,248,0.15);padding:2px 6px;border-radius:4px;">α · ρ = 0.80 &lt; 1</code>
+            </div>
+            <p style="margin:0 0 6px;font-size:11.8px;color:#cbd5e1;line-height:1.45;">
+              <b>¿Qué mide?</b> La velocidad de propagación de los efectos indirectos en el sistema y el freno para evitar que los números exploten al infinito.
+            </p>
+          </div>
+          <div style="background:rgba(15,23,42,0.8);border-radius:6px;padding:8px 10px;font-size:11.2px;color:#94a3b8;line-height:1.4;margin-top:6px;border-left:2px solid #38bdf8;">
+            <b style="color:#f8fafc;">Ejemplo:</b> Como el <b>eco en una habitación</b>. Cada rebote causal (paso 2, 3, 4...) pierde fuerza para que la suma total sea realista y matemáticamente estable.
+          </div>
         </div>
-        <div style="background:rgba(8,12,24,0.7);padding:10px 12px;border-radius:8px;border:1px solid rgba(251,191,36,0.25);">
-          <b style="color:#fbbf24;display:block;margin-bottom:3px;">🔄 3. Bucle Propio (F)</b>
-          <span style="color:#94a3b8;">Indica si invertir en una variable <b>regresa amplificado</b> (efecto bola de nieve positivo) o si se estabiliza sola.</span>
+
+        <!-- Tarjeta 3: Motricidad Bruta vs Neta -->
+        <div style="background:rgba(8,12,24,0.85);border:1px solid rgba(52,211,153,0.28);border-left:4px solid #34d399;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <b style="color:#34d399;font-size:13px;">⚖️ 3. Motricidad Bruta vs. Motricidad Neta</b>
+              <code style="font-size:11px;color:#34d399;background:rgba(52,211,153,0.15);padding:2px 6px;border-radius:4px;">S^neta vs S^bruta</code>
+            </div>
+            <p style="margin:0 0 6px;font-size:11.8px;color:#cbd5e1;line-height:1.45;">
+              <b>¿Qué mide?</b> La diferencia entre "hacer mucho ruido" (bruta) y el <b>avance real que sobrevive</b> tras vencer resistencias (neta).
+            </p>
+          </div>
+          <div style="background:rgba(15,23,42,0.8);border-radius:6px;padding:8px 10px;font-size:11.2px;color:#94a3b8;line-height:1.4;margin-top:6px;border-left:2px solid #34d399;">
+            <b style="color:#f8fafc;">Ejemplo:</b> Pisar el acelerador con fuerza (+10) pero con freno de mano puesto (-8). La fuerza bruta es <b>18</b> (mucha energía quemada), pero la neta es solo <b>+2</b>.
+          </div>
         </div>
-        <div style="background:rgba(8,12,24,0.7);padding:10px 12px;border-radius:8px;border:1px solid rgba(167,139,250,0.25);">
-          <b style="color:#c4b5fd;display:block;margin-bottom:3px;">⏱ 4. Fricción del Tiempo (λ)</b>
-          <span style="color:#94a3b8;">Un impacto que tarda 5 años en concretarse <b>pesa menos hoy</b> que una acción que actúa de inmediato.</span>
+
+        <!-- Tarjeta 4: Ambiguedad Causal Omega -->
+        <div style="background:rgba(8,12,24,0.85);border:1px solid rgba(251,191,36,0.28);border-left:4px solid #fbbf24;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <b style="color:#fbbf24;font-size:13px;">❓ 4. Ambigüedad Causal (Ω %)</b>
+              <code style="font-size:11px;color:#fbbf24;background:rgba(251,191,36,0.15);padding:2px 6px;border-radius:4px;">Ω = (1 − Neta/Bruta) · 100</code>
+            </div>
+            <p style="margin:0 0 6px;font-size:11.8px;color:#cbd5e1;line-height:1.45;">
+              <b>¿Qué mide?</b> El porcentaje de fuerza que una variable <b>pierde en el camino</b> porque choca contra bucles opuestos o cancelaciones.
+            </p>
+          </div>
+          <div style="background:rgba(15,23,42,0.8);border-radius:6px;padding:8px 10px;font-size:11.2px;color:#94a3b8;line-height:1.4;margin-top:6px;border-left:2px solid #fbbf24;">
+            <b style="color:#f8fafc;">Ejemplo:</b> <b>Ω = 5%</b> significa que el 95% de la energía avanza limpiamente. Si <b>Ω = 45%</b>, casi la mitad del esfuerzo se disipa en conflictos burocráticos.
+          </div>
         </div>
+
+        <!-- Tarjeta 5: Palancas Maestras vs Trampas -->
+        <div style="background:rgba(8,12,24,0.85);border:1px solid rgba(251,113,133,0.28);border-left:4px solid #fb7185;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <b style="color:#fb7185;font-size:13px;">🎯 5. Palanca Maestra vs. Trampa (Espejismo)</b>
+              <code style="font-size:11px;color:#fb7185;background:rgba(251,113,133,0.15);padding:2px 6px;border-radius:4px;">Ω &gt; 30% ⟹ Trampa ⚠</code>
+            </div>
+            <p style="margin:0 0 6px;font-size:11.8px;color:#cbd5e1;line-height:1.45;">
+              <b>¿Qué mide?</b> Separa las variables que de verdad transforman la institución de las que <i>parecen</i> importantes pero son un espejismo.
+            </p>
+          </div>
+          <div style="background:rgba(15,23,42,0.8);border-radius:6px;padding:8px 10px;font-size:11.2px;color:#94a3b8;line-height:1.4;margin-top:6px;border-left:2px solid #fb7185;">
+            <b style="color:#f8fafc;">Ejemplo:</b> Crear una comisión de control parece clave porque toca todo el organigrama, pero desata parálisis interna (espejismo). Una buena inducción es palanca neta.
+          </div>
+        </div>
+
+        <!-- Tarjeta 6: Bucle Propio F y Delta Rango -->
+        <div style="background:rgba(8,12,24,0.85);border:1px solid rgba(56,189,248,0.28);border-left:4px solid #06b6d4;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <b style="color:#22d3ee;font-size:13px;">🔄 6. Bucle Propio (F) y Δ Rango (R_clas − R_din)</b>
+              <code style="font-size:11px;color:#22d3ee;background:rgba(34,211,238,0.15);padding:2px 6px;border-radius:4px;">F &gt; 0: Bola de nieve</code>
+            </div>
+            <p style="margin:0 0 6px;font-size:11.8px;color:#cbd5e1;line-height:1.45;">
+              <b>¿Qué mide?</b> Si la inversión regresa multiplicada a sí misma y si el modelo clásico de Godet la estaba sobrevalorando o subvalorando.
+            </p>
+          </div>
+          <div style="background:rgba(15,23,42,0.8);border-radius:6px;padding:8px 10px;font-size:11.2px;color:#94a3b8;line-height:1.4;margin-top:6px;border-left:2px solid #06b6d4;">
+            <b style="color:#f8fafc;">Ejemplo:</b> <b>F &gt; 0</b> en cultura de innovación crea más cultura de innovación. <b>Δ Rango = −3</b> significa que el MICMAC clásico la inflaba artificialmente 3 puestos.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Resumen rápido de lectura en 3 pasos -->
+      <div style="margin-top:12px;padding:8px 12px;background:rgba(8,12,24,0.6);border-radius:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:11.5px;color:#94a3b8;">
+        <span>🟢 <b style="color:#34d399;">Verde / Alta Motricidad Neta</b>: Invierta aquí (Palanca Maestra).</span>
+        <span>🔴 <b style="color:#fb7185;">Rojo / Alta Ambigüedad Ω &gt; 30%</b>: Cuidado (Trampa de política o conflicto).</span>
+        <span>🔵 <b style="color:#38bdf8;">Bucle Propio F &gt; 0</b>: Reacción en cadena auto-reforzante (efecto multiplicador).</span>
       </div>
     </div>
 
