@@ -277,16 +277,28 @@ function renderSnapshotsList() {
       modelInp.value = activeProj.name || '';
     }
     if (modelsBox) {
-      const userProjs = store.projects.filter(p => p.userId === store.activeUserId);
+      let userProjs = store.projects.filter(p => p.userId === store.activeUserId);
       if (!userProjs.length) {
         modelsBox.innerHTML = `<div style="padding:12px;text-align:center;color:#94a3b8;font-size:12px;">${isEn ? 'No saved models yet.' : 'Aún no hay modelos guardados.'}</div>`;
       } else {
+        // Ordenar por tiempo de modificación / guardado (más reciente primero)
+        userProjs.sort((a, b) => {
+          const tA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+          const tB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+          return tB - tA;
+        });
+
         modelsBox.innerHTML = userProjs.map(p => {
           const isAct = p.id === store.activeProjectId;
           const nV = p.state?.vars?.length || 0;
           const nL = Object.values(p.state?.links || {}).filter(l => l && l.v).length;
-          const dt = new Date(p.updatedAt || p.createdAt);
-          const dStr = dt.toLocaleDateString() + ' ' + dt.toTimeString().slice(0, 5);
+          const dt = new Date(p.updatedAt || p.createdAt || Date.now());
+          const dateStr = dt.toLocaleDateString(isEn ? 'en-US' : 'es-ES', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+          const timeStr = dt.toTimeString().slice(0, 5);
           return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;border-radius:8px;background:${isAct ? 'rgba(16,185,129,0.14)' : 'rgba(15,23,42,0.85)'};border:1px solid ${isAct ? '#10b981' : 'rgba(148,163,255,0.16)'};">
             <div style="min-width:0;">
               <div style="font-weight:700;font-size:13px;color:#f8fafc;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -294,7 +306,7 @@ function renderSnapshotsList() {
                 ${isAct ? `<span class="badge" style="background:#10b981;color:#042f2e;font-size:9.5px;font-weight:800;">${isEn ? 'Current Model' : 'En uso actual'}</span>` : ''}
               </div>
               <div style="font-size:11px;color:#94a3b8;margin-top:2px;">
-                <b>${nV}</b> vars · <b>${nL}</b> ${isEn ? 'links' : 'vínculos'} · 🕒 ${esc(dStr)}
+                <b>${nV}</b> vars · <b>${nL}</b> ${isEn ? 'links' : 'vínculos'} · <span style="color:#cbd5e1;">🕒 ${esc(dateStr)} ${esc(timeStr)}</span>
               </div>
             </div>
             <div style="display:flex;gap:5px;align-items:center;">
@@ -8593,6 +8605,12 @@ function renderUserProjectModal() {
   const selUserId = store.selectedModalUserId || store.activeUserId || store.users[0]?.id;
   const selUser = store.users.find(u => u.id === selUserId) || store.users[0];
   const userProjects = store.projects.filter(p => p.userId === selUser.id);
+  // Ordenar los proyectos del usuario del más reciente al más antiguo
+  userProjects.sort((a, b) => {
+    const tA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const tB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return tB - tA;
+  });
   const activeProj = store.projects.find(p => p.id === store.activeProjectId);
 
   box.innerHTML = `
