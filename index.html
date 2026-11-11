@@ -404,6 +404,87 @@
     <div id="sim-sens-kpis" class="kpi-row" style="margin-top:12px;margin-bottom:12px;"></div>
     <div class="table-wrap"><table id="sim-sens-table"></table></div>
   </div>
+
+  <!-- 🎲 ANÁLISIS ESTOCÁSTICO DE MONTE CARLO -->
+  <div class="card" id="card-sim-montecarlo" style="border:1.5px solid rgba(167,139,250,0.38);background:linear-gradient(145deg,rgba(15,23,42,0.95),rgba(30,27,75,0.3));">
+    <div class="card-head" style="flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:22px;background:rgba(167,139,250,0.2);border:1px solid #a78bfa;padding:3px 8px;border-radius:8px;">🎲</span>
+          <div>
+            <h2 id="mc-title" style="margin:0;color:#c4b5fd;">Simulación de Monte Carlo: Incertidumbre, Mayor Impacto y Momento Óptimo</h2>
+            <p class="muted" id="mc-desc" style="margin:3px 0 0;font-size:12px;">Simula cientos de escenarios aleatorios variando la fuerza de los vínculos (±20%), retardos temporales y momentos de inicio para determinar con rigor estadístico qué variable genera el mayor impacto, en qué momento (t) y con qué duración.</p>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(8,12,24,.75);padding:8px 14px;border-radius:10px;border:1px solid var(--line);flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0;white-space:nowrap;">
+          <span id="mc-runs-lbl">Iteraciones:</span>
+          <select id="mc-runs-select" style="width:auto;padding:4px 8px;font-size:12px;font-weight:700;">
+            <option value="300">300 escenarios</option>
+            <option value="500" selected>500 escenarios (Recomendado)</option>
+            <option value="1000">1.000 escenarios (Alta precisión)</option>
+          </select>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0;white-space:nowrap;">
+          <span id="mc-noise-lbl">Incertidumbre (±):</span>
+          <select id="mc-noise-select" style="width:auto;padding:4px 8px;font-size:12px;">
+            <option value="0.10">±10% (Baja)</option>
+            <option value="0.20" selected>±20% (Moderada)</option>
+            <option value="0.35">±35% (Alta dispersión)</option>
+          </select>
+        </label>
+        <button type="button" class="btn" id="btn-run-montecarlo" onclick="runMonteCarloSimulation()" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;padding:6px 16px;box-shadow:0 4px 14px rgba(124,58,237,0.4);border:none;cursor:pointer;">
+          🎲 <span id="mc-btn-run-txt">Ejecutar Monte Carlo</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- KPIs de Hallazgos Clave de Monte Carlo -->
+    <div id="mc-kpis" class="kpi-row" style="margin-top:14px;margin-bottom:14px;"></div>
+
+    <!-- Gráfico y Tabla de Resultados Estocásticos -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px;margin-top:10px;align-items:start;">
+      <!-- Columna Izquierda: Gráfico de Barras con Intervalos de Confianza P10-P50-P90 -->
+      <div style="background:rgba(8,12,24,0.7);border:1px solid rgba(148,163,255,0.18);border-radius:10px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <b style="font-size:13px;color:#c4b5fd;" id="mc-chart-title">📊 Ranking de Robustez e Intervalos de Confianza (P10 - Media - P90)</b>
+          <span style="font-size:10.5px;color:#94a3b8;">Impacto Sistémico Total (Σ|Δx|)</span>
+        </div>
+        <div id="mc-chart-container" style="min-height:280px;display:flex;align-items:center;justify-content:center;">
+          <div style="color:#94a3b8;font-size:12px;padding:40px 20px;text-align:center;">Haga clic en <b>«🎲 Ejecutar Monte Carlo»</b> para simular los 500 escenarios estocásticos.</div>
+        </div>
+      </div>
+
+      <!-- Columna Derecha: Tabla con Momento Óptimo (t) y Duración Recomendada -->
+      <div style="background:rgba(8,12,24,0.7);border:1px solid rgba(148,163,255,0.18);border-radius:10px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <b style="font-size:13px;color:#38bdf8;" id="mc-table-title">⏱ Momento Óptimo de Intervención (t) y Probabilidad de Éxito</b>
+          <span style="font-size:10.5px;color:#94a3b8;">Clic en una fila para graficar</span>
+        </div>
+        <div class="table-wrap" style="max-height:360px;overflow-y:auto;">
+          <table id="mc-results-table" style="font-size:12px;">
+            <thead>
+              <tr>
+                <th style="width:38px;text-align:center;">#</th>
+                <th>Variable</th>
+                <th style="text-align:center;">Impacto Medio</th>
+                <th style="text-align:center;">Rango 90% (P10-P90)</th>
+                <th style="text-align:center;">Momento Óptimo (t)</th>
+                <th style="text-align:center;">Duración Óptima</th>
+                <th style="text-align:center;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="mc-results-tbody">
+              <tr>
+                <td colspan="7" style="text-align:center;color:#94a3b8;padding:30px;">Haga clic en «🎲 Ejecutar Monte Carlo» para calcular la distribución temporal.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- 5 DYNAMIC SIGNED-MICMAC -->

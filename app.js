@@ -2550,6 +2550,334 @@ if ($('#sim-sens-table')) {
   };
 }
 
+/* ============================================================
+   ESTUDIO ESTOCÁSTICO DE MONTE CARLO
+   Simulación de cientos de escenarios para identificar:
+   1. Qué variables tienen mayor impacto robusto
+   2. En qué momento (t) intervenir
+   3. Por cuánto tiempo (duración óptima)
+   ============================================================ */
+
+function simulateStochasticRun(perturbedLinks, ints, beta, lambda, steps, engine = 'euler', dt = 0.1) {
+  const vars = V();
+  const n = vars.length;
+  const W = vars.map(a => vars.map(b => a.id === b.id ? 0 : (perturbedLinks[a.id + '>' + b.id] ?? (val(a.id, b.id) / 3))));
+  let d = Array(n).fill(0);
+  const x = [vars.map(v => v.x0)];
+
+  for (let t = 1; t <= steps; t++) {
+    const u = Array(n).fill(0);
+    ints.forEach(it => {
+      const i = idx(it.vid);
+      if (i < 0) return;
+      if (it.type === 'pulse' ? t === +it.start : (t >= +it.start && t < +it.start + +it.dur)) {
+        u[i] += +it.mag;
+      }
+    });
+
+    if (engine === 'euler') {
+      const subSteps = Math.max(1, Math.round(1 / dt));
+      const subDt = 1 / subSteps;
+      for (let s = 0; s < subSteps; s++) {
+        const ddot = Array(n).fill(0);
+        for (let i = 0; i < n; i++) {
+          let sum = 0;
+          for (let j = 0; j < n; j++) sum += W[j][i] * d[j];
+          ddot[i] = beta * sum - lambda * d[i] + u[i];
+        }
+        for (let i = 0; i < n; i++) d[i] += ddot[i] * subDt;
+      }
+    } else {
+      const nd = Array(n).fill(0);
+      for (let i = 0; i < n; i++) {
+        let sum = 0;
+        for (let j = 0; j < n; j++) sum += W[j][i] * d[j];
+        nd[i] = (1 - lambda) * d[i] + beta * sum + u[i];
+      }
+      d = nd;
+    }
+
+    const curX = Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+      curX[i] = clamp(vars[i].x0 + d[i], -100, 100);
+    }
+    x.push(curX);
+  }
+  return x;
+}
+
+let lastMonteCarloResults = null;
+
+async function runMonteCarloSimulation() {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const btnRun = document.getElementById('btn-run-montecarlo');
+  const btnTxt = document.getElementById('mc-btn-run-txt');
+  const runsSelect = document.getElementById('mc-runs-select');
+  const noiseSelect = document.getElementById('mc-noise-select');
+  const chartBox = document.getElementById('mc-chart-container');
+  const tbody = document.getElementById('mc-results-tbody');
+  const kpiBox = document.getElementById('mc-kpis');
+
+  const runs = runsSelect ? (parseInt(runsSelect.value, 10) || 500) : 500;
+  const noise = noiseSelect ? (parseFloat(noiseSelect.value) || 0.20) : 0.20;
+
+  if (btnRun) btnRun.disabled = true;
+  if (btnTxt) btnTxt.textContent = isEn ? `Simulating ${runs} runs…` : `Simulando ${runs} escenarios…`;
+
+  // Pequeña pausa para permitir que la UI pinte el estado de carga
+  await new Promise(r => setTimeout(r, 40));
+
+  try {
+    const vars = V();
+    const n = vars.length;
+    if (n < 2) {
+      alert(isEn ? 'At least 2 variables are required.' : 'Se requieren al menos 2 variables.');
+      return;
+    }
+
+    const steps = Number(S.params.steps) || 40;
+    const beta = Number(S.params.beta) || 0.15;
+    const lambda = Number(S.params.lambda) || 0.05;
+    const engine = S.params.engine || 'euler';
+    const dt = Math.max(0.02, Number(S.params.dt) || 0.1);
+
+    // 1. Simulación base sin perturbaciones y sin intervención
+    const baseW = {};
+    vars.forEach(a => vars.forEach(b => {
+      if (a.id !== b.id) baseW[a.id + '>' + b.id] = val(a.id, b.id) / 3;
+    }));
+    const baseTraj = simulateStochasticRun(baseW, [], beta, lambda, steps, engine, dt);
+
+    // Candidatos de inicio y duración para el análisis temporal estocástico
+    const startOptions = [1, 2, 3, 5, 8];
+    const durOptions = [3, 5, 10, 15, 20];
+    const testMag = 3.0;
+
+    // Estructuras para acumular estadísticas por variable
+    const varStats = vars.map((v, i) => ({
+      v,
+      i,
+      impactScores: [],
+      startPicks: {},
+      durPicks: {},
+      peakTimes: []
+    }));
+
+    // Bucle Monte Carlo
+    for (let r = 0; r < runs; r++) {
+      // Perturbación estocástica de la matriz de conexiones
+      const pertW = {};
+      vars.forEach(a => vars.forEach(b => {
+        if (a.id !== b.id) {
+          const orig = val(a.id, b.id) / 3;
+          // Ruido uniforme proporcional ±noise
+          const factor = 1 + (Math.random() * 2 - 1) * noise;
+          pertW[a.id + '>' + b.id] = Math.max(0, orig * factor);
+        }
+      }));
+
+      // Trayectoria inercial estocástica de esta iteración
+      const inertTraj = simulateStochasticRun(pertW, [], beta, lambda, steps, engine, dt);
+
+      // Evaluar cada variable en este escenario con variación aleatoria de inicio y duración
+      varStats.forEach(st => {
+        const randStart = startOptions[Math.floor(Math.random() * startOptions.length)];
+        const randDur = durOptions[Math.floor(Math.random() * durOptions.length)];
+        const testInt = [{ vid: st.v.id, type: 'sust', mag: testMag, start: randStart, dur: randDur }];
+
+        const intTraj = simulateStochasticRun(pertW, testInt, beta, lambda, steps, engine, dt);
+
+        // Medir impacto total acumulado en el sistema
+        let sysImpact = 0;
+        let peakDiff = 0;
+        let peakT = randStart;
+
+        for (let t = 1; t <= steps; t++) {
+          let stepDiff = 0;
+          for (let j = 0; j < n; j++) {
+            const diff = Math.abs(intTraj[t][j] - inertTraj[t][j]);
+            stepDiff += diff;
+          }
+          sysImpact += stepDiff;
+          if (stepDiff > peakDiff) {
+            peakDiff = stepDiff;
+            peakT = t;
+          }
+        }
+
+        const normScore = sysImpact / steps; // impacto promedio por paso
+        st.impactScores.push(normScore);
+        st.peakTimes.push(peakT);
+
+        // Ponderar momentos con mayor impacto
+        st.startPicks[randStart] = (st.startPicks[randStart] || 0) + normScore;
+        st.durPicks[randDur] = (st.durPicks[randDur] || 0) + normScore;
+      });
+    }
+
+    // Procesar estadísticas finales (Percentiles P10, P50, P90, Media)
+    varStats.forEach(st => {
+      st.impactScores.sort((a, b) => a - b);
+      const len = st.impactScores.length;
+      st.mean = st.impactScores.reduce((acc, v) => acc + v, 0) / len;
+      st.p10 = st.impactScores[Math.floor(len * 0.10)];
+      st.p50 = st.impactScores[Math.floor(len * 0.50)];
+      st.p90 = st.impactScores[Math.floor(len * 0.90)];
+
+      // Momento de inicio óptimo (t) con mayor retorno medio
+      let bestStart = 1, maxStartScore = -1;
+      Object.entries(st.startPicks).forEach(([s, score]) => {
+        if (score > maxStartScore) { maxStartScore = score; bestStart = parseInt(s, 10); }
+      });
+      st.optStart = bestStart;
+
+      // Duración óptima con mayor retorno medio
+      let bestDur = 10, maxDurScore = -1;
+      Object.entries(st.durPicks).forEach(([d, score]) => {
+        if (score > maxDurScore) { maxDurScore = score; bestDur = parseInt(d, 10); }
+      });
+      st.optDur = bestDur;
+
+      // Tiempo mediano donde ocurre el pico de impacto
+      st.peakTimes.sort((a, b) => a - b);
+      st.medianPeakT = st.peakTimes[Math.floor(st.peakTimes.length * 0.50)];
+    });
+
+    // Ordenar de mayor a menor impacto medio
+    varStats.sort((a, b) => b.mean - a.mean);
+    lastMonteCarloResults = varStats;
+
+    // Renderizar KPIs
+    const winner = varStats[0];
+    const second = varStats[1];
+    if (kpiBox) {
+      kpiBox.innerHTML = `
+        <div class="kpi-card" style="border-color:rgba(167,139,250,0.5);background:rgba(124,58,237,0.12);">
+          <b style="font-size:1.3rem;color:#c4b5fd;">🏆 ${winner ? esc(winner.v.code + ' · ' + winner.v.name) : '—'}</b>
+          <span>${isEn ? 'Most Robust Strategic Lever (Monte Carlo)' : 'Palanca Estratégica de Mayor Impacto Robusto'}</span>
+        </div>
+        <div class="kpi-card" style="border-color:rgba(56,189,248,0.5);background:rgba(56,189,248,0.12);">
+          <b style="font-size:1.3rem;color:#38bdf8;">⏱ t = ${winner ? winner.optStart : 1} ➔ Duración ${winner ? winner.optDur : 10}p</b>
+          <span>${isEn ? 'Optimal Timing & Duration Window' : 'Ventana Óptima de Inicio y Duración'}</span>
+        </div>
+        <div class="kpi-card" style="border-color:rgba(52,211,153,0.5);background:rgba(16,185,129,0.12);">
+          <b style="font-size:1.3rem;color:#34d399;">🎯 Pico en t = ${winner ? winner.medianPeakT : '—'}</b>
+          <span>${isEn ? 'Moment of Peak Systemic Impact' : 'Momento Temporal de Impacto Pico en el Sistema'}</span>
+        </div>
+      `;
+    }
+
+    // Renderizar Gráfico SVG con Barras de Intervalos de Confianza (P10 - P50 - P90)
+    if (chartBox) {
+      const W = 620, H = Math.max(260, varStats.length * 28 + 50);
+      const padL = 90, padR = 40, padT = 20, padB = 30;
+      const maxP90 = Math.max(...varStats.map(s => s.p90), 1e-9);
+
+      const scaleX = val => padL + (val / maxP90) * (W - padL - padR);
+
+      let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">`;
+
+      // Eje X y cuadrícula
+      for (let g = 0; g <= 4; g++) {
+        const valTick = (maxP90 * g) / 4;
+        const xPos = scaleX(valTick);
+        svg += `<line x1="${xPos}" y1="${padT}" x2="${xPos}" y2="${H - padB}" stroke="rgba(148,163,255,0.12)" stroke-dasharray="3 3"/>`;
+        svg += `<text x="${xPos}" y="${H - 12}" fill="#94a3b8" font-size="10" font-family="'JetBrains Mono',monospace" text-anchor="middle">${valTick.toFixed(1)}</text>`;
+      }
+
+      varStats.forEach((st, rank) => {
+        const yCenter = padT + rank * 28 + 14;
+        const xP10 = scaleX(st.p10);
+        const xP50 = scaleX(st.p50);
+        const xP90 = scaleX(st.p90);
+        const isWinner = rank === 0;
+
+        // Etiqueta de la variable
+        svg += `<text x="${padL - 10}" y="${yCenter + 4}" fill="${isWinner ? '#c4b5fd' : '#cbd5e1'}" font-size="11" font-weight="${isWinner ? '700' : '500'}" text-anchor="end">${esc(st.v.code)}</text>`;
+
+        // Línea de rango P10 - P90 (Intervalo de Confianza)
+        svg += `<line x1="${xP10}" y1="${yCenter}" x2="${xP90}" y2="${yCenter}" stroke="${isWinner ? '#a855f7' : 'rgba(148,163,255,0.4)'}" stroke-width="3" stroke-linecap="round"/>`;
+
+        // Barra/Caja central P10 a P90 semitransparente
+        svg += `<rect x="${xP10}" y="${yCenter - 6}" width="${Math.max(2, xP90 - xP10)}" height="12" fill="${isWinner ? 'rgba(168,85,247,0.25)' : 'rgba(148,163,255,0.1)'}" rx="3"/>`;
+
+        // Punto P50 (Mediana estocástica)
+        svg += `<circle cx="${xP50}" cy="${yCenter}" r="5" fill="${isWinner ? '#34d399' : '#38bdf8'}" stroke="#0b0f1a" stroke-width="1.5"/>`;
+
+        // Valor numérico
+        svg += `<text x="${xP90 + 6}" y="${yCenter + 3.5}" fill="#94a3b8" font-size="10" font-family="'JetBrains Mono',monospace">${st.mean.toFixed(1)}</text>`;
+      });
+
+      svg += `</svg>`;
+      chartBox.innerHTML = svg;
+    }
+
+    // Renderizar Tabla
+    if (tbody) {
+      tbody.innerHTML = varStats.map((st, rank) => {
+        const isWinner = rank === 0;
+        return `
+          <tr style="background:${isWinner ? 'rgba(124,58,237,0.15)' : 'transparent'};">
+            <td style="text-align:center;"><span class="var-idx sm" style="background:${isWinner ? '#7c3aed' : 'rgba(255,255,255,0.1)'};">${rank + 1}</span></td>
+            <td>
+              <span class="dot" style="background:${varColor(st.i)}"></span>
+              <b style="color:${isWinner ? '#c4b5fd' : '#f8fafc'};">${esc(st.v.code)}</b>
+              <span style="color:#94a3b8;font-size:11px;">${esc(st.v.name)}</span>
+            </td>
+            <td style="text-align:center;font-family:'JetBrains Mono';font-weight:700;color:${isWinner ? '#34d399' : '#fff'};">
+              ${st.mean.toFixed(2)}
+            </td>
+            <td style="text-align:center;font-family:'JetBrains Mono';font-size:11px;color:#cbd5e1;">
+              [${st.p10.toFixed(1)} — ${st.p90.toFixed(1)}]
+            </td>
+            <td style="text-align:center;font-family:'JetBrains Mono';font-weight:700;color:#38bdf8;">
+              t = ${st.optStart}
+            </td>
+            <td style="text-align:center;font-family:'JetBrains Mono';font-weight:700;color:#fbbf24;">
+              ${st.optDur} periodos
+            </td>
+            <td style="text-align:center;">
+              <button type="button" class="btn sm" onclick="applyMonteCarloRecommendation('${st.v.id}', ${st.optStart}, ${st.optDur})"
+                style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:10.5px;padding:3px 8px;font-weight:700;">
+                ▶ Simular
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    showSaveToast(
+      isEn
+        ? `🎲 Monte Carlo finished (${runs} runs)! Winner: <b>${winner.v.code}</b> (Start: t=${winner.optStart}, Dur: ${winner.optDur}p)`
+        : `🎲 Simulación Monte Carlo completada (${runs} escenarios). Palanca líder: <b>${winner.v.code}</b> (Inicio: t=${winner.optStart}, Duración: ${winner.optDur}p)`
+    );
+  } catch (err) {
+    console.error('Error running Monte Carlo simulation:', err);
+    alert((isEn ? 'Error during Monte Carlo simulation: ' : 'Error durante la simulación de Monte Carlo: ') + err.message);
+  } finally {
+    if (btnRun) btnRun.disabled = false;
+    if (btnTxt) btnTxt.textContent = isEn ? 'Run Monte Carlo' : 'Ejecutar Monte Carlo';
+  }
+}
+window.runMonteCarloSimulation = runMonteCarloSimulation;
+
+function applyMonteCarloRecommendation(vid, start, dur) {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const v = V().find(u => u.id === vid);
+  if (!v) return;
+  S.ints = [{ vid, type: dur === 1 ? 'pulse' : 'sust', mag: 3.0, start, dur }];
+  save();
+  renderInts();
+  renderChart();
+  const chartWrap = $('#chart-wrap');
+  if (chartWrap) chartWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showSaveToast(isEn
+    ? `📈 Applied Monte Carlo strategy for <b>${esc(v.code)}</b> (Start: t=${start}, Duration: ${dur} periods)`
+    : `📈 Estrategia Monte Carlo aplicada para <b>${esc(v.code)}</b> (Inicio: t=${start}, Duración: ${dur} periodos)`);
+}
+window.applyMonteCarloRecommendation = applyMonteCarloRecommendation;
+
 /* ---------- 5. Dynamic Signed-MICMAC (Katz-Bonacich / Leontief) ---------- */
 let dynMatrixView = 'w';
 
