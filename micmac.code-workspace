@@ -7,5 +7,11 @@
 			"path": "../../../1 Doctorado/antigravity/extracctor de noticias de google"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"piny.project_settings": {
+			"open-pages": [
+				"pinyfakepage.html"
+			]
+		}
+	}
 }

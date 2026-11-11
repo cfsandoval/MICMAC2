@@ -8358,6 +8358,15 @@ function syncActiveProjectOnSave() {
     activeProj.state = JSON.parse(JSON.stringify(S));
     activeProj.updatedAt = S.lastSavedAt || new Date().toISOString();
     saveUserProjectsStore(store);
+
+    // Sincronizar en la nube con Supabase si está disponible
+    if (window.SupabaseSync && typeof window.SupabaseSync.saveCloudProject === 'function') {
+      const activeUser = store.users.find(u => u.id === store.activeUserId);
+      const cloudUserId = activeUser?.supabaseId || store.activeUserId;
+      window.SupabaseSync.saveCloudProject(activeProj, cloudUserId).catch(err => {
+        console.warn('[Supabase] Auto-save skipped:', err);
+      });
+    }
   }
   updateUserProjectPill();
 }
@@ -8737,7 +8746,7 @@ function closeUserProjectModal() {
 }
 window.closeUserProjectModal = closeUserProjectModal;
 
-function loginTenantFromPortal() {
+async function loginTenantFromPortal() {
   const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
   const uInp = document.getElementById('mt-login-username');
   const pInp = document.getElementById('mt-login-password');
@@ -8750,11 +8759,58 @@ function loginTenantFromPortal() {
   }
   const store = loadUserProjectsStore();
   const q = rawUser.toLowerCase();
-  const found = store.users.find(u =>
+  let found = store.users.find(u =>
     (u.email && u.email.toLowerCase() === q) ||
     (u.username && u.username.toLowerCase() === q) ||
     (u.name && u.name.toLowerCase() === q)
   );
+
+  // Intentar login primero con Supabase Auth si está disponible
+  if (window.SupabaseSync && typeof window.SupabaseSync.signIn === 'function') {
+    const { data, error } = await window.SupabaseSync.signIn(rawUser, rawPass);
+    if (!error && data && data.user) {
+      if (!found) {
+        found = {
+          id: 'u_' + data.user.id,
+          supabaseId: data.user.id,
+          email: data.user.email,
+          username: data.user.email.toLowerCase(),
+          name: data.user.email,
+          org: '',
+          password: rawPass,
+          createdAt: data.user.created_at || new Date().toISOString()
+        };
+        store.users.unshift(found);
+        saveUserProjectsStore(store);
+      } else {
+        found.supabaseId = data.user.id;
+        saveUserProjectsStore(store);
+      }
+      // Traer modelos del usuario desde la tabla user_projects de Supabase si existen
+      const cloudProjs = await window.SupabaseSync.fetchCloudProjects(data.user.id);
+      if (cloudProjs && cloudProjs.length) {
+        cloudProjs.forEach(cp => {
+          if (!store.projects.some(p => p.id === cp.id)) {
+            store.projects.push({
+              id: cp.id,
+              userId: found.id,
+              name: cp.name,
+              desc: cp.desc || '',
+              mode: cp.mode || 'custom',
+              state: cp.state || {},
+              createdAt: cp.created_at || new Date().toISOString(),
+              updatedAt: cp.updated_at || new Date().toISOString()
+            });
+          }
+        });
+        saveUserProjectsStore(store);
+      }
+      selectModalUser(found.id, true);
+      return;
+    }
+  }
+
+  // Fallback con la base de datos local
   if (!found) {
     alert(isEn
       ? `Account "${rawUser}" was not found. Please register in "Option 2 · Register (Create New User)" on the right.`
@@ -8818,7 +8874,7 @@ function selectModalUser(userId, advanceToModelStep = false) {
 }
 window.selectModalUser = selectModalUser;
 
-function createNewUserFromModal() {
+async function createNewUserFromModal() {
   const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
   const emailInp = document.getElementById('up-new-user-email');
   const passInp = document.getElementById('up-new-user-pass');
@@ -8846,8 +8902,20 @@ function createNewUserFromModal() {
     return;
   }
 
+  // Registrar en Supabase Auth
+  let supabaseUserId = null;
+  if (window.SupabaseSync && typeof window.SupabaseSync.signUp === 'function') {
+    const { data, error } = await window.SupabaseSync.signUp(rawEmail, passVal);
+    if (!error && data && data.user) {
+      supabaseUserId = data.user.id;
+    } else if (error) {
+      console.warn('[Supabase] SignUp notice:', error.message);
+    }
+  }
+
   const newUser = {
-    id: 'u_' + Date.now(),
+    id: supabaseUserId ? 'u_' + supabaseUserId : 'u_' + Date.now(),
+    supabaseId: supabaseUserId,
     email: rawEmail,
     username: emailLower,
     name: rawEmail,
@@ -8863,8 +8931,8 @@ function createNewUserFromModal() {
   mtPortalStep = 'model';
   renderUserProjectModal();
   showSaveToast(isEn
-    ? `👤 User "<b>${esc(newUser.email)}</b>" created! Now choose the Existing Example or Create Your Own Model.`
-    : `👤 Usuario "<b>${esc(newUser.email)}</b>" creado con éxito. Ahora elija el Ejemplo que Existe o Crear un Modelo Propio.`);
+    ? `👤 User "<b>${esc(newUser.email)}</b>" created in Supabase! Now choose the Existing Example or Create Your Own Model.`
+    : `👤 Usuario "<b>${esc(newUser.email)}</b>" creado en Supabase con éxito. Ahora elija el Ejemplo que Existe o Crear un Modelo Propio.`);
 }
 window.createNewUserFromModal = createNewUserFromModal;
 
