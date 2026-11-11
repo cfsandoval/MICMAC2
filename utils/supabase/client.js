@@ -68,6 +68,21 @@
       }
     },
 
+    // 2b. Inicio de sesión con proveedor OAuth (Google / Apple)
+    async signInWithOAuth(provider) {
+      const cli = initClient();
+      if (!cli) return { error: { message: 'Supabase SDK no disponible' } };
+      try {
+        const redirectTo = window.location.origin + window.location.pathname;
+        const options = { redirectTo };
+        if (provider === 'google') options.queryParams = { prompt: 'select_account' };
+        const { data, error } = await cli.auth.signInWithOAuth({ provider, options });
+        return { data, error };
+      } catch (err) {
+        return { error: err };
+      }
+    },
+
     // 3. Cierre de sesión
     async signOut() {
       const cli = initClient();
@@ -86,6 +101,50 @@
       try {
         const { data } = await cli.auth.getUser();
         return data ? data.user : null;
+      } catch (err) {
+        return null;
+      }
+    },
+
+    // 4b. Sesión activa (null si no hay login confirmado)
+    async getSession() {
+      const cli = initClient();
+      if (!cli) return null;
+      try {
+        const { data } = await cli.auth.getSession();
+        return data ? data.session : null;
+      } catch (err) {
+        return null;
+      }
+    },
+
+    // 4c. Diagnóstico de conectividad con el proyecto Supabase
+    async checkConnection() {
+      try {
+        const res = await fetch(SUPABASE_URL + '/auth/v1/health', {
+          headers: { apikey: SUPABASE_PUBLISHABLE_KEY }
+        });
+        if (!res.ok) {
+          console.error('[Supabase] Health check failed:', res.status, res.statusText);
+          return { ok: false, status: res.status, error: res.statusText };
+        }
+        const info = await res.json().catch(() => ({}));
+        console.info('[Supabase] Connected:', SUPABASE_URL, info);
+        return { ok: true, status: res.status, data: info };
+      } catch (err) {
+        console.error('[Supabase] Connection error:', err);
+        return { ok: false, error: err };
+      }
+    },
+
+    // 4d. Configuración de Auth (proveedores habilitados, confirmación de email)
+    async getAuthSettings() {
+      try {
+        const res = await fetch(SUPABASE_URL + '/auth/v1/settings', {
+          headers: { apikey: SUPABASE_PUBLISHABLE_KEY }
+        });
+        if (!res.ok) return null;
+        return await res.json();
       } catch (err) {
         return null;
       }

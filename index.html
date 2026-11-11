@@ -35,10 +35,10 @@
         </div>
       </div>
       <button type="button" class="btn" id="btn-user-project" onclick="openUserProjectModal('model')" style="background:rgba(15,23,42,0.92);color:#e2e8f0;border:1px solid rgba(56,189,248,0.45);display:inline-flex;align-items:center;gap:6px;padding:6px 11px;font-size:12px;font-weight:600;box-shadow:0 2px 10px rgba(56,189,248,0.14);" title="Cambiar entre el Ejemplo existente o crear un Modelo Propio">
-        <span id="user-project-pill-txt" data-i18n="btn_user_project_short">👤 Usuario / Modelo</span>
+        <span id="user-project-pill-txt" data-i18n="btn_user_project_short">Modelo</span>
       </button>
-      <button type="button" class="btn ghost" id="btn-tenant-logout" onclick="openUserProjectModal('auth')" style="border:1px solid rgba(248,113,113,0.4);color:#fca5a5;display:inline-flex;align-items:center;gap:5px;padding:6px 10px;font-size:12px;font-weight:600;" title="Ir a la primera página: Login o Crear Usuario">
-        <span data-i18n="btn_switch_user">🔐 Login / Cambiar Usuario</span>
+      <button type="button" class="btn ghost" id="btn-tenant-logout" onclick="openUserProjectModal('auth')" style="border:1px solid rgba(148,163,255,0.3);color:#cbd5e1;display:inline-flex;align-items:center;gap:5px;padding:6px 10px;font-size:12px;font-weight:600;" title="Cuenta y sincronización">
+        <span data-i18n="btn_switch_user">Cuenta</span>
       </button>
       <button type="button" class="btn" id="btn-save-changes" data-save-btn onclick="saveChangesManual()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(16,185,129,0.28);border:1px solid rgba(52,211,153,0.4);" title="Guardar todos los cambios realizados (Ctrl+S)">
         <span data-i18n="btn_save_changes">💾 Guardar cambios</span>
@@ -2423,9 +2423,9 @@
   </div>
 </div>
 
-<!-- PRIMERA PÁGINA: Acceso Login o Registro y Selección de Ejemplo Existente o Modelo Propio -->
-<div id="user-project-modal" class="modal-backdrop open" style="z-index:99999;background:radial-gradient(ellipse at 20% 15%, #111c35 0%, #070b16 65%, #03060c 100%);padding:18px;overflow-y:auto;">
-  <div class="modal-window" style="max-width:1040px;width:100%;margin:auto;border:1px solid rgba(56,189,248,0.32);box-shadow:0 24px 64px rgba(0,0,0,0.85);" id="user-project-modal-content"></div>
+<!-- Cuenta y selección de modelo -->
+<div id="user-project-modal" class="modal-backdrop" style="z-index:99999;background:rgba(5,9,18,0.86);padding:18px;overflow-y:auto;">
+  <div class="modal-window" style="max-width:720px;width:100%;margin:auto;border:1px solid rgba(148,163,255,0.22);box-shadow:0 24px 64px rgba(0,0,0,0.6);" id="user-project-modal-content"></div>
 </div>
 
 <div id="tip" class="tip"></div>
@@ -2433,10 +2433,10 @@
 <script src="vendor/docx.umd.js"></script>
 <script>if (!window.docx) { document.write('<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"><\/script>'); }</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="utils/supabase/client.js?v=1"></script>
-<script src="i18n.js?v=147"></script>
+<script src="utils/supabase/client.js?v=2"></script>
+<script src="i18n.js?v=148"></script>
 <script src="data.js?v=147"></script>
-<script src="app.js?v=147"></script>
+<script src="app.js?v=149"></script>
 <script src="word-export.js?v=147"></script>
 </body>
 </html>

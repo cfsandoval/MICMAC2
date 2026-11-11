@@ -8283,6 +8283,7 @@ function getBlankStarterState(lang = 'es', customVision = '') {
 }
 
 let mtPortalStep = 'auth'; // 'auth' (Paso 1: Login / Crear Usuario) | 'model' (Paso 2: Elegir Ejemplo o Crear Modelo Propio)
+let mtAuthMode = 'login'; // 'login' | 'register'
 
 function loadUserProjectsStore() {
   try {
@@ -8359,11 +8360,16 @@ function syncActiveProjectOnSave() {
     activeProj.updatedAt = S.lastSavedAt || new Date().toISOString();
     saveUserProjectsStore(store);
 
-    // Sincronizar en la nube con Supabase si está disponible
-    if (window.SupabaseSync && typeof window.SupabaseSync.saveCloudProject === 'function') {
-      const activeUser = store.users.find(u => u.id === store.activeUserId);
-      const cloudUserId = activeUser?.supabaseId || store.activeUserId;
-      window.SupabaseSync.saveCloudProject(activeProj, cloudUserId).catch(err => {
+    // Sincronizar en la nube con Supabase si hay una sesión autenticada
+    const activeUser = store.users.find(u => u.id === store.activeUserId);
+    const cloudUserId = activeUser?.supabaseId;
+    if (cloudUserId && window.SupabaseSync && typeof window.SupabaseSync.saveCloudProject === 'function') {
+      window.SupabaseSync.getSession().then(session => {
+        if (!session) return;
+        return window.SupabaseSync.saveCloudProject(activeProj, cloudUserId).catch(err => {
+          console.warn('[Supabase] Auto-save skipped:', err);
+        });
+      }).catch(err => {
         console.warn('[Supabase] Auto-save skipped:', err);
       });
     }
@@ -8374,14 +8380,16 @@ function syncActiveProjectOnSave() {
 function updateUserProjectPill() {
   const el = document.getElementById('user-project-pill-txt');
   if (!el) return;
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
   const store = loadUserProjectsStore();
   const u = store.users.find(x => x.id === store.activeUserId) || store.users[0];
   const p = store.projects.find(x => x.id === store.activeProjectId);
-  const uName = u ? u.name : 'Usuario';
-  const orgTag = u && u.org ? `<span style="color:#a78bfa;font-weight:700;">🏢 ${esc(u.org.length > 18 ? u.org.slice(0, 17) + '…' : u.org)}</span> <span style="opacity:.4">·</span> ` : '';
-  const pName = p ? p.name : 'Modelo';
+  const isCloud = !!(u && u.supabaseId);
+  const uName = isCloud && u.name ? u.name : (isEn ? 'Guest' : 'Invitado');
+  const orgTag = isCloud && u.org ? `<span style="color:#a78bfa;font-weight:700;">${esc(u.org.length > 18 ? u.org.slice(0, 17) + '…' : u.org)}</span> <span style="opacity:.4">·</span> ` : '';
+  const pName = p ? p.name : (isEn ? 'Model' : 'Modelo');
   const shortP = pName.length > 26 ? pName.slice(0, 25) + '…' : pName;
-  el.innerHTML = `${orgTag}👤 <b style="color:#38bdf8;">${esc(uName)}</b> <span style="opacity:.45">·</span> 📁 <span style="color:#f8fafc;">${esc(shortP)}</span>`;
+  el.innerHTML = `${orgTag}<b style="color:#38bdf8;">${esc(uName)}</b> <span style="opacity:.45">·</span> <span style="color:#f8fafc;">${esc(shortP)}</span>`;
 }
 
 function applyProjectToWorkspace(proj) {
@@ -8419,6 +8427,164 @@ function setMtPortalStep(step) {
 }
 window.setMtPortalStep = setMtPortalStep;
 
+function setMtAuthMode(mode) {
+  mtAuthMode = mode === 'register' ? 'register' : 'login';
+  renderUserProjectModal();
+}
+window.setMtAuthMode = setMtAuthMode;
+
+async function loginWithOAuth(provider) {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const providerName = provider === 'apple' ? 'Apple' : 'Google';
+  if (!window.SupabaseSync || typeof window.SupabaseSync.signInWithOAuth !== 'function') {
+    alert(isEn ? 'Supabase is not available. Use email or continue without an account.' : 'Supabase no está disponible. Use email o continúe sin cuenta.');
+    return;
+  }
+  if (typeof window.SupabaseSync.getAuthSettings === 'function') {
+    const settings = await window.SupabaseSync.getAuthSettings();
+    if (settings && settings.external && settings.external[provider] === false) {
+      alert(isEn
+        ? `${providerName} sign-in is not enabled in Supabase yet. Enable it in Authentication → Providers.`
+        : `El inicio de sesión con ${providerName} aún no está habilitado en Supabase. Actívelo en Authentication → Providers.`);
+      return;
+    }
+  }
+  showSaveToast(isEn
+    ? `Redirecting to ${providerName}…`
+    : `Redirigiendo a ${providerName}…`);
+  const { error } = await window.SupabaseSync.signInWithOAuth(provider);
+  if (error) {
+    console.error('[Supabase] OAuth error:', error);
+    alert((isEn ? 'Could not start the session with ' : 'No se pudo iniciar sesión con ') +
+      providerName + ': ' + (error.message || error));
+  }
+}
+window.loginWithOAuth = loginWithOAuth;
+
+function continueAsGuest() {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  if (window.SupabaseSync && typeof window.SupabaseSync.signOut === 'function') {
+    window.SupabaseSync.signOut();
+  }
+  const store = loadUserProjectsStore();
+  let guest = store.users.find(u => u.id === 'u_default') || store.users.find(u => !u.supabaseId);
+  if (!guest) {
+    guest = {
+      id: 'u_guest',
+      username: 'guest',
+      name: isEn ? 'Guest' : 'Invitado',
+      org: '',
+      password: '',
+      createdAt: new Date().toISOString()
+    };
+    store.users.push(guest);
+  }
+  let proj = store.projects.find(p => p.userId === guest.id);
+  if (!proj) {
+    proj = {
+      id: 'proj_guest_' + Date.now(),
+      userId: guest.id,
+      name: isEn ? 'My Local Model' : 'Mi modelo local',
+      desc: '',
+      mode: 'custom',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      state: defaults(currentLang)
+    };
+    store.projects.push(proj);
+  }
+  store.activeUserId = guest.id;
+  store.selectedModalUserId = guest.id;
+  store.activeProjectId = proj.id;
+  saveUserProjectsStore(store);
+  applyProjectToWorkspace(proj);
+  closeUserProjectModal();
+  showSaveToast(isEn
+    ? '👋 Guest mode · your changes are saved in this browser'
+    : '👋 Modo invitado · tus cambios se guardan en este navegador', '#334155', '#64748b');
+}
+window.continueAsGuest = continueAsGuest;
+
+function upsertSupabaseUser(store, sbUser) {
+  const email = (sbUser.email || '').toLowerCase();
+  let found = store.users.find(u =>
+    (u.supabaseId && u.supabaseId === sbUser.id) ||
+    (email && ((u.email || '').toLowerCase() === email || (u.username || '').toLowerCase() === email))
+  );
+  if (!found) {
+    found = {
+      id: 'u_' + sbUser.id,
+      supabaseId: sbUser.id,
+      email: sbUser.email || email,
+      username: email,
+      name: (sbUser.user_metadata && (sbUser.user_metadata.full_name || sbUser.user_metadata.name)) || sbUser.email || email,
+      org: '',
+      password: '',
+      createdAt: sbUser.created_at || new Date().toISOString()
+    };
+    store.users.unshift(found);
+  } else {
+    found.supabaseId = sbUser.id;
+    if (!found.email) found.email = sbUser.email || email;
+    if (!found.username) found.username = email;
+  }
+  return found;
+}
+
+async function mergeCloudProjects(store, found, cloudUserId) {
+  if (!window.SupabaseSync || typeof window.SupabaseSync.fetchCloudProjects !== 'function') return;
+  const cloudProjs = await window.SupabaseSync.fetchCloudProjects(cloudUserId);
+  if (cloudProjs && cloudProjs.length) {
+    cloudProjs.forEach(cp => {
+      const existing = store.projects.find(p => p.id === cp.id);
+      if (!existing) {
+        store.projects.push({
+          id: cp.id,
+          userId: found.id,
+          name: cp.name,
+          desc: cp.desc || '',
+          mode: cp.mode || 'custom',
+          state: cp.state || {},
+          createdAt: cp.created_at || new Date().toISOString(),
+          updatedAt: cp.updated_at || new Date().toISOString()
+        });
+      } else if (cp.updated_at && new Date(cp.updated_at) > new Date(existing.updatedAt || 0)) {
+        existing.name = cp.name;
+        existing.desc = cp.desc || '';
+        existing.mode = cp.mode || existing.mode;
+        existing.state = cp.state || existing.state;
+        existing.updatedAt = cp.updated_at;
+      }
+    });
+  }
+  if (typeof window.SupabaseSync.saveCloudProject === 'function') {
+    const cloudIds = new Set((cloudProjs || []).map(cp => cp.id));
+    const pending = store.projects.filter(p => p.userId === found.id && !cloudIds.has(p.id));
+    for (const p of pending) {
+      await window.SupabaseSync.saveCloudProject(p, cloudUserId);
+    }
+  }
+}
+
+async function resumeSupabaseSession() {
+  if (!window.SupabaseSync || typeof window.SupabaseSync.getSession !== 'function') return false;
+  try {
+    const session = await window.SupabaseSync.getSession();
+    if (!session || !session.user) return false;
+    const store = loadUserProjectsStore();
+    const found = upsertSupabaseUser(store, session.user);
+    saveUserProjectsStore(store);
+    await mergeCloudProjects(store, found, session.user.id);
+    saveUserProjectsStore(store);
+    selectModalUser(found.id, false);
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] Could not resume session:', err);
+    return false;
+  }
+}
+window.resumeSupabaseSession = resumeSupabaseSession;
+
 function renderUserProjectModal() {
   const box = document.getElementById('user-project-modal-content');
   if (!box) return;
@@ -8428,161 +8594,93 @@ function renderUserProjectModal() {
   const selUser = store.users.find(u => u.id === selUserId) || store.users[0];
   const userProjects = store.projects.filter(p => p.userId === selUser.id);
   const activeProj = store.projects.find(p => p.id === store.activeProjectId);
-  const hasEnteredBefore = sessionStorage.getItem('micmac_user_chosen') === '1';
 
   box.innerHTML = `
-    <!-- CABECERA INSTITUCIONAL DE LA PRIMERA PÁGINA -->
-    <div class="modal-header" style="background:linear-gradient(135deg,#090f20 0%,#131f3a 55%,#0f172a 100%);border-bottom:1px solid rgba(56,189,248,0.3);padding:16px 24px;">
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-        <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#2563eb,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:800;box-shadow:0 4px 16px rgba(37,99,235,0.4);">◈</div>
-        <div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <h2 style="margin:0;font-size:19px;color:#f8fafc;letter-spacing:-0.2px;">
-              ${isEn ? 'Extended MICMAC · Structural & Territorial Foresight Platform' : 'MICMAC Extendido · Plataforma de Prospectiva Estructural y Territorial'}
-            </h2>
-            <span class="badge" style="background:rgba(56,189,248,0.18);border:1px solid #38bdf8;color:#38bdf8;font-size:10.5px;font-weight:700;">v2.4</span>
-          </div>
-          <p class="muted" style="margin:3px 0 0;font-size:12.5px;color:#94a3b8;">
-            ${isEn
-              ? 'Personal workspace per User & Institution · Step 1: Login or Create User → Step 2: Choose Existing Example or Create Own Model'
-              : 'Espacio de trabajo por Usuario e Institución · Paso 1: Login o Crear Usuario → Paso 2: Elegir Ejemplo Existente o Crear Modelo Propio'}
-          </p>
+    <div class="modal-header" style="padding:12px 18px;align-items:center;">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+        <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#2563eb,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:800;flex:0 0 auto;">◈</div>
+        <div style="min-width:0;">
+          <div style="font-size:14px;font-weight:700;color:#f8fafc;line-height:1.1;">MICMAC</div>
+          <div style="font-size:11px;color:#94a3b8;">${mtPortalStep === 'auth' ? (isEn ? 'Account & sync' : 'Cuenta y sincronización') : (isEn ? 'Your models' : 'Tus modelos')}</div>
         </div>
       </div>
-
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <!-- Selector de idioma en la primera página -->
-        <div style="display:inline-flex;background:#080d1a;border:1px solid rgba(148,163,255,0.25);border-radius:8px;padding:2px;">
-          <button type="button" onclick="applyLanguage('es')" style="padding:4px 9px;font-size:11.5px;font-weight:700;border:none;border-radius:6px;cursor:pointer;background:${!isEn ? '#2563eb' : 'transparent'};color:${!isEn ? '#fff' : '#94a3b8'};">ES</button>
-          <button type="button" onclick="applyLanguage('en')" style="padding:4px 9px;font-size:11.5px;font-weight:700;border:none;border-radius:6px;cursor:pointer;background:${isEn ? '#2563eb' : 'transparent'};color:${isEn ? '#fff' : '#94a3b8'};">EN</button>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="display:inline-flex;background:#080d1a;border:1px solid rgba(148,163,255,0.22);border-radius:7px;padding:2px;">
+          <button type="button" onclick="applyLanguage('es')" style="padding:3px 8px;font-size:11px;font-weight:700;border:none;border-radius:5px;cursor:pointer;background:${!isEn ? '#2563eb' : 'transparent'};color:${!isEn ? '#fff' : '#94a3b8'};">ES</button>
+          <button type="button" onclick="applyLanguage('en')" style="padding:3px 8px;font-size:11px;font-weight:700;border:none;border-radius:5px;cursor:pointer;background:${isEn ? '#2563eb' : 'transparent'};color:${isEn ? '#fff' : '#94a3b8'};">EN</button>
         </div>
-        ${hasEnteredBefore ? `
-          <button type="button" class="modal-close-btn" onclick="closeUserProjectModal()" title="${isEn ? 'Return to active model' : 'Volver al modelo activo'}">&times;</button>
-        ` : ''}
+        <button type="button" class="modal-close-btn" onclick="closeUserProjectModal()" title="${isEn ? 'Close' : 'Cerrar'}">&times;</button>
       </div>
     </div>
 
-      <!-- BARRA DE PROGRESO DE 2 PASOS EN LA PRIMERA PÁGINA -->
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 24px;background:rgba(8,13,26,0.92);border-bottom:1px solid rgba(148,163,255,0.14);flex-wrap:wrap;">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <button type="button" onclick="setMtPortalStep('auth')"
-          style="display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:700;cursor:pointer;transition:all .15s;border:1.5px solid ${mtPortalStep === 'auth' ? '#38bdf8' : 'rgba(148,163,255,0.22)'};background:${mtPortalStep === 'auth' ? 'rgba(56,189,248,0.18)' : 'rgba(15,23,42,0.7)'};color:${mtPortalStep === 'auth' ? '#38bdf8' : '#cbd5e1'};">
-          <span style="width:20px;height:20px;border-radius:50%;background:${mtPortalStep === 'auth' ? '#0284c7' : '#334155'};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;">1</span>
-          <span>${isEn ? 'Access: Login or Register' : 'Acceso: Login o Registro'}</span>
-        </button>
-        <span style="color:#64748b;font-weight:700;">➔</span>
-        <button type="button" ${hasEnteredBefore || mtPortalStep === 'model' ? `onclick="setMtPortalStep('model')"` : 'disabled'}
-          style="display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:700;cursor:${hasEnteredBefore || mtPortalStep === 'model' ? 'pointer' : 'not-allowed'};opacity:${hasEnteredBefore || mtPortalStep === 'model' ? '1' : '0.55'};transition:all .15s;border:1.5px solid ${mtPortalStep === 'model' ? '#34d399' : 'rgba(148,163,255,0.22)'};background:${mtPortalStep === 'model' ? 'rgba(52,211,153,0.18)' : 'rgba(15,23,42,0.7)'};color:${mtPortalStep === 'model' ? '#34d399' : '#cbd5e1'};">
-          <span style="width:20px;height:20px;border-radius:50%;background:${mtPortalStep === 'model' ? '#059669' : '#334155'};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;">2</span>
-          <span>${isEn ? 'Choose Existing Example, Resume or Create Own Model' : 'Elegir Ejemplo, Retomar o Crear Modelo Propio'}</span>
-        </button>
-      </div>
-      ${mtPortalStep === 'model' ? `
-      <div style="font-size:12px;color:#94a3b8;display:flex;align-items:center;gap:6px;">
-        <span>🟢 ${isEn ? 'Active Account:' : 'Cuenta activa:'}</span>
-        <b style="color:#38bdf8;">👤 ${esc(selUser.email || selUser.name)}</b>
-      </div>
-      ` : ''}
+    ${mtPortalStep === 'model' ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 18px;background:rgba(8,13,26,0.9);border-bottom:1px solid rgba(148,163,255,0.12);flex-wrap:wrap;">
+      <button type="button" onclick="setMtPortalStep('auth')" style="background:none;border:0;color:#38bdf8;font-size:12px;font-weight:600;cursor:pointer;padding:0;">← ${isEn ? 'Account' : 'Cuenta'}</button>
+      <span style="font-size:11.5px;color:#94a3b8;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(selUser.email || selUser.name)}</span>
     </div>
+    ` : ''}
 
-    <div class="modal-body" style="padding:24px;max-height:76vh;overflow-y:auto;">
+    <div class="modal-body" style="padding:18px;max-height:78vh;overflow-y:auto;">
       ${mtPortalStep === 'auth' ? `
-        <!-- =========================================================
-             PASO 1 DE LA PRIMERA PÁGINA: LOGIN O CREAR NUEVO USUARIO (EMAIL Y CONTRASEÑA)
-             ========================================================= -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;align-items:stretch;">
-          
-          <!-- COLUMNA IZQUIERDA: INICIAR SESIÓN (LOGIN) -->
-          <div style="background:rgba(15,23,42,0.85);border:1.5px solid rgba(56,189,248,0.35);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;gap:16px;">
-            <div>
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
-                <h3 style="margin:0;font-size:16.5px;color:#38bdf8;display:flex;align-items:center;gap:8px;">
-                  <span>🔐</span>
-                  <span>${isEn ? 'Option 1 · Sign In (Login)' : 'Opción 1 · Acceso Login (Iniciar Sesión)'}</span>
-                </h3>
-                <span class="badge" style="background:#0284c7;color:#fff;font-size:10px;">Login</span>
-              </div>
-              <p style="margin:0 0 14px;font-size:12.5px;color:#94a3b8;line-height:1.5;">
-                ${isEn
-                  ? 'Enter your registered email and password to access your saved models.'
-                  : 'Ingrese su correo electrónico (email) y contraseña para acceder a sus modelos.'}
-              </p>
+        <div style="max-width:360px;margin:0 auto;padding:6px 0 2px;">
+          <h3 style="margin:0 0 4px;font-size:18px;color:#f8fafc;letter-spacing:-0.2px;">${mtAuthMode === 'register' ? (isEn ? 'Create account' : 'Crear cuenta') : (isEn ? 'Sign in' : 'Iniciar sesión')}</h3>
+          <p style="margin:0 0 16px;font-size:12px;color:#94a3b8;line-height:1.45;">${isEn ? 'Sync your models across devices. Or just keep working locally.' : 'Sincroniza tus modelos entre dispositivos. O sigue trabajando localmente.'}</p>
 
-              <div style="display:flex;flex-direction:column;gap:12px;background:rgba(8,12,24,0.85);border:1px solid rgba(56,189,248,0.22);border-radius:10px;padding:16px;">
-                <div>
-                  <label style="font-size:12px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:5px;">${isEn ? 'Email *:' : 'Email (Correo electrónico) *:'}</label>
-                  <input type="email" id="mt-login-username" placeholder="${isEn ? 'user@domain.com' : 'usuario@correo.com'}"
-                    onkeydown="if(event.key==='Enter')loginTenantFromPortal()"
-                    style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.35);border-radius:7px;">
-                </div>
-                <div>
-                  <label style="font-size:12px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:5px;">${isEn ? 'Password *:' : 'Contraseña *:'}</label>
-                  <input type="password" id="mt-login-password" placeholder="${isEn ? 'Enter your password' : 'Ingrese su contraseña'}"
-                    onkeydown="if(event.key==='Enter')loginTenantFromPortal()"
-                    style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.28);border-radius:7px;">
-                </div>
-              </div>
-            </div>
-
-            <button type="button" class="btn" onclick="loginTenantFromPortal()"
-              style="background:linear-gradient(135deg,#0284c7,#2563eb);color:#fff;font-weight:700;padding:11px 16px;width:100%;font-size:13.5px;box-shadow:0 4px 16px rgba(2,132,199,0.28);">
-              🔐 ${isEn ? 'Login & Continue to Choose Model →' : 'Iniciar Sesión y Pasar a Elegir Modelo →'}
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button type="button" onclick="loginWithOAuth('google')" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:9px 12px;border-radius:8px;border:1px solid rgba(148,163,255,0.25);background:#fff;color:#1f2937;font-size:13px;font-weight:600;cursor:pointer;">
+              <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.3 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.2-.1-2.4-.4-3.5z"/></svg>
+              ${isEn ? 'Continue with Google' : 'Continuar con Google'}
+            </button>
+            <button type="button" onclick="loginWithOAuth('apple')" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:9px 12px;border-radius:8px;border:1px solid rgba(148,163,255,0.25);background:#000;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.46 2.2-1.2 2.98-.78.83-2.06 1.47-3.13 1.39-.13-1.1.43-2.27 1.16-3.02.82-.85 2.22-1.47 3.17-1.35zM20.7 17.2c-.57 1.3-.85 1.88-1.58 3.03-1.02 1.6-2.46 3.6-4.25 3.61-1.59.02-2-.9-4.16-.89-2.16.01-2.61.91-4.2.89-1.79-.02-3.16-1.82-4.18-3.42C-.6 15.6-.9 10.2 1.1 7.42c1.2-1.67 3.1-2.65 4.89-2.65 1.82 0 2.96.91 4.47.91 1.46 0 2.35-.91 4.45-.91 1.59 0 3.27.79 4.47 2.15-3.93 2.15-3.29 7.77 1.32 9.29z"/></svg>
+              ${isEn ? 'Continue with Apple' : 'Continuar con Apple'}
             </button>
           </div>
 
-          <!-- COLUMNA DERECHA: REGISTRO (CREAR NUEVO USUARIO SOLO CON EMAIL Y CONTRASEÑA) -->
-          <div style="background:rgba(15,23,42,0.85);border:1.5px solid rgba(52,211,153,0.38);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;gap:16px;">
-            <div>
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
-                <h3 style="margin:0;font-size:16.5px;color:#34d399;display:flex;align-items:center;gap:8px;">
-                  <span>➕</span>
-                  <span>${isEn ? 'Option 2 · Register (Create New User)' : 'Opción 2 · Registro (Crear Nuevo Usuario)'}</span>
-                </h3>
-                <span class="badge" style="background:#059669;color:#fff;font-size:10px;">${isEn ? 'Register' : 'Registro'}</span>
-              </div>
-              <p style="margin:0 0 14px;font-size:12.5px;color:#94a3b8;line-height:1.5;">
-                ${isEn
-                  ? 'Enter your email and password to create a new user account and proceed to choose the existing example or create your own model.'
-                  : 'Ingrese su email y contraseña para crear un nuevo usuario y pasar directamente a elegir entre el ejemplo existente o crear su propio modelo.'}
-              </p>
-
-              <div style="display:flex;flex-direction:column;gap:12px;background:rgba(8,12,24,0.85);border:1px solid rgba(52,211,153,0.22);border-radius:10px;padding:16px;">
-                <div>
-                  <label style="font-size:12px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:5px;">${isEn ? 'Email *:' : 'Email (Correo electrónico) *:'}</label>
-                  <input type="email" id="up-new-user-email" placeholder="${isEn ? 'user@domain.com' : 'usuario@correo.com'}"
-                    onkeydown="if(event.key==='Enter')createNewUserFromModal()"
-                    style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(52,211,153,0.35);border-radius:7px;">
-                </div>
-                <div>
-                  <label style="font-size:12px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:5px;">${isEn ? 'Password *:' : 'Contraseña *:'}</label>
-                  <input type="password" id="up-new-user-pass" placeholder="${isEn ? 'Create your password' : 'Cree su contraseña'}"
-                    onkeydown="if(event.key==='Enter')createNewUserFromModal()"
-                    style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.28);border-radius:7px;">
-                </div>
-              </div>
-            </div>
-
-            <button type="button" class="btn" onclick="createNewUserFromModal()"
-              style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;padding:11px 16px;width:100%;font-size:13.5px;box-shadow:0 4px 16px rgba(16,185,129,0.28);">
-              ➕ ${isEn ? 'Create User & Proceed to Model Selection →' : 'Crear Usuario y Pasar a Elegir Modelo →'}
-            </button>
+          <div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:#64748b;font-size:10.5px;">
+            <span style="flex:1;height:1px;background:rgba(148,163,255,0.16);"></span>
+            <span>${isEn ? 'or with email' : 'o con email'}</span>
+            <span style="flex:1;height:1px;background:rgba(148,163,255,0.16);"></span>
           </div>
 
+          ${mtAuthMode === 'register' ? `
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <input type="email" id="up-new-user-email" placeholder="${isEn ? 'Email' : 'Email'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.28);border-radius:8px;">
+              <input type="password" id="up-new-user-pass" placeholder="${isEn ? 'Password (min. 6 characters)' : 'Contraseña (mín. 6 caracteres)'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.22);border-radius:8px;">
+            </div>
+            <button type="button" class="btn" onclick="createNewUserFromModal()" style="width:100%;margin-top:10px;padding:10px 14px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#059669,#10b981);border:0;color:#fff;">${isEn ? 'Create account' : 'Crear cuenta'}</button>
+            <div style="text-align:center;margin-top:12px;font-size:12px;color:#94a3b8;">
+              ${isEn ? 'Already have an account?' : '¿Ya tienes cuenta?'}
+              <button type="button" onclick="setMtAuthMode('login')" style="background:none;border:0;color:#38bdf8;font-size:12px;font-weight:600;cursor:pointer;padding:0;">${isEn ? 'Sign in' : 'Inicia sesión'}</button>
+            </div>
+          ` : `
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <input type="email" id="mt-login-username" placeholder="${isEn ? 'Email' : 'Email'}" onkeydown="if(event.key==='Enter')loginTenantFromPortal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.28);border-radius:8px;">
+              <input type="password" id="mt-login-password" placeholder="${isEn ? 'Password' : 'Contraseña'}" onkeydown="if(event.key==='Enter')loginTenantFromPortal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.22);border-radius:8px;">
+            </div>
+            <button type="button" class="btn" onclick="loginTenantFromPortal()" style="width:100%;margin-top:10px;padding:10px 14px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#0284c7,#2563eb);border:0;color:#fff;">${isEn ? 'Sign in' : 'Iniciar sesión'}</button>
+            <div style="text-align:center;margin-top:12px;font-size:12px;color:#94a3b8;">
+              ${isEn ? 'No account?' : '¿No tienes cuenta?'}
+              <button type="button" onclick="setMtAuthMode('register')" style="background:none;border:0;color:#38bdf8;font-size:12px;font-weight:600;cursor:pointer;padding:0;">${isEn ? 'Create one' : 'Crea una'}</button>
+            </div>
+          `}
+
+          <div style="text-align:center;margin-top:16px;">
+            <button type="button" onclick="continueAsGuest()" style="background:none;border:0;color:#94a3b8;font-size:12px;cursor:pointer;text-decoration:underline;">${isEn ? 'Continue without an account' : 'Continuar sin cuenta'}</button>
+          </div>
         </div>
       ` : `
         <!-- =========================================================
              PASO 2 DE LA PRIMERA PÁGINA: ELEGIR EL EJEMPLO QUE EXISTE O CREAR UN MODELO PROPIO
              ========================================================= -->
         <div>
-          <!-- Banner del Usuario Autenticado -->
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 16px;background:linear-gradient(90deg,rgba(2,132,199,0.18),rgba(16,185,129,0.12));border:1px solid rgba(56,189,248,0.35);border-radius:11px;margin-bottom:16px;">
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-              <span class="badge" style="background:#059669;color:#fff;font-size:11px;padding:4px 9px;">✓ ${isEn ? 'SIGNED IN' : 'SESIÓN INICIADA'}</span>
-              <span style="font-size:14px;font-weight:700;color:#f8fafc;">👤 ${esc(selUser.name)} <span style="color:#38bdf8;font-family:'JetBrains Mono',monospace;font-size:12px;">(@${esc(selUser.username || 'user')})</span></span>
-              ${selUser.org ? `<span style="font-size:13px;color:#c4b5fd;font-weight:600;">· 🏢 ${esc(selUser.org)}</span>` : ''}
-            </div>
-            <button type="button" class="btn ghost sm" onclick="setMtPortalStep('auth')" style="border-color:rgba(248,113,113,0.4);color:#fca5a5;font-size:12px;">
-              ← ${isEn ? 'Switch User / Back to Login' : 'Cambiar de Usuario / Volver al Login'}
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 0 12px;border-bottom:1px solid rgba(148,163,255,0.12);margin-bottom:14px;flex-wrap:wrap;">
+            <span style="font-size:12px;color:#94a3b8;">
+              ${selUser.supabaseId ? (isEn ? 'Signed in as' : 'Sesión de') : (isEn ? 'Local workspace' : 'Espacio local')}
+              <b style="color:#f8fafc;">${esc(selUser.email || selUser.name)}</b>
+            </span>
+            <button type="button" class="btn ghost sm" onclick="setMtPortalStep('auth')" style="font-size:11.5px;padding:4px 9px;">
+              ${isEn ? 'Account' : 'Cuenta'}
             </button>
           </div>
 
@@ -8705,21 +8803,8 @@ function renderUserProjectModal() {
       `}
     </div>
 
-    <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;background:rgba(8,13,26,0.95);padding:12px 24px;">
-      <span class="muted" style="font-size:11.5px;">
-        🔒 ${mtPortalStep === 'auth'
-          ? (isEn ? 'Enter your email and password to sign in or register a new user account.' : 'Ingrese su email y contraseña para iniciar sesión o crear un nuevo usuario.')
-          : (isEn
-            ? `Active Session · User: ${esc(selUser.email || selUser.name)} · Model: ${esc(activeProj ? activeProj.name : '')}`
-            : `Sesión activa · Usuario: ${esc(selUser.email || selUser.name)} · Modelo: ${esc(activeProj ? activeProj.name : '')}`)}
-      </span>
-      <div style="display:flex;gap:8px;align-items:center;">
-        ${hasEnteredBefore ? `
-          <button type="button" class="btn ghost sm" onclick="closeUserProjectModal()">
-            ${isEn ? 'Return to Active Workspace' : 'Volver al modelo en curso'}
-          </button>
-        ` : ''}
-      </div>
+    <div class="modal-footer" style="display:flex;justify-content:flex-end;align-items:center;gap:8px;background:rgba(8,13,26,0.95);padding:10px 18px;">
+      <button type="button" class="btn ghost sm" onclick="closeUserProjectModal()" style="font-size:12px;padding:6px 12px;">${isEn ? 'Close' : 'Cerrar'}</button>
     </div>
   `;
 }
@@ -8728,6 +8813,9 @@ function openUserProjectModal(step) {
   save();
   if (step === 'auth' || step === 'model') {
     mtPortalStep = step;
+  }
+  if (step === 'auth') {
+    mtAuthMode = 'login';
   }
   const modal = document.getElementById('user-project-modal');
   if (!modal) return;
@@ -8769,43 +8857,11 @@ async function loginTenantFromPortal() {
   if (window.SupabaseSync && typeof window.SupabaseSync.signIn === 'function') {
     const { data, error } = await window.SupabaseSync.signIn(rawUser, rawPass);
     if (!error && data && data.user) {
-      if (!found) {
-        found = {
-          id: 'u_' + data.user.id,
-          supabaseId: data.user.id,
-          email: data.user.email,
-          username: data.user.email.toLowerCase(),
-          name: data.user.email,
-          org: '',
-          password: rawPass,
-          createdAt: data.user.created_at || new Date().toISOString()
-        };
-        store.users.unshift(found);
-        saveUserProjectsStore(store);
-      } else {
-        found.supabaseId = data.user.id;
-        saveUserProjectsStore(store);
-      }
-      // Traer modelos del usuario desde la tabla user_projects de Supabase si existen
-      const cloudProjs = await window.SupabaseSync.fetchCloudProjects(data.user.id);
-      if (cloudProjs && cloudProjs.length) {
-        cloudProjs.forEach(cp => {
-          if (!store.projects.some(p => p.id === cp.id)) {
-            store.projects.push({
-              id: cp.id,
-              userId: found.id,
-              name: cp.name,
-              desc: cp.desc || '',
-              mode: cp.mode || 'custom',
-              state: cp.state || {},
-              createdAt: cp.created_at || new Date().toISOString(),
-              updatedAt: cp.updated_at || new Date().toISOString()
-            });
-          }
-        });
-        saveUserProjectsStore(store);
-      }
-      selectModalUser(found.id, true);
+      const sbFound = upsertSupabaseUser(store, data.user);
+      saveUserProjectsStore(store);
+      await mergeCloudProjects(store, sbFound, data.user.id);
+      saveUserProjectsStore(store);
+      selectModalUser(sbFound.id, true);
       return;
     }
   }
@@ -8813,8 +8869,8 @@ async function loginTenantFromPortal() {
   // Fallback con la base de datos local
   if (!found) {
     alert(isEn
-      ? `Account "${rawUser}" was not found. Please register in "Option 2 · Register (Create New User)" on the right.`
-      : `No se encontró el usuario "${rawUser}". Puede registrarlo en el panel derecho "Opción 2 · Registro (Crear Nuevo Usuario)".`);
+      ? `Account "${rawUser}" was not found. Create an account or continue without one.`
+      : `No se encontró el usuario "${rawUser}". Crea una cuenta o continúa sin cuenta.`);
     return;
   }
   if (found.password && found.password.trim() !== '' && found.password !== rawPass) {
@@ -8904,12 +8960,16 @@ async function createNewUserFromModal() {
 
   // Registrar en Supabase Auth
   let supabaseUserId = null;
+  let signUpError = null;
+  let needsEmailConfirmation = false;
   if (window.SupabaseSync && typeof window.SupabaseSync.signUp === 'function') {
     const { data, error } = await window.SupabaseSync.signUp(rawEmail, passVal);
     if (!error && data && data.user) {
       supabaseUserId = data.user.id;
+      needsEmailConfirmation = !data.session;
     } else if (error) {
-      console.warn('[Supabase] SignUp notice:', error.message);
+      signUpError = error.message || String(error);
+      console.warn('[Supabase] SignUp notice:', signUpError);
     }
   }
 
@@ -8930,9 +8990,18 @@ async function createNewUserFromModal() {
   updateUserProjectPill();
   mtPortalStep = 'model';
   renderUserProjectModal();
-  showSaveToast(isEn
-    ? `👤 User "<b>${esc(newUser.email)}</b>" created in Supabase! Now choose the Existing Example or Create Your Own Model.`
-    : `👤 Usuario "<b>${esc(newUser.email)}</b>" creado en Supabase con éxito. Ahora elija el Ejemplo que Existe o Crear un Modelo Propio.`);
+  const savedMsg = supabaseUserId
+    ? (needsEmailConfirmation
+      ? (isEn
+        ? `👤 User "<b>${esc(newUser.email)}</b>" created. Check your email to confirm it, then sign in to sync with the cloud.`
+        : `👤 Usuario "<b>${esc(newUser.email)}</b>" creado. Revise su correo para confirmarlo y luego inicie sesión para sincronizar en la nube.`)
+      : (isEn
+        ? `👤 User "<b>${esc(newUser.email)}</b>" created in Supabase! Now choose the Existing Example or Create Your Own Model.`
+        : `👤 Usuario "<b>${esc(newUser.email)}</b>" creado en Supabase con éxito. Ahora elija el Ejemplo que Existe o Crear un Modelo Propio.`))
+    : (isEn
+      ? `👤 User "<b>${esc(newUser.email)}</b>" created locally. Supabase notice: ${esc(signUpError || 'cloud sync unavailable')}`
+      : `👤 Usuario "<b>${esc(newUser.email)}</b>" creado localmente. Aviso de Supabase: ${esc(signUpError || 'sincronización en nube no disponible')}`);
+  showSaveToast(savedMsg);
 }
 window.createNewUserFromModal = createNewUserFromModal;
 
@@ -8943,6 +9012,10 @@ function deleteModalUser(userId) {
   const target = store.users.find(u => u.id === userId);
   if (!target) return;
   if (!confirm(isEn ? `Delete user "${target.name}" and their saved models?` : `¿Eliminar el usuario "${target.name}" y todos sus modelos asociados?`)) return;
+  const targetProjects = store.projects.filter(p => p.userId === userId);
+  if (window.SupabaseSync && typeof window.SupabaseSync.deleteCloudProject === 'function') {
+    targetProjects.forEach(p => window.SupabaseSync.deleteCloudProject(p.id));
+  }
   store.users = store.users.filter(u => u.id !== userId);
   store.projects = store.projects.filter(p => p.userId !== userId);
   if (!store.projects.length) {
@@ -9122,6 +9195,9 @@ function deleteSavedUserProject(projId) {
   const proj = store.projects.find(p => p.id === projId);
   if (!proj) return;
   if (!confirm(isEn ? `Delete model "${proj.name}"?` : `¿Eliminar el modelo "${proj.name}"?`)) return;
+  if (window.SupabaseSync && typeof window.SupabaseSync.deleteCloudProject === 'function') {
+    window.SupabaseSync.deleteCloudProject(projId);
+  }
   store.projects = store.projects.filter(p => p.id !== projId);
   if (store.activeProjectId === projId) {
     const nextProj = store.projects.find(p => p.userId === store.activeUserId) || store.projects[0];
@@ -9139,7 +9215,13 @@ window.deleteSavedUserProject = deleteSavedUserProject;
 applyLanguage(currentLang);
 updateUserProjectPill();
 
-// Primera página obligatoria al cargar: mostrar siempre la pantalla de Acceso (Login o Registro)
-sessionStorage.removeItem('micmac_user_chosen');
-openUserProjectModal('auth');
+// Arranque: muestra siempre la pantalla mínima de acceso (sin obligar a iniciar sesión).
+(async function bootstrapAuth() {
+  const resumed = await resumeSupabaseSession();
+  if (resumed) {
+    closeUserProjectModal();
+    return;
+  }
+  openUserProjectModal('auth');
+})();
 
