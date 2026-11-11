@@ -1511,6 +1511,73 @@
       </div>
     </div>
 
+    <!-- GUÍA VISUAL PEDAGÓGICA Y ANALOGÍA PRÁCTICA -->
+    <div style="background:rgba(15,23,42,0.65);border:1px solid rgba(56,189,248,0.25);border-radius:12px;padding:16px 18px;margin:14px 0;box-shadow:0 4px 20px rgba(0,0,0,0.25);">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;">💡</span>
+          <div>
+            <h4 style="margin:0;font-size:14px;color:#f8fafc;font-weight:700;" data-i18n="stab_res_guide_title">¿Cómo entender este gráfico de un vistazo?</h4>
+            <p style="margin:2px 0 0;font-size:12px;color:#94a3b8;" data-i18n="stab_res_guide_sub">Analogía del potenciómetro de sonido y las 4 zonas del sistema</p>
+          </div>
+        </div>
+        <span class="pill" style="background:rgba(56,189,248,0.12);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);font-size:11px;" data-i18n="stab_res_guide_badge">
+          🎯 ¿Por qué α·ρ = 0.80 es el punto ideal?
+        </span>
+      </div>
+
+      <!-- Cuadrícula 4 Zonas -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+        <!-- Zona 1 -->
+        <div style="background:rgba(8,12,24,0.7);border-radius:10px;padding:12px;border:1px solid rgba(56,189,248,0.2);border-top:3px solid #38bdf8;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <b style="color:#38bdf8;font-size:12px;" data-i18n="stab_res_z1_title">ZONA 1 · Sub-amortiguada</b>
+            <span style="font-family:'JetBrains Mono';font-size:11px;color:#94a3b8;">0 ≤ α·ρ ≤ 0.70</span>
+          </div>
+          <p style="margin:0;font-size:11.5px;color:#cbd5e1;line-height:1.45;" data-i18n="stab_res_z1_desc">
+            <b>Analogía:</b> Volumen muy bajo.<br>
+            El sistema es 100% estable, pero se pierden los efectos indirectos profundos (de 2º y 3º orden) entre variables.
+          </p>
+        </div>
+
+        <!-- Zona 2 -->
+        <div style="background:rgba(16,185,129,0.06);border-radius:10px;padding:12px;border:1px solid rgba(16,185,129,0.4);border-top:3px solid #34d399;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <b style="color:#34d399;font-size:12px;" data-i18n="stab_res_z2_title">★ ZONA 2 · Rango Óptimo</b>
+            <span style="font-family:'JetBrains Mono';font-size:11px;color:#34d399;font-weight:700;">0.70 ≤ α·ρ ≤ 0.90</span>
+          </div>
+          <p style="margin:0;font-size:11.5px;color:#e2e8f0;line-height:1.45;" data-i18n="stab_res_z2_desc">
+            <b>Analogía:</b> Alta fidelidad perfecta.<br>
+            <b>Punto dulce (0.80):</b> Capta el 100% de las repercusiones sistémicas y cadenas causales manteniendo un <b>20% de margen de seguridad</b> matemático.
+          </p>
+        </div>
+
+        <!-- Zona 3 -->
+        <div style="background:rgba(245,158,11,0.06);border-radius:10px;padding:12px;border:1px solid rgba(245,158,11,0.3);border-top:3px solid #f59e0b;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <b style="color:#f59e0b;font-size:12px;" data-i18n="stab_res_z3_title">ZONA 3 · Crítica / Pre-colapso</b>
+            <span style="font-family:'JetBrains Mono';font-size:11px;color:#f59e0b;">0.90 &lt; α·ρ &lt; 1.00</span>
+          </div>
+          <p style="margin:0;font-size:11.5px;color:#cbd5e1;line-height:1.45;" data-i18n="stab_res_z3_desc">
+            <b>Analogía:</b> Micrófono rozando el altavoz.<br>
+            La norma se dispara hacia el infinito (asíntota vertical). Pequeñas variaciones generan fluctuaciones extremas y el modelo se vuelve hipersensible.
+          </p>
+        </div>
+
+        <!-- Zona 4 -->
+        <div style="background:rgba(239,68,68,0.06);border-radius:10px;padding:12px;border:1px solid rgba(239,68,68,0.3);border-top:3px solid #ef4444;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <b style="color:#ef4444;font-size:12px;" data-i18n="stab_res_z4_title">ZONA 4 · Colapso Perron-Frobenius</b>
+            <span style="font-family:'JetBrains Mono';font-size:11px;color:#ef4444;font-weight:700;">α·ρ ≥ 1.00</span>
+          </div>
+          <p style="margin:0;font-size:11.5px;color:#cbd5e1;line-height:1.45;" data-i18n="stab_res_z4_desc">
+            <b>Analogía:</b> Acople ensordecedor continuo.<br>
+            <b>Falla del MICMAC clásico:</b> Al elevar A^k sin freno, la matriz colapsa a rango 1: todas las filas se vuelven 100% idénticas, perdiendo la capacidad de distinguir qué variable influye a cuál.
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Active calibration bar & quick controls -->
     <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(8,12,24,.6);border:1px solid var(--line);border-radius:10px;padding:10px 16px;margin:12px 0 16px;flex-wrap:wrap;gap:12px;">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
