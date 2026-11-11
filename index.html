@@ -412,7 +412,7 @@
     <div class="card-head">
       <div>
         <h2 data-i18n="dyn_title">Micmac extendido · Modelo Dinámico Convergente 4D</h2>
-        <p class="muted" data-i18n="dyn_subtitle">Supera las tres limitaciones del MICMAC clásico (Godet): convergencia por operador de Katz-Bonacich / Leontief (reemplaza potencias de Perron-Frobenius), polaridad/signos [-3, 3] y fricción temporal exp(-λt).</p>
+        <p class="muted" data-i18n="dyn_subtitle">Supera las tres limitaciones del MICMAC clásico (Godet): calcula el impacto real considerando el tiempo que tardan los efectos y si se refuerzan o anulan entre sí en el sistema.</p>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <button type="button" class="btn ghost" id="btn-open-metrics-glossary" onclick="openMetricsModal('all')">
@@ -423,6 +423,35 @@
           <span data-i18n="btn_word_tab">📄 Informe Word Detallado (.docx)</span>
         </button>
         <button type="button" class="btn primary" id="btn-export-excel-tab" onclick="exportExcelReport(event)" style="white-space:nowrap" data-i18n="btn_excel">⬇ Descargar Excel Multi-Hoja</button>
+      </div>
+    </div>
+
+    <!-- EXPLICACIÓN SENCILLA Y DIRECTA DE QUÉ HACE ESTE MODELO -->
+    <div style="background:linear-gradient(135deg,rgba(15,23,42,0.85),rgba(30,58,138,0.22));border:1.5px solid rgba(56,189,248,0.32);border-radius:12px;padding:14px 18px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:16px;">💡</span>
+        <b style="font-size:13.5px;color:#38bdf8;" data-i18n="dyn_easy_title">¿Cómo entender este modelo en palabras sencillas?</b>
+      </div>
+      <p style="margin:0 0 10px;font-size:12.5px;color:#cbd5e1;line-height:1.55;" data-i18n="dyn_easy_p1">
+        El MICMAC clásico de Michel Godet solo suma impactos directos e indirectos asumiendo que todo suma de inmediato. En la realidad, <b>los impactos toman tiempo en madurar</b> y muchos efectos <b>se contradicen o cancelan entre sí</b> (por ejemplo: bucles de resistencia al cambio o bucles de refuerzo). Este modelo 4D resuelve eso respondiendo 4 preguntas clave:
+      </p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;font-size:12px;">
+        <div style="background:rgba(8,12,24,0.7);padding:10px 12px;border-radius:8px;border:1px solid rgba(52,211,153,0.25);">
+          <b style="color:#34d399;display:block;margin-bottom:3px;">🎯 1. Palancas Maestras</b>
+          <span style="color:#94a3b8;">Variables que <b>realmente mueven el sistema</b> con fuerza neta y sin generar contradicciones ocultas.</span>
+        </div>
+        <div style="background:rgba(8,12,24,0.7);padding:10px 12px;border-radius:8px;border:1px solid rgba(251,113,133,0.25);">
+          <b style="color:#fb7185;display:block;margin-bottom:3px;">⚠️ 2. Trampas o Espejismos</b>
+          <span style="color:#94a3b8;">Variables que <i>parecen</i> muy poderosas en el papel, pero en la práctica sus efectos <b>se disipan o chocan</b> con resistencias.</span>
+        </div>
+        <div style="background:rgba(8,12,24,0.7);padding:10px 12px;border-radius:8px;border:1px solid rgba(251,191,36,0.25);">
+          <b style="color:#fbbf24;display:block;margin-bottom:3px;">🔄 3. Bucle Propio (F)</b>
+          <span style="color:#94a3b8;">Indica si invertir en una variable <b>regresa amplificado</b> (efecto bola de nieve positivo) o si se estabiliza sola.</span>
+        </div>
+        <div style="background:rgba(8,12,24,0.7);padding:10px 12px;border-radius:8px;border:1px solid rgba(167,139,250,0.25);">
+          <b style="color:#c4b5fd;display:block;margin-bottom:3px;">⏱ 4. Fricción del Tiempo (λ)</b>
+          <span style="color:#94a3b8;">Un impacto que tarda 5 años en concretarse <b>pesa menos hoy</b> que una acción que actúa de inmediato.</span>
+        </div>
       </div>
     </div>
 
