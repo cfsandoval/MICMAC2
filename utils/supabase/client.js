@@ -4,6 +4,7 @@
   const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_LiwzmwIjafVYij_AiF2AaA_V81Yv9a6';
 
   let client = null;
+  let tableMissingWarned = false;
 
   function initClient() {
     if (client) return client;
@@ -23,6 +24,57 @@
     return client;
   }
 
+  // Fallback en user_metadata cuando la tabla public.user_projects aún no ha sido creada en SQL Editor
+  async function fetchMetadataProjects(cli) {
+    try {
+      const { data, error } = await cli.auth.getUser();
+      if (error || !data || !data.user) return [];
+      const list = data.user.user_metadata && data.user.user_metadata.micmac_projects;
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function saveMetadataProject(cli, payload) {
+    try {
+      const list = await fetchMetadataProjects(cli);
+      const idx = list.findIndex(p => p && p.id === payload.id);
+      if (idx >= 0) {
+        list[idx] = payload;
+      } else {
+        list.unshift(payload);
+      }
+      // Mantener los 10 modelos más recientes en metadata para no exceder límites de JWT/metadata
+      const trimmed = list.slice(0, 10);
+      const { data, error } = await cli.auth.updateUser({
+        data: { micmac_projects: trimmed }
+      });
+      if (error) {
+        console.warn('[Supabase] saveMetadataProject warning:', error.message);
+        return null;
+      }
+      return data;
+    } catch (e) {
+      console.warn('[Supabase] saveMetadataProject error:', e);
+      return null;
+    }
+  }
+
+  async function deleteMetadataProject(cli, projectId) {
+    try {
+      const list = await fetchMetadataProjects(cli);
+      const filtered = list.filter(p => p && p.id !== projectId);
+      if (filtered.length !== list.length) {
+        await cli.auth.updateUser({
+          data: { micmac_projects: filtered }
+        });
+      }
+    } catch (e) {
+      console.warn('[Supabase] deleteMetadataProject error:', e);
+    }
+  }
+
   const SupabaseSync = {
     url: SUPABASE_URL,
     key: SUPABASE_PUBLISHABLE_KEY,
@@ -35,16 +87,65 @@
       return Boolean(initClient());
     },
 
+    // Detectar errores devueltos en la URL tras redirección OAuth (?error=... o #error=...)
+    getUrlAuthError() {
+      try {
+        const searchParams = new URLSearchParams(window.location.search || '');
+        const hashRaw = (window.location.hash || '').replace(/^#/, '');
+        const hashParams = new URLSearchParams(hashRaw);
+        const error = searchParams.get('error') || hashParams.get('error');
+        const errorCode = searchParams.get('error_code') || hashParams.get('error_code');
+        const errorDescription = searchParams.get('error_description') || hashParams.get('error_description');
+        if (!error && !errorCode && !errorDescription) return null;
+        return {
+          error: error || 'oauth_error',
+          errorCode: errorCode || '',
+          errorDescription: (errorDescription || error || '').replace(/\+/g, ' ')
+        };
+      } catch (e) {
+        return null;
+      }
+    },
+
+    clearUrlAuthParams() {
+      try {
+        if (window.history && typeof window.history.replaceState === 'function') {
+          const cleanUrl = window.location.pathname +
+            window.location.search
+              .replace(/([?&])(error|error_code|error_description|code|state)=[^&]*/g, '')
+              .replace(/^\?&/, '?')
+              .replace(/\?$/, '');
+          window.history.replaceState({}, document.title, cleanUrl || window.location.pathname);
+        }
+      } catch (e) {}
+    },
+
+    onAuthChange(callback) {
+      const cli = initClient();
+      if (!cli || !cli.auth || typeof cli.auth.onAuthStateChange !== 'function') return null;
+      return cli.auth.onAuthStateChange((event, session) => {
+        if (typeof callback === 'function') callback(event, session);
+      });
+    },
+
     // 1. Registro con Supabase Auth
-    async signUp(email, password) {
+    async signUp(email, password, meta = {}) {
       const cli = initClient();
       if (!cli) return { error: { message: 'Supabase SDK no disponible' } };
       try {
+        const cleanEmail = email.trim();
+        const isHttp = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+        const emailRedirectTo = isHttp ? (window.location.origin + window.location.pathname) : undefined;
         const { data, error } = await cli.auth.signUp({
-          email: email.trim(),
+          email: cleanEmail,
           password: password,
           options: {
-            data: { display_name: email.trim() }
+            emailRedirectTo,
+            data: {
+              display_name: meta.name || cleanEmail,
+              full_name: meta.name || cleanEmail,
+              org: meta.org || ''
+            }
           }
         });
         return { data, error };
@@ -72,10 +173,20 @@
     async signInWithOAuth(provider) {
       const cli = initClient();
       if (!cli) return { error: { message: 'Supabase SDK no disponible' } };
+      if (window.location.protocol === 'file:') {
+        return {
+          error: {
+            code: 'file_protocol_not_supported',
+            message: 'El inicio de sesión con Google requiere abrir la aplicación desde un servidor web (http://localhost o la URL desplegada en Vercel), ya que Google OAuth no permite redirigir hacia archivos locales (file://).'
+          }
+        };
+      }
       try {
         const redirectTo = window.location.origin + window.location.pathname;
-        const options = { redirectTo };
-        if (provider === 'google') options.queryParams = { prompt: 'select_account' };
+        const options = {
+          redirectTo,
+          queryParams: provider === 'google' ? { prompt: 'select_account', access_type: 'offline' } : undefined
+        };
         const { data, error } = await cli.auth.signInWithOAuth({ provider, options });
         return { data, error };
       } catch (err) {
@@ -150,7 +261,7 @@
       }
     },
 
-    // 5. Cargar proyectos de la nube (tabla user_projects)
+    // 5. Cargar proyectos de la nube (tabla user_projects + respaldo en user_metadata)
     async fetchCloudProjects(userId) {
       const cli = initClient();
       if (!cli || !userId) return null;
@@ -161,42 +272,55 @@
           .eq('user_id', userId)
           .order('updated_at', { ascending: false });
         if (error) {
-          console.warn('[Supabase] fetchCloudProjects warning (table may not exist yet):', error.message);
-          return null;
+          if (!tableMissingWarned) {
+            tableMissingWarned = true;
+            console.info('[Supabase] Usando respaldo automático en user_metadata (tabla user_projects pendiente):', error.message);
+          }
+          return await fetchMetadataProjects(cli);
         }
-        return data || [];
+        const metaProjs = await fetchMetadataProjects(cli);
+        const byId = new Map();
+        (data || []).forEach(p => { if (p && p.id) byId.set(p.id, p); });
+        (metaProjs || []).forEach(p => {
+          if (p && p.id && !byId.has(p.id)) byId.set(p.id, p);
+        });
+        return Array.from(byId.values());
       } catch (err) {
         console.warn('[Supabase] fetchCloudProjects error:', err);
-        return null;
+        return await fetchMetadataProjects(cli);
       }
     },
 
-    // 6. Guardar/Actualizar proyecto en la nube
+    // 6. Guardar/Actualizar proyecto en la nube (tabla user_projects + respaldo en user_metadata)
     async saveCloudProject(project, userId) {
       const cli = initClient();
       if (!cli || !userId || !project) return null;
+      const payload = {
+        id: project.id,
+        user_id: userId,
+        name: project.name,
+        desc: project.desc || '',
+        mode: project.mode || 'custom',
+        state: project.state || {},
+        created_at: project.createdAt || new Date().toISOString(),
+        updated_at: project.updatedAt || new Date().toISOString()
+      };
       try {
-        const payload = {
-          id: project.id,
-          user_id: userId,
-          name: project.name,
-          desc: project.desc || '',
-          mode: project.mode || 'custom',
-          state: project.state || {},
-          updated_at: new Date().toISOString()
-        };
         const { data, error } = await cli
           .from('user_projects')
           .upsert(payload, { onConflict: 'id' })
           .select();
         if (error) {
-          console.warn('[Supabase] saveCloudProject warning:', error.message);
-          return null;
+          if (!tableMissingWarned) {
+            tableMissingWarned = true;
+            console.info('[Supabase] Guardando proyecto en user_metadata (tabla user_projects no creada aún):', error.message);
+          }
+          return await saveMetadataProject(cli, payload);
         }
         return data;
       } catch (err) {
         console.warn('[Supabase] saveCloudProject error:', err);
-        return null;
+        return await saveMetadataProject(cli, payload);
       }
     },
 
@@ -209,9 +333,11 @@
           .from('user_projects')
           .delete()
           .eq('id', projectId);
-        if (error) console.warn('[Supabase] deleteCloudProject warning:', error.message);
+        if (error) {
+          await deleteMetadataProject(cli, projectId);
+        }
       } catch (err) {
-        console.warn('[Supabase] deleteCloudProject error:', err);
+        await deleteMetadataProject(cli, projectId);
       }
     }
   };

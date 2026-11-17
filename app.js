@@ -380,16 +380,30 @@ function saveAndRenameActiveModel() {
     if (modelInp) modelInp.focus();
     return;
   }
-  save();
   const store = loadUserProjectsStore();
-  const activeProj = store.projects.find(p => p.id === store.activeProjectId);
-  if (activeProj) {
+  let activeProj = store.projects.find(p => p.id === store.activeProjectId);
+  if (!activeProj || activeProj.userId !== store.activeUserId) {
+    const now = new Date().toISOString();
+    activeProj = {
+      id: 'proj_' + Date.now(),
+      userId: store.activeUserId,
+      name: rawName,
+      desc: activeProj ? activeProj.desc : '',
+      mode: 'custom',
+      createdAt: now,
+      updatedAt: now,
+      state: JSON.parse(JSON.stringify(S))
+    };
+    store.projects.unshift(activeProj);
+    store.activeProjectId = activeProj.id;
+  } else {
     activeProj.name = rawName;
     activeProj.updatedAt = new Date().toISOString();
     activeProj.state = JSON.parse(JSON.stringify(S));
-    saveUserProjectsStore(store);
-    updateUserProjectPill();
+    delete activeProj.isAutoStarter;
   }
+  saveUserProjectsStore(store);
+  save();
   renderSnapshotsList();
   showSaveToast(
     isEn
@@ -409,9 +423,8 @@ function saveAsNewNamedModel() {
     if (modelInp) modelInp.focus();
     return;
   }
-  save();
   const store = loadUserProjectsStore();
-  const activeProj = store.projects.find(p => p.id === store.activeProjectId);
+  const activeProj = store.projects.find(p => p.id === store.activeProjectId && p.userId === store.activeUserId);
   if (activeProj && activeProj.name === rawName) {
     rawName = `${rawName} (${new Date().toLocaleDateString()})`;
   }
@@ -429,7 +442,7 @@ function saveAsNewNamedModel() {
   store.projects.unshift(newProj);
   store.activeProjectId = newProj.id;
   saveUserProjectsStore(store);
-  updateUserProjectPill();
+  save();
   if (modelInp) modelInp.value = rawName;
   renderSnapshotsList();
   showSaveToast(
@@ -449,6 +462,7 @@ function resumeSavedModelFromModal(projId) {
   if (!proj) return;
   store.activeProjectId = proj.id;
   store.activeUserId = proj.userId;
+  store.selectedModalUserId = proj.userId;
   saveUserProjectsStore(store);
   applyProjectToWorkspace(proj);
   updateUserProjectPill();
@@ -473,7 +487,9 @@ function renameSavedModelInline(projId) {
   if (!newName || !newName.trim()) return;
   proj.name = newName.trim();
   proj.updatedAt = new Date().toISOString();
+  delete proj.isAutoStarter;
   saveUserProjectsStore(store);
+  if (typeof syncProjectToCloud === 'function') syncProjectToCloud(store, proj);
   updateUserProjectPill();
   const modelInp = document.getElementById('save-model-name-input');
   if (modelInp && proj.id === store.activeProjectId) {
@@ -2801,6 +2817,7 @@ async function runMonteCarloSimulation() {
     // Ordenar de mayor a menor impacto medio
     varStats.sort((a, b) => b.mean - a.mean);
     lastMonteCarloResults = varStats;
+    window.lastMonteCarloResults = varStats;
 
     // 4. Renderizar KPIs Resumen
     const winner = varStats[0];
@@ -3018,6 +3035,141 @@ function showMonteCarloVariableDetail(rankOrVid) {
   }
 }
 window.showMonteCarloVariableDetail = showMonteCarloVariableDetail;
+
+function getOrComputeMonteCarloResults(runs = 1000) {
+  if (lastMonteCarloResults && lastMonteCarloResults.length) {
+    return lastMonteCarloResults;
+  }
+  const vars = V();
+  const n = vars.length;
+  if (n < 2) return [];
+
+  const steps = Number(S.params.steps) || 40;
+  const beta = Number(S.params.beta) || 0.15;
+  const lambda = Number(S.params.lambda) || 0.05;
+  const dt = Math.max(0.02, Number(S.params.dt) || 0.1);
+  const subSteps = Math.max(1, Math.round(1 / dt));
+  const subDt = 1 / subSteps;
+  const noise = 0.20;
+
+  const baseW = Array.from({ length: n }, (_, r) => {
+    const row = new Float64Array(n);
+    for (let c = 0; c < n; c++) {
+      row[c] = (r === c) ? 0 : (val(vars[r].id, vars[c].id) / 3);
+    }
+    return row;
+  });
+
+  const startOptions = [1, 2, 3, 5, 8];
+  const durOptions = [3, 5, 10, 15, 20];
+  const testMag = 3.0;
+
+  const varStats = vars.map((v, i) => ({
+    v,
+    i,
+    impactScores: [],
+    startPicks: {},
+    durPicks: {},
+    peakTimes: []
+  }));
+
+  const pertW = Array.from({ length: n }, () => new Float64Array(n));
+  const d = new Float64Array(n);
+  const ddot = new Float64Array(n);
+
+  for (let r = 0; r < runs; r++) {
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        if (i === j) {
+          pertW[i][j] = 0;
+        } else {
+          const orig = baseW[i][j];
+          if (orig > 0) {
+            const factor = 1 + (Math.random() * 2 - 1) * noise;
+            pertW[i][j] = Math.max(0, orig * factor);
+          } else {
+            pertW[i][j] = 0;
+          }
+        }
+      }
+    }
+
+    for (let vi = 0; vi < n; vi++) {
+      const st = varStats[vi];
+      const randStart = startOptions[Math.floor(Math.random() * startOptions.length)];
+      const randDur = durOptions[Math.floor(Math.random() * durOptions.length)];
+      const endT = randStart + randDur;
+
+      d.fill(0);
+      let sysImpact = 0;
+      let peakDiff = 0;
+      let peakT = randStart;
+
+      for (let t = 1; t <= steps; t++) {
+        const uMag = (t >= randStart && t < endT) ? testMag : 0;
+        for (let s = 0; s < subSteps; s++) {
+          for (let i = 0; i < n; i++) {
+            let sum = 0;
+            for (let j = 0; j < n; j++) sum += pertW[j][i] * d[j];
+            const u = (i === vi) ? uMag : 0;
+            ddot[i] = beta * sum - lambda * d[i] + u;
+          }
+          for (let i = 0; i < n; i++) d[i] += ddot[i] * subDt;
+        }
+
+        let stepDiff = 0;
+        for (let i = 0; i < n; i++) stepDiff += Math.abs(d[i]);
+        sysImpact += stepDiff;
+        if (stepDiff > peakDiff) {
+          peakDiff = stepDiff;
+          peakT = t;
+        }
+      }
+
+      const normScore = sysImpact / steps;
+      st.impactScores.push(normScore);
+      st.peakTimes.push(peakT);
+      st.startPicks[randStart] = (st.startPicks[randStart] || 0) + normScore;
+      st.durPicks[randDur] = (st.durPicks[randDur] || 0) + normScore;
+    }
+  }
+
+  varStats.forEach(st => {
+    st.impactScores.sort((a, b) => a - b);
+    const len = st.impactScores.length;
+    st.mean = st.impactScores.reduce((acc, v) => acc + v, 0) / len;
+    const variance = st.impactScores.reduce((acc, v) => acc + Math.pow(v - st.mean, 2), 0) / len;
+    st.stdDev = Math.sqrt(variance);
+    st.cv = st.mean > 1e-6 ? (st.stdDev / st.mean) : 0;
+    st.p10 = st.impactScores[Math.floor(len * 0.10)];
+    st.p25 = st.impactScores[Math.floor(len * 0.25)];
+    st.p50 = st.impactScores[Math.floor(len * 0.50)];
+    st.p75 = st.impactScores[Math.floor(len * 0.75)];
+    st.p90 = st.impactScores[Math.floor(len * 0.90)];
+    st.iqr = st.p90 - st.p10;
+
+    let bestStart = 1, maxStartScore = -1;
+    Object.entries(st.startPicks).forEach(([s, score]) => {
+      if (score > maxStartScore) { maxStartScore = score; bestStart = parseInt(s, 10); }
+    });
+    st.optStart = bestStart;
+
+    let bestDur = 10, maxDurScore = -1;
+    Object.entries(st.durPicks).forEach(([d, score]) => {
+      if (score > maxDurScore) { maxDurScore = score; bestDur = parseInt(d, 10); }
+    });
+    st.optDur = bestDur;
+
+    st.peakTimes.sort((a, b) => a - b);
+    st.medianPeakT = st.peakTimes[Math.floor(st.peakTimes.length * 0.50)];
+  });
+
+  varStats.sort((a, b) => b.mean - a.mean);
+  lastMonteCarloResults = varStats;
+  window.lastMonteCarloResults = varStats;
+  return varStats;
+}
+window.getOrComputeMonteCarloResults = getOrComputeMonteCarloResults;
 
 function applyMonteCarloRecommendation(vid, start, dur) {
   const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
@@ -8843,9 +8995,66 @@ function saveUserProjectsStore(store) {
   }
 }
 
+let lastOAuthError = null;
+
+function syncProjectToCloud(store, proj) {
+  if (!proj || !store) return;
+  const owner = store.users.find(u => u.id === proj.userId);
+  const cloudUserId = owner?.supabaseId;
+  if (cloudUserId && window.SupabaseSync && typeof window.SupabaseSync.saveCloudProject === 'function') {
+    window.SupabaseSync.getSession().then(session => {
+      if (!session || !session.user || session.user.id !== cloudUserId) return;
+      return window.SupabaseSync.saveCloudProject(proj, cloudUserId).catch(err => {
+        console.warn('[Supabase] Cloud sync skipped:', err);
+      });
+    }).catch(err => {
+      console.warn('[Supabase] Cloud sync skipped:', err);
+    });
+  }
+}
+
+function ensureUserIsolatedProject(store, userId) {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const user = store.users.find(u => u.id === userId) || store.users[0];
+  if (!user) return null;
+  let userProjs = store.projects.filter(p => p.userId === user.id);
+  userProjs.sort((a, b) => {
+    const tA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const tB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return tB - tA;
+  });
+  if (userProjs.length) {
+    const currentActive = userProjs.find(p => p.id === store.activeProjectId);
+    const chosen = currentActive || userProjs[0];
+    store.activeProjectId = chosen.id;
+    return chosen;
+  }
+  uid = 1;
+  const now = new Date().toISOString();
+  const displayName = user.name || user.email || (isEn ? 'User' : 'Usuario');
+  const starterProj = {
+    id: 'proj_usr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    userId: user.id,
+    name: isEn ? `Base Model (${displayName})` : `Modelo Base (${displayName})`,
+    desc: isEn ? 'Personal isolated workspace model' : 'Modelo de trabajo individual del usuario',
+    mode: 'example',
+    isAutoStarter: true,
+    createdAt: now,
+    updatedAt: now,
+    state: defaults(currentLang)
+  };
+  store.projects.unshift(starterProj);
+  store.activeProjectId = starterProj.id;
+  return starterProj;
+}
+
 function syncActiveProjectOnSave() {
   const store = loadUserProjectsStore();
-  const activeProj = store.projects.find(p => p.id === store.activeProjectId);
+  let activeProj = store.projects.find(p => p.id === store.activeProjectId);
+  // Garantizar aislamiento estricto: nunca sobrescribir el modelo de otro usuario
+  if (!activeProj || activeProj.userId !== store.activeUserId) {
+    activeProj = ensureUserIsolatedProject(store, store.activeUserId);
+  }
   if (activeProj) {
     if (typeof vnetState !== 'undefined' && vnetState.positions && Object.keys(vnetState.positions).length) {
       S.vnetPositions = vnetState.positions;
@@ -8856,20 +9065,7 @@ function syncActiveProjectOnSave() {
     activeProj.state = JSON.parse(JSON.stringify(S));
     activeProj.updatedAt = S.lastSavedAt || new Date().toISOString();
     saveUserProjectsStore(store);
-
-    // Sincronizar en la nube con Supabase si hay una sesión autenticada
-    const activeUser = store.users.find(u => u.id === store.activeUserId);
-    const cloudUserId = activeUser?.supabaseId;
-    if (cloudUserId && window.SupabaseSync && typeof window.SupabaseSync.saveCloudProject === 'function') {
-      window.SupabaseSync.getSession().then(session => {
-        if (!session) return;
-        return window.SupabaseSync.saveCloudProject(activeProj, cloudUserId).catch(err => {
-          console.warn('[Supabase] Auto-save skipped:', err);
-        });
-      }).catch(err => {
-        console.warn('[Supabase] Auto-save skipped:', err);
-      });
-    }
+    syncProjectToCloud(store, activeProj);
   }
   updateUserProjectPill();
 }
@@ -8880,10 +9076,11 @@ function updateUserProjectPill() {
   const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
   const store = loadUserProjectsStore();
   const u = store.users.find(x => x.id === store.activeUserId) || store.users[0];
-  const p = store.projects.find(x => x.id === store.activeProjectId);
-  const isCloud = !!(u && u.supabaseId);
-  const uName = isCloud && u.name ? u.name : (isEn ? 'Guest' : 'Invitado');
-  const orgTag = isCloud && u.org ? `<span style="color:#a78bfa;font-weight:700;">${esc(u.org.length > 18 ? u.org.slice(0, 17) + '…' : u.org)}</span> <span style="opacity:.4">·</span> ` : '';
+  const p = store.projects.find(x => x.id === store.activeProjectId && x.userId === (u && u.id)) ||
+            store.projects.find(x => x.id === store.activeProjectId);
+  const isGuest = !u || u.id === 'u_default' || u.id === 'u_guest';
+  const uName = !isGuest && (u.name || u.email) ? (u.name || u.email) : (isEn ? 'Guest' : 'Invitado');
+  const orgTag = !isGuest && u.org ? `<span style="color:#a78bfa;font-weight:700;">${esc(u.org.length > 18 ? u.org.slice(0, 17) + '…' : u.org)}</span> <span style="opacity:.4">·</span> ` : '';
   const pName = p ? p.name : (isEn ? 'Model' : 'Modelo');
   const shortP = pName.length > 26 ? pName.slice(0, 25) + '…' : pName;
   el.innerHTML = `${orgTag}<b style="color:#38bdf8;">${esc(uName)}</b> <span style="opacity:.45">·</span> <span style="color:#f8fafc;">${esc(shortP)}</span>`;
@@ -8933,6 +9130,37 @@ window.setMtAuthMode = setMtAuthMode;
 async function loginWithOAuth(provider) {
   const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
   const providerName = provider === 'apple' ? 'Apple' : 'Google';
+
+  // Si se abre como archivo local (file://), Google OAuth no permite redirección HTTP
+  if (window.location.protocol === 'file:') {
+    const gEmail = prompt(
+      isEn
+        ? `Notice: You opened MICMAC directly as a local file (file://), where Google OAuth redirect is blocked by browsers.\n\nTo sign in right now with your Google account locally, enter your Gmail address (or open MICMAC via http://localhost or Vercel):`
+        : `Aviso: Está abriendo MICMAC como archivo local (file://), donde los navegadores bloquean la redirección de Google OAuth.\n\nPara entrar ahora mismo con su cuenta de Google en este equipo, escriba su correo de Gmail (o abra la app desde http://localhost o Vercel):`,
+      ''
+    );
+    if (!gEmail || !gEmail.trim()) return;
+    const cleanEmail = gEmail.trim().toLowerCase();
+    const store = loadUserProjectsStore();
+    let found = store.users.find(u => (u.email || '').toLowerCase() === cleanEmail || (u.username || '').toLowerCase() === cleanEmail);
+    if (!found) {
+      const display = cleanEmail.split('@')[0];
+      found = {
+        id: 'u_google_' + Date.now(),
+        email: gEmail.trim(),
+        username: cleanEmail,
+        name: display.charAt(0).toUpperCase() + display.slice(1),
+        org: 'Google',
+        password: '',
+        createdAt: new Date().toISOString()
+      };
+      store.users.unshift(found);
+      saveUserProjectsStore(store);
+    }
+    selectModalUser(found.id, true);
+    return;
+  }
+
   if (!window.SupabaseSync || typeof window.SupabaseSync.signInWithOAuth !== 'function') {
     alert(isEn ? 'Supabase is not available. Use email or continue without an account.' : 'Supabase no está disponible. Use email o continúe sin cuenta.');
     return;
@@ -8952,19 +9180,41 @@ async function loginWithOAuth(provider) {
   const { error } = await window.SupabaseSync.signInWithOAuth(provider);
   if (error) {
     console.error('[Supabase] OAuth error:', error);
-    alert((isEn ? 'Could not start the session with ' : 'No se pudo iniciar sesión con ') +
-      providerName + ': ' + (error.message || error));
+    lastOAuthError = {
+      error: error.code || 'oauth_error',
+      errorCode: error.code || '',
+      errorDescription: error.message || String(error)
+    };
+    renderUserProjectModal();
   }
 }
 window.loginWithOAuth = loginWithOAuth;
 
+function logoutCurrentUser() {
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  save();
+  if (window.SupabaseSync && typeof window.SupabaseSync.signOut === 'function') {
+    window.SupabaseSync.signOut();
+  }
+  mtPortalStep = 'auth';
+  mtAuthMode = 'login';
+  renderUserProjectModal();
+  showSaveToast(
+    isEn ? '🔒 Signed out. Choose another user or sign in.' : '🔒 Sesión cerrada. Puede iniciar sesión con otro usuario o crear uno nuevo.',
+    '#1e293b',
+    '#475569'
+  );
+}
+window.logoutCurrentUser = logoutCurrentUser;
+
 function continueAsGuest() {
   const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  save();
   if (window.SupabaseSync && typeof window.SupabaseSync.signOut === 'function') {
     window.SupabaseSync.signOut();
   }
   const store = loadUserProjectsStore();
-  let guest = store.users.find(u => u.id === 'u_default') || store.users.find(u => !u.supabaseId);
+  let guest = store.users.find(u => u.id === 'u_default' || u.id === 'u_guest');
   if (!guest) {
     guest = {
       id: 'u_guest',
@@ -9004,6 +9254,8 @@ window.continueAsGuest = continueAsGuest;
 
 function upsertSupabaseUser(store, sbUser) {
   const email = (sbUser.email || '').toLowerCase();
+  const metaName = sbUser.user_metadata && (sbUser.user_metadata.full_name || sbUser.user_metadata.name || sbUser.user_metadata.display_name);
+  const metaOrg = (sbUser.user_metadata && sbUser.user_metadata.org) || '';
   let found = store.users.find(u =>
     (u.supabaseId && u.supabaseId === sbUser.id) ||
     (email && ((u.email || '').toLowerCase() === email || (u.username || '').toLowerCase() === email))
@@ -9014,8 +9266,8 @@ function upsertSupabaseUser(store, sbUser) {
       supabaseId: sbUser.id,
       email: sbUser.email || email,
       username: email,
-      name: (sbUser.user_metadata && (sbUser.user_metadata.full_name || sbUser.user_metadata.name)) || sbUser.email || email,
-      org: '',
+      name: metaName || sbUser.email || email,
+      org: metaOrg,
       password: '',
       createdAt: sbUser.created_at || new Date().toISOString()
     };
@@ -9024,6 +9276,8 @@ function upsertSupabaseUser(store, sbUser) {
     found.supabaseId = sbUser.id;
     if (!found.email) found.email = sbUser.email || email;
     if (!found.username) found.username = email;
+    if (metaName && (!found.name || found.name === found.email)) found.name = metaName;
+    if (metaOrg && !found.org) found.org = metaOrg;
   }
   return found;
 }
@@ -9032,6 +9286,8 @@ async function mergeCloudProjects(store, found, cloudUserId) {
   if (!window.SupabaseSync || typeof window.SupabaseSync.fetchCloudProjects !== 'function') return;
   const cloudProjs = await window.SupabaseSync.fetchCloudProjects(cloudUserId);
   if (cloudProjs && cloudProjs.length) {
+    // Si el usuario solo tenía un modelo auto-inicializado sin cambios, reemplazarlo por los de la nube
+    store.projects = store.projects.filter(p => !(p.userId === found.id && p.isAutoStarter));
     cloudProjs.forEach(cp => {
       const existing = store.projects.find(p => p.id === cp.id);
       if (!existing) {
@@ -9046,6 +9302,7 @@ async function mergeCloudProjects(store, found, cloudUserId) {
           updatedAt: cp.updated_at || new Date().toISOString()
         });
       } else if (cp.updated_at && new Date(cp.updated_at) > new Date(existing.updatedAt || 0)) {
+        existing.userId = found.id;
         existing.name = cp.name;
         existing.desc = cp.desc || '';
         existing.mode = cp.mode || existing.mode;
@@ -9056,7 +9313,7 @@ async function mergeCloudProjects(store, found, cloudUserId) {
   }
   if (typeof window.SupabaseSync.saveCloudProject === 'function') {
     const cloudIds = new Set((cloudProjs || []).map(cp => cp.id));
-    const pending = store.projects.filter(p => p.userId === found.id && !cloudIds.has(p.id));
+    const pending = store.projects.filter(p => p.userId === found.id && !p.isAutoStarter && !cloudIds.has(p.id));
     for (const p of pending) {
       await window.SupabaseSync.saveCloudProject(p, cloudUserId);
     }
@@ -9072,9 +9329,10 @@ async function resumeSupabaseSession() {
     const found = upsertSupabaseUser(store, session.user);
     saveUserProjectsStore(store);
     await mergeCloudProjects(store, found, session.user.id);
+    const nonStarterProjs = store.projects.filter(p => p.userId === found.id && !p.isAutoStarter);
     saveUserProjectsStore(store);
-    selectModalUser(found.id, false);
-    return true;
+    selectModalUser(found.id, nonStarterProjs.length === 0);
+    return nonStarterProjs.length > 0;
   } catch (err) {
     console.warn('[Supabase] Could not resume session:', err);
     return false;
@@ -9097,6 +9355,23 @@ function renderUserProjectModal() {
     return tB - tA;
   });
   const activeProj = store.projects.find(p => p.id === store.activeProjectId);
+  const registeredUsers = store.users.filter(u => u.id !== 'u_default' && u.id !== 'u_guest');
+  const isRegisteredActive = selUser && selUser.id !== 'u_default' && selUser.id !== 'u_guest';
+
+  const oauthErrorBanner = lastOAuthError ? `
+    <div style="margin-bottom:14px;padding:11px 13px;border-radius:9px;background:rgba(239,68,68,0.14);border:1.5px solid rgba(248,113,113,0.5);color:#fecaca;font-size:12px;line-height:1.45;">
+      <div style="font-weight:700;color:#fca5a5;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+        <span>⚠️ ${isEn ? 'Google / OAuth Sign-In Diagnostic' : 'Diagnóstico de Inicio de Sesión con Google'}</span>
+        <button type="button" onclick="lastOAuthError=null;renderUserProjectModal();" style="background:none;border:0;color:#fca5a5;cursor:pointer;font-size:14px;">&times;</button>
+      </div>
+      <div style="margin-bottom:6px;"><b>${esc(lastOAuthError.error)}:</b> ${esc(lastOAuthError.errorDescription)}</div>
+      <div style="font-size:11px;color:#cbd5e1;background:rgba(15,23,42,0.75);padding:8px 10px;border-radius:6px;border:1px solid rgba(148,163,255,0.18);">
+        ${isEn
+          ? `<b>How to fix in Supabase & Google Cloud:</b><br>1. In <b>Supabase → Authentication → URL Configuration</b>, set <b>Site URL</b> to <code>${esc(window.location.origin)}</code> and add <code>${esc(window.location.origin + window.location.pathname)}</code> to <b>Redirect URLs</b>.<br>2. In <b>Google Cloud → OAuth consent screen</b>, click <b>Publish App</b> (or add your email to Test Users), and verify the Client Secret in Supabase.`
+          : `<b>Cómo solucionarlo en Supabase y Google Cloud:</b><br>1. En <b>Supabase → Authentication → URL Configuration</b>, configure <b>Site URL</b> con <code>${esc(window.location.origin)}</code> y agregue <code>${esc(window.location.origin + window.location.pathname)}</code> en <b>Redirect URLs</b>.<br>2. En <b>Google Cloud → Pantalla de consentimiento de OAuth</b>, pulse <b>Publicar aplicación</b> (o agregue su correo en Usuarios de prueba) y verifique el Client Secret en Supabase.`}
+      </div>
+    </div>
+  ` : '';
 
   box.innerHTML = `
     <div class="modal-header" style="padding:12px 18px;align-items:center;">
@@ -9104,7 +9379,7 @@ function renderUserProjectModal() {
         <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#2563eb,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:800;flex:0 0 auto;">◈</div>
         <div style="min-width:0;">
           <div style="font-size:14px;font-weight:700;color:#f8fafc;line-height:1.1;">MICMAC</div>
-          <div style="font-size:11px;color:#94a3b8;">${mtPortalStep === 'auth' ? (isEn ? 'Account & sync' : 'Cuenta y sincronización') : (isEn ? 'Your models' : 'Tus modelos')}</div>
+          <div style="font-size:11px;color:#94a3b8;">${mtPortalStep === 'auth' ? (isEn ? 'Users & Individual Workspaces' : 'Usuarios y Espacios de Trabajo Individuales') : (isEn ? 'Your Saved Models' : 'Tus Modelos Guardados')}</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
@@ -9118,58 +9393,122 @@ function renderUserProjectModal() {
 
     ${mtPortalStep === 'model' ? `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 18px;background:rgba(8,13,26,0.9);border-bottom:1px solid rgba(148,163,255,0.12);flex-wrap:wrap;">
-      <button type="button" onclick="setMtPortalStep('auth')" style="background:none;border:0;color:#38bdf8;font-size:12px;font-weight:600;cursor:pointer;padding:0;">← ${isEn ? 'Account' : 'Cuenta'}</button>
-      <span style="font-size:11.5px;color:#94a3b8;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(selUser.email || selUser.name)}</span>
+      <button type="button" onclick="setMtPortalStep('auth')" style="background:none;border:0;color:#38bdf8;font-size:12px;font-weight:600;cursor:pointer;padding:0;">← ${isEn ? 'Switch User / Account' : 'Cambiar de Usuario / Cuenta'}</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11.5px;color:#94a3b8;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👤 <b style="color:#38bdf8;">${esc(selUser.name)}</b> ${selUser.email && selUser.email !== selUser.name ? `(${esc(selUser.email)})` : ''}</span>
+        ${isRegisteredActive ? `<button type="button" onclick="logoutCurrentUser()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(248,113,113,0.35);color:#fca5a5;font-size:11px;padding:2px 8px;border-radius:5px;cursor:pointer;">${isEn ? 'Sign out' : 'Cerrar sesión'}</button>` : ''}
+      </div>
     </div>
     ` : ''}
 
     <div class="modal-body" style="padding:18px;max-height:78vh;overflow-y:auto;">
       ${mtPortalStep === 'auth' ? `
-        <div style="max-width:360px;margin:0 auto;padding:6px 0 2px;">
-          <h3 style="margin:0 0 4px;font-size:18px;color:#f8fafc;letter-spacing:-0.2px;">${mtAuthMode === 'register' ? (isEn ? 'Create account' : 'Crear cuenta') : (isEn ? 'Sign in' : 'Iniciar sesión')}</h3>
-          <p style="margin:0 0 16px;font-size:12px;color:#94a3b8;line-height:1.45;">${isEn ? 'Sync your models across devices. Or just keep working locally.' : 'Sincroniza tus modelos entre dispositivos. O sigue trabajando localmente.'}</p>
+        <div style="max-width:440px;margin:0 auto;padding:4px 0 2px;">
+          ${oauthErrorBanner}
+
+          ${isRegisteredActive ? `
+            <div style="margin-bottom:16px;padding:11px 14px;border-radius:10px;background:linear-gradient(135deg,rgba(16,185,129,0.14),rgba(2,132,199,0.14));border:1.5px solid rgba(52,211,153,0.4);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div>
+                <div style="font-size:10.5px;color:#34d399;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">● ${isEn ? 'Active Session' : 'Sesión activa actual'}</div>
+                <div style="font-size:13.5px;font-weight:700;color:#f8fafc;">👤 ${esc(selUser.name)}</div>
+                ${selUser.email && selUser.email !== selUser.name ? `<div style="font-size:11px;color:#94a3b8;">${esc(selUser.email)}${selUser.org ? ' · ' + esc(selUser.org) : ''}</div>` : ''}
+              </div>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <button type="button" class="btn sm" onclick="setMtPortalStep('model')" style="background:#059669;color:#fff;font-size:11.5px;font-weight:700;padding:6px 11px;">📂 ${isEn ? `My Models (${userProjects.length})` : `Mis Modelos (${userProjects.length})`} →</button>
+                <button type="button" class="btn ghost sm" onclick="logoutCurrentUser()" style="font-size:11.5px;padding:6px 9px;color:#fca5a5;border-color:rgba(248,113,113,0.35);">${isEn ? 'Sign out' : 'Salir'}</button>
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#080d1a;padding:4px;border-radius:9px;border:1px solid rgba(148,163,255,0.2);margin-bottom:14px;">
+            <button type="button" onclick="setMtAuthMode('login')" style="padding:7px 10px;border-radius:6px;border:0;font-size:12.5px;font-weight:700;cursor:pointer;background:${mtAuthMode === 'login' ? '#2563eb' : 'transparent'};color:${mtAuthMode === 'login' ? '#fff' : '#94a3b8'};">
+              🔐 ${isEn ? 'Sign In' : 'Iniciar Sesión'}
+            </button>
+            <button type="button" onclick="setMtAuthMode('register')" style="padding:7px 10px;border-radius:6px;border:0;font-size:12.5px;font-weight:700;cursor:pointer;background:${mtAuthMode === 'register' ? '#059669' : 'transparent'};color:${mtAuthMode === 'register' ? '#fff' : '#94a3b8'};">
+              ➕ ${isEn ? 'Create New User' : 'Crear Nuevo Usuario'}
+            </button>
+          </div>
+
+          <h3 style="margin:0 0 4px;font-size:17px;color:#f8fafc;letter-spacing:-0.2px;">
+            ${mtAuthMode === 'register'
+              ? (isEn ? 'Create your individual user account' : 'Crear cuenta de usuario individual')
+              : (isEn ? 'Sign in to your workspace' : 'Iniciar sesión en tu espacio de trabajo')}
+          </h3>
+          <p style="margin:0 0 14px;font-size:12px;color:#94a3b8;line-height:1.45;">
+            ${mtAuthMode === 'register'
+              ? (isEn ? 'Each user has an isolated workspace to create, save, and resume their own models independently.' : 'Cada usuario cuenta con un espacio aislado para guardar y retomar sus modelos de forma individual.')
+              : (isEn ? 'Access your saved models via Google or with your email and password.' : 'Accede a tus modelos guardados con Google o con tu correo y contraseña.')}
+          </p>
 
           <div style="display:flex;flex-direction:column;gap:8px;">
             <button type="button" onclick="loginWithOAuth('google')" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:9px 12px;border-radius:8px;border:1px solid rgba(148,163,255,0.25);background:#fff;color:#1f2937;font-size:13px;font-weight:600;cursor:pointer;">
               <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.3 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.2-.1-2.4-.4-3.5z"/></svg>
               ${isEn ? 'Continue with Google' : 'Continuar con Google'}
             </button>
-            <button type="button" onclick="loginWithOAuth('apple')" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:9px 12px;border-radius:8px;border:1px solid rgba(148,163,255,0.25);background:#000;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.46 2.2-1.2 2.98-.78.83-2.06 1.47-3.13 1.39-.13-1.1.43-2.27 1.16-3.02.82-.85 2.22-1.47 3.17-1.35zM20.7 17.2c-.57 1.3-.85 1.88-1.58 3.03-1.02 1.6-2.46 3.6-4.25 3.61-1.59.02-2-.9-4.16-.89-2.16.01-2.61.91-4.2.89-1.79-.02-3.16-1.82-4.18-3.42C-.6 15.6-.9 10.2 1.1 7.42c1.2-1.67 3.1-2.65 4.89-2.65 1.82 0 2.96.91 4.47.91 1.46 0 2.35-.91 4.45-.91 1.59 0 3.27.79 4.47 2.15-3.93 2.15-3.29 7.77 1.32 9.29z"/></svg>
-              ${isEn ? 'Continue with Apple' : 'Continuar con Apple'}
-            </button>
           </div>
 
-          <div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:#64748b;font-size:10.5px;">
+          <div style="display:flex;align-items:center;gap:10px;margin:13px 0;color:#64748b;font-size:10.5px;">
             <span style="flex:1;height:1px;background:rgba(148,163,255,0.16);"></span>
-            <span>${isEn ? 'or with email' : 'o con email'}</span>
+            <span>${isEn ? 'or with email & password' : 'o con email y contraseña'}</span>
             <span style="flex:1;height:1px;background:rgba(148,163,255,0.16);"></span>
           </div>
 
           ${mtAuthMode === 'register' ? `
             <div style="display:flex;flex-direction:column;gap:8px;">
-              <input type="email" id="up-new-user-email" placeholder="${isEn ? 'Email' : 'Email'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.28);border-radius:8px;">
-              <input type="password" id="up-new-user-pass" placeholder="${isEn ? 'Password (min. 6 characters)' : 'Contraseña (mín. 6 caracteres)'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.22);border-radius:8px;">
+              <input type="text" id="up-new-user-name" placeholder="${isEn ? 'Your Name (e.g. Ana Pérez)' : 'Nombre del usuario (ej.: Ana Pérez)'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(52,211,153,0.35);border-radius:8px;">
+              <input type="text" id="up-new-user-org" placeholder="${isEn ? 'Institution / Team (optional)' : 'Institución / Equipo (opcional)'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.22);border-radius:8px;">
+              <input type="email" id="up-new-user-email" placeholder="${isEn ? 'Email *' : 'Correo electrónico (Email) *'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.32);border-radius:8px;">
+              <input type="password" id="up-new-user-pass" placeholder="${isEn ? 'Password (min. 6 characters) *' : 'Contraseña (mín. 6 caracteres) *'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.22);border-radius:8px;">
             </div>
-            <button type="button" class="btn" onclick="createNewUserFromModal()" style="width:100%;margin-top:10px;padding:10px 14px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#059669,#10b981);border:0;color:#fff;">${isEn ? 'Create account' : 'Crear cuenta'}</button>
-            <div style="text-align:center;margin-top:12px;font-size:12px;color:#94a3b8;">
-              ${isEn ? 'Already have an account?' : '¿Ya tienes cuenta?'}
-              <button type="button" onclick="setMtAuthMode('login')" style="background:none;border:0;color:#38bdf8;font-size:12px;font-weight:600;cursor:pointer;padding:0;">${isEn ? 'Sign in' : 'Inicia sesión'}</button>
-            </div>
+            <button type="button" class="btn" onclick="createNewUserFromModal()" style="width:100%;margin-top:10px;padding:10px 14px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#059669,#10b981);border:0;color:#fff;">
+              ➕ ${isEn ? 'Create User & Choose Model →' : 'Crear Usuario y Elegir Modelo →'}
+            </button>
           ` : `
             <div style="display:flex;flex-direction:column;gap:8px;">
-              <input type="email" id="mt-login-username" placeholder="${isEn ? 'Email' : 'Email'}" onkeydown="if(event.key==='Enter')loginTenantFromPortal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.28);border-radius:8px;">
+              <input type="email" id="mt-login-username" placeholder="${isEn ? 'Email or Username' : 'Email o nombre de usuario'}" onkeydown="if(event.key==='Enter')loginTenantFromPortal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.28);border-radius:8px;">
               <input type="password" id="mt-login-password" placeholder="${isEn ? 'Password' : 'Contraseña'}" onkeydown="if(event.key==='Enter')loginTenantFromPortal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.22);border-radius:8px;">
             </div>
-            <button type="button" class="btn" onclick="loginTenantFromPortal()" style="width:100%;margin-top:10px;padding:10px 14px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#0284c7,#2563eb);border:0;color:#fff;">${isEn ? 'Sign in' : 'Iniciar sesión'}</button>
-            <div style="text-align:center;margin-top:12px;font-size:12px;color:#94a3b8;">
-              ${isEn ? 'No account?' : '¿No tienes cuenta?'}
-              <button type="button" onclick="setMtAuthMode('register')" style="background:none;border:0;color:#38bdf8;font-size:12px;font-weight:600;cursor:pointer;padding:0;">${isEn ? 'Create one' : 'Crea una'}</button>
-            </div>
+            <button type="button" class="btn" onclick="loginTenantFromPortal()" style="width:100%;margin-top:10px;padding:10px 14px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#0284c7,#2563eb);border:0;color:#fff;">
+              🔐 ${isEn ? 'Sign In & Open My Models →' : 'Iniciar Sesión y Ver Mis Modelos →'}
+            </button>
           `}
 
-          <div style="text-align:center;margin-top:16px;">
-            <button type="button" onclick="continueAsGuest()" style="background:none;border:0;color:#94a3b8;font-size:12px;cursor:pointer;text-decoration:underline;">${isEn ? 'Continue without an account' : 'Continuar sin cuenta'}</button>
+          ${registeredUsers.length ? `
+            <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(148,163,255,0.16);">
+              <div style="font-size:11.5px;font-weight:700;color:#cbd5e1;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+                <span>👥 ${isEn ? `Users created on this device (${registeredUsers.length}):` : `Usuarios creados en este equipo (${registeredUsers.length}):`}</span>
+                <span style="font-size:10.5px;color:#94a3b8;font-weight:500;">${isEn ? 'Individual storage' : 'Guardado individual'}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;">
+                ${registeredUsers.map(u => {
+                  const uCount = store.projects.filter(p => p.userId === u.id).length;
+                  const isCur = u.id === store.activeUserId;
+                  return `
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:${isCur ? 'rgba(56,189,248,0.14)' : 'rgba(15,23,42,0.8)'};border:1px solid ${isCur ? '#38bdf8' : 'rgba(148,163,255,0.18)'};">
+                      <div style="min-width:0;">
+                        <div style="font-size:12.5px;font-weight:700;color:#f8fafc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                          👤 ${esc(u.name || u.email)}
+                          ${isCur ? `<span class="badge" style="background:#0284c7;color:#fff;font-size:9px;margin-left:4px;">${isEn ? 'Active' : 'Activo'}</span>` : ''}
+                        </div>
+                        <div style="font-size:10.5px;color:#94a3b8;">
+                          ${esc(u.email || u.username)}${u.org ? ' · ' + esc(u.org) : ''} · <b style="color:#fbbf24;">${uCount} ${isEn ? (uCount === 1 ? 'model' : 'models') : (uCount === 1 ? 'modelo' : 'modelos')}</b>
+                        </div>
+                      </div>
+                      <div style="display:flex;gap:5px;align-items:center;flex:0 0 auto;">
+                        <button type="button" class="btn sm" onclick="quickLoginTenant('${u.id}')" style="background:#2563eb;color:#fff;font-size:11px;padding:4px 10px;font-weight:700;">
+                          ${isEn ? 'Enter →' : 'Entrar →'}
+                        </button>
+                        <button type="button" class="btn danger sm" onclick="deleteModalUser('${u.id}')" style="font-size:11px;padding:4px 7px;" title="${isEn ? 'Delete user' : 'Eliminar usuario'}">✕</button>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="text-align:center;margin-top:14px;">
+            <button type="button" onclick="continueAsGuest()" style="background:none;border:0;color:#94a3b8;font-size:12px;cursor:pointer;text-decoration:underline;">${isEn ? 'Continue without an account (Guest)' : 'Continuar sin cuenta (Modo invitado)'}</button>
           </div>
         </div>
       ` : `
@@ -9179,11 +9518,12 @@ function renderUserProjectModal() {
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 0 12px;border-bottom:1px solid rgba(148,163,255,0.12);margin-bottom:14px;flex-wrap:wrap;">
             <span style="font-size:12px;color:#94a3b8;">
-              ${selUser.supabaseId ? (isEn ? 'Signed in as' : 'Sesión de') : (isEn ? 'Local workspace' : 'Espacio local')}
-              <b style="color:#f8fafc;">${esc(selUser.email || selUser.name)}</b>
+              ${selUser.supabaseId ? (isEn ? '☁️ Cloud & local workspace of' : '☁️ Espacio sincronizado de') : (isEn ? '💾 Individual workspace of' : '💾 Espacio individual de')}
+              <b style="color:#f8fafc;">${esc(selUser.name || selUser.email)}</b>
+              ${selUser.org ? `<span style="color:#a78bfa;"> · ${esc(selUser.org)}</span>` : ''}
             </span>
             <button type="button" class="btn ghost sm" onclick="setMtPortalStep('auth')" style="font-size:11.5px;padding:4px 9px;">
-              ${isEn ? 'Account' : 'Cuenta'}
+              👥 ${isEn ? 'Switch User' : 'Cambiar Usuario'}
             </button>
           </div>
 
@@ -9219,7 +9559,7 @@ function renderUserProjectModal() {
                         </button>
                         <button type="button" class="btn ghost sm" onclick="renameSavedModelInline('${p.id}')" style="font-size:11.5px;padding:5px 8px;" title="${isEn ? 'Rename model' : 'Cambiar nombre del modelo'}">✏️</button>
                         <button type="button" class="btn ghost sm" onclick="duplicateSavedUserProject('${p.id}')" style="font-size:11.5px;padding:5px 8px;" title="${isEn ? 'Duplicate model' : 'Duplicar modelo'}">📋</button>
-                        ${store.projects.length > 1 ? `
+                        ${userProjects.length > 1 ? `
                           <button type="button" class="btn danger sm" onclick="deleteSavedUserProject('${p.id}')" style="font-size:11.5px;padding:5px 8px;" title="${isEn ? 'Delete model' : 'Eliminar modelo'}">✕</button>
                         ` : ''}
                       </div>
@@ -9331,6 +9671,14 @@ window.openUserProjectModal = openUserProjectModal;
 function closeUserProjectModal() {
   const modal = document.getElementById('user-project-modal');
   if (!modal) return;
+  // Asegurar que el usuario activo tenga siempre su propio proyecto aislado al cerrar el modal
+  const store = loadUserProjectsStore();
+  const activeProj = store.projects.find(p => p.id === store.activeProjectId);
+  if (!activeProj || activeProj.userId !== store.activeUserId) {
+    const isolated = ensureUserIsolatedProject(store, store.activeUserId);
+    saveUserProjectsStore(store);
+    if (isolated) applyProjectToWorkspace(isolated);
+  }
   modal.classList.remove('open');
   document.body.style.overflow = '';
   sessionStorage.setItem('micmac_user_chosen', '1');
@@ -9344,10 +9692,13 @@ async function loginTenantFromPortal() {
   const rawUser = (uInp ? uInp.value.trim() : '');
   const rawPass = (pInp ? pInp.value : '');
   if (!rawUser) {
-    alert(isEn ? 'Please enter your email.' : 'Por favor ingrese su email.');
+    alert(isEn ? 'Please enter your email or username.' : 'Por favor ingrese su email o nombre de usuario.');
     if (uInp) uInp.focus();
     return;
   }
+  // Guardar primero el trabajo del usuario anterior antes de cambiar de cuenta
+  save();
+
   const store = loadUserProjectsStore();
   const q = rawUser.toLowerCase();
   let found = store.users.find(u =>
@@ -9357,10 +9708,11 @@ async function loginTenantFromPortal() {
   );
 
   // Intentar login primero con Supabase Auth si está disponible
-  if (window.SupabaseSync && typeof window.SupabaseSync.signIn === 'function') {
+  if (window.SupabaseSync && typeof window.SupabaseSync.signIn === 'function' && rawUser.includes('@')) {
     const { data, error } = await window.SupabaseSync.signIn(rawUser, rawPass);
     if (!error && data && data.user) {
       const sbFound = upsertSupabaseUser(store, data.user);
+      if (rawPass && !sbFound.password) sbFound.password = rawPass;
       saveUserProjectsStore(store);
       await mergeCloudProjects(store, sbFound, data.user.id);
       saveUserProjectsStore(store);
@@ -9369,11 +9721,11 @@ async function loginTenantFromPortal() {
     }
   }
 
-  // Fallback con la base de datos local
+  // Fallback con la base de datos local del navegador
   if (!found) {
     alert(isEn
-      ? `Account "${rawUser}" was not found. Create an account or continue without one.`
-      : `No se encontró el usuario "${rawUser}". Crea una cuenta o continúa sin cuenta.`);
+      ? `Account "${rawUser}" was not found. Click "Create New User" above to create it.`
+      : `No se encontró el usuario "${rawUser}". Pulse la pestaña "➕ Crear Nuevo Usuario" arriba para registrarlo.`);
     return;
   }
   if (found.password && found.password.trim() !== '' && found.password !== rawPass) {
@@ -9387,16 +9739,17 @@ window.loginTenantFromPortal = loginTenantFromPortal;
 
 function quickLoginTenant(userId) {
   const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  save();
   const store = loadUserProjectsStore();
   const found = store.users.find(u => u.id === userId);
   if (!found) return;
-  if (found.password && found.password.trim() !== '') {
+  if (found.password && found.password.trim() !== '' && store.activeUserId !== found.id) {
     const pInp = document.getElementById('mt-login-password');
     const typedPass = pInp ? pInp.value : '';
     if (typedPass !== found.password) {
       const promptPass = prompt(isEn
-        ? `Enter password for user "${found.name}":`
-        : `Ingrese la contraseña del usuario "${found.name}":`);
+        ? `Enter password for user "${found.name || found.email}":`
+        : `Ingrese la contraseña del usuario "${found.name || found.email}":`);
       if (promptPass === null) return;
       if (promptPass !== found.password) {
         alert(isEn ? 'Incorrect password.' : 'Contraseña incorrecta.');
@@ -9414,20 +9767,18 @@ function selectModalUser(userId, advanceToModelStep = false) {
   store.selectedModalUserId = userId;
   store.activeUserId = userId;
   const user = store.users.find(u => u.id === userId) || store.users[0];
-  const userProjs = store.projects.filter(p => p.userId === userId);
-  if (userProjs.length) {
-    store.activeProjectId = userProjs[0].id;
-    saveUserProjectsStore(store);
-    applyProjectToWorkspace(userProjs[0]);
+  const isolatedProj = ensureUserIsolatedProject(store, userId);
+  saveUserProjectsStore(store);
+  if (isolatedProj) {
+    applyProjectToWorkspace(isolatedProj);
   } else {
-    saveUserProjectsStore(store);
     updateUserProjectPill();
   }
   if (advanceToModelStep) {
     mtPortalStep = 'model';
     showSaveToast(isEn
-      ? `🔐 Signed in as "<b>${esc(user.email || user.name)}</b>". Now choose the Existing Example or Create Your Own Model.`
-      : `🔐 Sesión iniciada como "<b>${esc(user.email || user.name)}</b>". Ahora elija el Ejemplo que Existe o Crear un Modelo Propio.`);
+      ? `🔐 Signed in as "<b>${esc(user.name || user.email)}</b>". Your models are saved in your individual account.`
+      : `🔐 Sesión activa: "<b>${esc(user.name || user.email)}</b>". Su trabajo se guarda individualmente en su cuenta.`);
   }
   renderUserProjectModal();
 }
@@ -9435,9 +9786,13 @@ window.selectModalUser = selectModalUser;
 
 async function createNewUserFromModal() {
   const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const nameInp = document.getElementById('up-new-user-name');
+  const orgInp = document.getElementById('up-new-user-org');
   const emailInp = document.getElementById('up-new-user-email');
   const passInp = document.getElementById('up-new-user-pass');
 
+  const rawName = (nameInp ? nameInp.value.trim() : '');
+  const rawOrg = (orgInp ? orgInp.value.trim() : '');
   const rawEmail = (emailInp ? emailInp.value.trim() : '');
   const passVal = (passInp ? passInp.value : '');
 
@@ -9446,27 +9801,36 @@ async function createNewUserFromModal() {
     if (emailInp) emailInp.focus();
     return;
   }
-  if (!passVal) {
-    alert(isEn ? 'Please enter a password for the new user.' : 'Por favor ingrese una contraseña para crear el usuario.');
+  if (!passVal || passVal.length < 6) {
+    alert(isEn ? 'Please enter a password of at least 6 characters.' : 'Por favor ingrese una contraseña de al menos 6 caracteres.');
     if (passInp) passInp.focus();
     return;
   }
+
+  // Guardar primero el trabajo del usuario anterior antes de crear y activar el nuevo usuario
+  save();
 
   const emailLower = rawEmail.toLowerCase();
   const store = loadUserProjectsStore();
   if (store.users.some(u => (u.email || u.username || '').toLowerCase() === emailLower)) {
     alert(isEn
-      ? `The email "${rawEmail}" is already registered. Please sign in on the left.`
-      : `El email "${rawEmail}" ya está registrado. Por favor inicie sesión en el panel izquierdo.`);
+      ? `The email "${rawEmail}" is already registered. Please sign in.`
+      : `El email "${rawEmail}" ya está registrado. Por favor inicie sesión en la pestaña "Iniciar Sesión".`);
+    setMtAuthMode('login');
     return;
   }
+
+  const displayName = rawName || rawEmail.split('@')[0] || rawEmail;
 
   // Registrar en Supabase Auth
   let supabaseUserId = null;
   let signUpError = null;
   let needsEmailConfirmation = false;
   if (window.SupabaseSync && typeof window.SupabaseSync.signUp === 'function') {
-    const { data, error } = await window.SupabaseSync.signUp(rawEmail, passVal);
+    const { data, error } = await window.SupabaseSync.signUp(rawEmail, passVal, {
+      name: displayName,
+      org: rawOrg
+    });
     if (!error && data && data.user) {
       supabaseUserId = data.user.id;
       needsEmailConfirmation = !data.session;
@@ -9481,29 +9845,37 @@ async function createNewUserFromModal() {
     supabaseId: supabaseUserId,
     email: rawEmail,
     username: emailLower,
-    name: rawEmail,
-    org: '',
+    name: displayName,
+    org: rawOrg,
     password: passVal,
     createdAt: new Date().toISOString()
   };
   store.users.unshift(newUser);
   store.activeUserId = newUser.id;
   store.selectedModalUserId = newUser.id;
+
+  // Crear de inmediato un proyecto aislado para este usuario (evita pisar modelos de otros usuarios)
+  const starterProj = ensureUserIsolatedProject(store, newUser.id);
   saveUserProjectsStore(store);
-  updateUserProjectPill();
+  if (starterProj) {
+    applyProjectToWorkspace(starterProj);
+  } else {
+    updateUserProjectPill();
+  }
+
   mtPortalStep = 'model';
   renderUserProjectModal();
   const savedMsg = supabaseUserId
     ? (needsEmailConfirmation
       ? (isEn
-        ? `👤 User "<b>${esc(newUser.email)}</b>" created. Check your email to confirm it, then sign in to sync with the cloud.`
-        : `👤 Usuario "<b>${esc(newUser.email)}</b>" creado. Revise su correo para confirmarlo y luego inicie sesión para sincronizar en la nube.`)
+        ? `👤 User "<b>${esc(newUser.name)}</b>" created! Your workspace is active locally (confirm email to enable cloud sync across devices).`
+        : `👤 Usuario "<b>${esc(newUser.name)}</b>" creado con su propio espacio de trabajo (confirme su correo si desea sincronizar entre distintos equipos).`)
       : (isEn
-        ? `👤 User "<b>${esc(newUser.email)}</b>" created in Supabase! Now choose the Existing Example or Create Your Own Model.`
-        : `👤 Usuario "<b>${esc(newUser.email)}</b>" creado en Supabase con éxito. Ahora elija el Ejemplo que Existe o Crear un Modelo Propio.`))
+        ? `👤 User "<b>${esc(newUser.name)}</b>" created & synced! Choose the Existing Example or Create Your Own Model.`
+        : `👤 Usuario "<b>${esc(newUser.name)}</b>" creado y sincronizado con éxito. Ahora elija el Ejemplo que Existe o Crear un Modelo Propio.`))
     : (isEn
-      ? `👤 User "<b>${esc(newUser.email)}</b>" created locally. Supabase notice: ${esc(signUpError || 'cloud sync unavailable')}`
-      : `👤 Usuario "<b>${esc(newUser.email)}</b>" creado localmente. Aviso de Supabase: ${esc(signUpError || 'sincronización en nube no disponible')}`);
+      ? `👤 User "<b>${esc(newUser.name)}</b>" created with an isolated workspace in this browser.`
+      : `👤 Usuario "<b>${esc(newUser.name)}</b>" creado con su espacio de trabajo individual en este navegador.`);
   showSaveToast(savedMsg);
 }
 window.createNewUserFromModal = createNewUserFromModal;
@@ -9536,7 +9908,7 @@ function deleteModalUser(userId) {
   }
   store.activeUserId = store.users[0].id;
   store.selectedModalUserId = store.users[0].id;
-  const firstProj = store.projects.find(p => p.userId === store.activeUserId) || store.projects[0];
+  const firstProj = ensureUserIsolatedProject(store, store.activeUserId) || store.projects[0];
   store.activeProjectId = firstProj.id;
   saveUserProjectsStore(store);
   applyProjectToWorkspace(firstProj);
@@ -9551,6 +9923,9 @@ function startExampleProjectForUser() {
   const user = store.users.find(u => u.id === userId) || store.users[0];
   const nameInp = document.getElementById('up-example-proj-name');
   const projName = (nameInp ? nameInp.value.trim() : '') || (isEn ? `Existing Example Model (${user.name})` : `Modelo Ejemplo Existente (${user.name})`);
+
+  // Si existía un proyecto inicial autogenerado sin editar, reemplazarlo limpiamente
+  store.projects = store.projects.filter(p => !(p.userId === user.id && p.isAutoStarter));
 
   uid = 1;
   const exampleState = defaults(currentLang);
@@ -9593,6 +9968,9 @@ function createOwnProjectForUser() {
   const projName = (nameInp ? nameInp.value.trim() : '') || (isEn ? `My Own Model (${user.name})` : `Mi Modelo Propio (${user.name})`);
   const visionVal = visionInp ? visionInp.value.trim() : '';
   const startMode = modeSel ? modeSel.value : 'blank';
+
+  // Si existía un proyecto inicial autogenerado sin editar, reemplazarlo limpiamente
+  store.projects = store.projects.filter(p => !(p.userId === user.id && p.isAutoStarter));
 
   let initialState;
   if (startMode === 'preset_copy') {
@@ -9678,6 +10056,7 @@ function openSavedUserProject(projId) {
   const store = loadUserProjectsStore();
   const proj = store.projects.find(p => p.id === projId);
   if (!proj) return;
+  delete proj.isAutoStarter;
   store.activeUserId = proj.userId;
   store.selectedModalUserId = proj.userId;
   store.activeProjectId = proj.id;
@@ -9694,9 +10073,10 @@ window.openSavedUserProject = openSavedUserProject;
 function deleteSavedUserProject(projId) {
   const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
   const store = loadUserProjectsStore();
-  if (store.projects.length <= 1) return;
   const proj = store.projects.find(p => p.id === projId);
   if (!proj) return;
+  const userProjects = store.projects.filter(p => p.userId === proj.userId);
+  if (userProjects.length <= 1) return;
   if (!confirm(isEn ? `Delete model "${proj.name}"?` : `¿Eliminar el modelo "${proj.name}"?`)) return;
   if (window.SupabaseSync && typeof window.SupabaseSync.deleteCloudProject === 'function') {
     window.SupabaseSync.deleteCloudProject(projId);
@@ -9718,10 +10098,29 @@ window.deleteSavedUserProject = deleteSavedUserProject;
 applyLanguage(currentLang);
 updateUserProjectPill();
 
-// Arranque: muestra siempre la pantalla mínima de acceso (sin obligar a iniciar sesión).
+// Arranque: detecta errores de callback OAuth, suscribe cambios de sesión y abre el portal
 (async function bootstrapAuth() {
+  if (window.SupabaseSync && typeof window.SupabaseSync.getUrlAuthError === 'function') {
+    const urlErr = window.SupabaseSync.getUrlAuthError();
+    if (urlErr) {
+      lastOAuthError = urlErr;
+      window.SupabaseSync.clearUrlAuthParams();
+    }
+  }
+  if (window.SupabaseSync && typeof window.SupabaseSync.onAuthChange === 'function') {
+    window.SupabaseSync.onAuthChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session && session.user) {
+        const store = loadUserProjectsStore();
+        const found = upsertSupabaseUser(store, session.user);
+        saveUserProjectsStore(store);
+        await mergeCloudProjects(store, found, session.user.id);
+        saveUserProjectsStore(store);
+        selectModalUser(found.id, false);
+      }
+    });
+  }
   const resumed = await resumeSupabaseSession();
-  if (resumed) {
+  if (resumed && !lastOAuthError) {
     closeUserProjectModal();
     return;
   }
