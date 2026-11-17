@@ -1052,9 +1052,9 @@ const I18N = {
 };
 
 // Estado del idioma activo (por defecto Inglés)
-if (!localStorage.getItem('micmac-default-lang-init')) {
+if (!localStorage.getItem('micmac-default-lang-en-v1')) {
   localStorage.setItem('micmac-lang', 'en');
-  localStorage.setItem('micmac-default-lang-init', '1');
+  localStorage.setItem('micmac-default-lang-en-v1', '1');
 }
 let currentLang = localStorage.getItem('micmac-lang') || 'en';
 

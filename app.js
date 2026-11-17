@@ -5450,21 +5450,23 @@ window.jumpToFlowStep = jumpToFlowStep;
 window.exportFlowTrajectoriesCSV = exportFlowTrajectoriesCSV;
 
 /* ---------- Exportar / importar / reset ---------- */
-$('#btn-export').onclick = async () => {
-  const text = JSON.stringify(S, null, 2), fname = 'analisis-estructural.json';
-  try {
-    if (window.showSaveFilePicker) {
-      const h = await showSaveFilePicker({ suggestedName: fname, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
-      const w = await h.createWritable(); await w.write(text); await w.close(); return;
-    }
-  } catch (e) { if (e.name === 'AbortError') return; }
-  try {
-    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-    const a = document.createElement('a'); a.href = url; a.download = fname; a.style.display = 'none';
-    document.body.appendChild(a); a.click();
-    setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1500);
-  } catch (e) { alert(t('alert_export_error') + ' ' + e.message); }
-};
+if ($('#btn-export')) {
+  $('#btn-export').onclick = async () => {
+    const text = JSON.stringify(S, null, 2), fname = 'analisis-estructural.json';
+    try {
+      if (window.showSaveFilePicker) {
+        const h = await showSaveFilePicker({ suggestedName: fname, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+        const w = await h.createWritable(); await w.write(text); await w.close(); return;
+      }
+    } catch (e) { if (e.name === 'AbortError') return; }
+    try {
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      const a = document.createElement('a'); a.href = url; a.download = fname; a.style.display = 'none';
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1500);
+    } catch (e) { alert(t('alert_export_error') + ' ' + e.message); }
+  };
+}
 
 function exportExcelReport(ev) {
   if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
@@ -5868,19 +5870,21 @@ function exportExcelReport(ev) {
   }
 }
 window.exportExcelReport = exportExcelReport;
-$('#file-import').onchange = e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  f.text().then(tText => {
-    try {
-      const o = JSON.parse(tText);
-      if (!o.vars || !o.links) throw 0;
-      S = o; uid = 1000; ui.sel = ui.selVar = null; save(); renderAll();
-    } catch {
-      alert(t('alert_invalid_file'));
-    }
-  });
-};
+if ($('#file-import')) {
+  $('#file-import').onchange = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    f.text().then(tText => {
+      try {
+        const o = JSON.parse(tText);
+        if (!o.vars || !o.links) throw 0;
+        S = o; uid = 1000; ui.sel = ui.selVar = null; save(); renderAll();
+      } catch {
+        alert(t('alert_invalid_file'));
+      }
+    });
+  };
+}
 $('#btn-reset').onclick = () => {
   if (confirm(t('confirm_reset'))) {
     uid = 1;
@@ -9562,7 +9566,6 @@ function renderUserProjectModal() {
                     <select id="up-own-proj-mode" style="width:100%;padding:6px 9px;font-size:12px;background:#080d1a;color:#fff;border:1px solid rgba(148,163,255,0.3);border-radius:7px;">
                       <option value="blank">${isEn ? '📄 Blank Model from Scratch (3 editable starter variables V1–V3, clean matrix)' : '📄 Modelo en blanco desde cero (3 variables iniciales editables V1–V3, matriz limpia)'}</option>
                       <option value="preset_copy">${isEn ? '📋 Editable Template Copy of the 15 Variables' : '📋 Plantilla editable con las 15 variables (para adaptar libremente)'}</option>
-                      <option value="import_json">${isEn ? '📂 Import Model from a .JSON file on my computer' : '📂 Importar modelo propio desde un archivo .JSON'}</option>
                     </select>
                   </div>
                 </div>
@@ -9994,11 +9997,6 @@ function createOwnProjectForUser() {
   applyProjectToWorkspace(newProj);
   closeUserProjectModal(true);
   switchTab('vars');
-
-  if (startMode === 'import_json') {
-    const fileInp = document.getElementById('file-import');
-    if (fileInp) fileInp.click();
-  }
 
   showSaveToast(isEn
     ? `✨ Created own model "<b>${esc(projName)}</b>" for user "<b>${esc(user.name)}</b>"`
