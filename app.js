@@ -9473,40 +9473,6 @@ function renderUserProjectModal() {
             </button>
           `}
 
-          ${registeredUsers.length ? `
-            <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(148,163,255,0.16);">
-              <div style="font-size:11.5px;font-weight:700;color:#cbd5e1;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
-                <span>👥 ${isEn ? `Users created on this device (${registeredUsers.length}):` : `Usuarios creados en este equipo (${registeredUsers.length}):`}</span>
-                <span style="font-size:10.5px;color:#94a3b8;font-weight:500;">${isEn ? 'Individual storage' : 'Guardado individual'}</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;">
-                ${registeredUsers.map(u => {
-                  const uCount = store.projects.filter(p => p.userId === u.id).length;
-                  const isCur = u.id === store.activeUserId;
-                  return `
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:${isCur ? 'rgba(56,189,248,0.14)' : 'rgba(15,23,42,0.8)'};border:1px solid ${isCur ? '#38bdf8' : 'rgba(148,163,255,0.18)'};">
-                      <div style="min-width:0;">
-                        <div style="font-size:12.5px;font-weight:700;color:#f8fafc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                          👤 ${esc(u.name || u.email)}
-                          ${isCur ? `<span class="badge" style="background:#0284c7;color:#fff;font-size:9px;margin-left:4px;">${isEn ? 'Active' : 'Activo'}</span>` : ''}
-                        </div>
-                        <div style="font-size:10.5px;color:#94a3b8;">
-                          ${esc(u.email || u.username)}${u.org ? ' · ' + esc(u.org) : ''} · <b style="color:#fbbf24;">${uCount} ${isEn ? (uCount === 1 ? 'model' : 'models') : (uCount === 1 ? 'modelo' : 'modelos')}</b>
-                        </div>
-                      </div>
-                      <div style="display:flex;gap:5px;align-items:center;flex:0 0 auto;">
-                        <button type="button" class="btn sm" onclick="quickLoginTenant('${u.id}')" style="background:#2563eb;color:#fff;font-size:11px;padding:4px 10px;font-weight:700;">
-                          ${isEn ? 'Enter →' : 'Entrar →'}
-                        </button>
-                        <button type="button" class="btn danger sm" onclick="deleteModalUser('${u.id}')" style="font-size:11px;padding:4px 7px;" title="${isEn ? 'Delete user' : 'Eliminar usuario'}">✕</button>
-                      </div>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-            </div>
-          ` : ''}
-
           <div style="text-align:center;margin-top:14px;">
             <button type="button" onclick="continueAsGuest()" style="background:none;border:0;color:#94a3b8;font-size:12px;cursor:pointer;text-decoration:underline;">${isEn ? 'Continue without an account (Guest)' : 'Continuar sin cuenta (Modo invitado)'}</button>
           </div>
