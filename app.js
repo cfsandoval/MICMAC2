@@ -6131,6 +6131,14 @@ function filterStabilityModalSection(target = 'all') {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
+    if (typeof isCurrentSessionIdentified !== 'undefined' && !isCurrentSessionIdentified) {
+      const upm = document.getElementById('user-project-modal');
+      if (upm && upm.classList.contains('open')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+    }
     closeMetricsModal();
     closeStabilityModal();
   }
@@ -8933,6 +8941,21 @@ function getBlankStarterState(lang = 'es', customVision = '') {
 
 let mtPortalStep = 'auth'; // 'auth' (Paso 1: Login / Crear Usuario) | 'model' (Paso 2: Elegir Ejemplo o Crear Modelo Propio)
 let mtAuthMode = 'login'; // 'login' | 'register'
+let isCurrentSessionIdentified = false; // Solo true una vez que el usuario se identifica
+
+function isUserIdentified() {
+  return isCurrentSessionIdentified;
+}
+window.isUserIdentified = isUserIdentified;
+
+function handleUserProjectBackdrop(e) {
+  if (e && e.target && e.target.id === 'user-project-modal') {
+    if (isCurrentSessionIdentified) {
+      closeUserProjectModal();
+    }
+  }
+}
+window.handleUserProjectBackdrop = handleUserProjectBackdrop;
 
 function loadUserProjectsStore() {
   try {
@@ -9133,12 +9156,13 @@ function logoutCurrentUser() {
   if (window.SupabaseSync && typeof window.SupabaseSync.signOut === 'function') {
     window.SupabaseSync.signOut();
   }
+  isCurrentSessionIdentified = false;
   const store = loadUserProjectsStore();
   store.activeUserId = 'u_guest';
   saveUserProjectsStore(store);
   mtPortalStep = 'auth';
   mtAuthMode = 'login';
-  renderUserProjectModal();
+  openUserProjectModal('auth');
   updateUserProjectPill();
   showSaveToast(
     isEn ? '🔒 Signed out. Please sign in or create an account.' : '🔒 Sesión cerrada. Inicie sesión o cree una cuenta para continuar.',
@@ -9316,6 +9340,16 @@ function renderUserProjectModal() {
   const activeProj = store.projects.find(p => p.id === store.activeProjectId);
   const registeredUsers = store.users.filter(u => u.id !== 'u_default' && u.id !== 'u_guest');
   const isRegisteredActive = selUser && selUser.id !== 'u_default' && selUser.id !== 'u_guest';
+  const lastUsername = (function() {
+    try {
+      const saved = localStorage.getItem('micmac_last_username');
+      if (saved) return saved;
+    } catch (e) {}
+    if (registeredUsers.length > 0) {
+      return registeredUsers[0].email || registeredUsers[0].username || '';
+    }
+    return '';
+  })();
 
   box.innerHTML = `
     <div class="modal-header" style="padding:12px 18px;align-items:center;">
@@ -9331,7 +9365,9 @@ function renderUserProjectModal() {
           <button type="button" onclick="applyLanguage('es')" style="padding:3px 8px;font-size:11px;font-weight:700;border:none;border-radius:5px;cursor:pointer;background:${!isEn ? '#2563eb' : 'transparent'};color:${!isEn ? '#fff' : '#94a3b8'};">ES</button>
           <button type="button" onclick="applyLanguage('en')" style="padding:3px 8px;font-size:11px;font-weight:700;border:none;border-radius:5px;cursor:pointer;background:${isEn ? '#2563eb' : 'transparent'};color:${isEn ? '#fff' : '#94a3b8'};">EN</button>
         </div>
-        <button type="button" class="modal-close-btn" onclick="closeUserProjectModal()" title="${isEn ? 'Close' : 'Cerrar'}">&times;</button>
+        ${isCurrentSessionIdentified ? `
+          <button type="button" class="modal-close-btn" onclick="closeUserProjectModal()" title="${isEn ? 'Close' : 'Cerrar'}">&times;</button>
+        ` : ''}
       </div>
     </div>
 
@@ -9394,7 +9430,7 @@ function renderUserProjectModal() {
             <div style="display:flex;flex-direction:column;gap:10px;">
               <div>
                 <label style="font-size:11.5px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:4px;">${isEn ? 'Email or Username *' : 'Email o Nombre de Usuario *'}</label>
-                <input type="text" id="mt-login-username" placeholder="${isEn ? 'e.g. user@organization.org or username' : 'ej: usuario@organizacion.org o nombre'}" onkeydown="if(event.key==='Enter')loginTenantFromPortal()" style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.32);border-radius:8px;">
+                <input type="text" id="mt-login-username" value="${esc(lastUsername)}" placeholder="${isEn ? 'e.g. user@organization.org or username' : 'ej: usuario@organizacion.org o nombre'}" onkeydown="if(event.key==='Enter')loginTenantFromPortal()" style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.32);border-radius:8px;">
               </div>
               <div>
                 <label style="font-size:11.5px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:4px;">${isEn ? 'Password *' : 'Contraseña *'}</label>
@@ -9405,10 +9441,6 @@ function renderUserProjectModal() {
               🔐 ${isEn ? 'Sign In & Load My Work →' : 'Iniciar Sesión y Cargar Mi Trabajo →'}
             </button>
           `}
-
-          <div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid rgba(148,163,255,0.12);">
-            <button type="button" onclick="continueAsGuest()" style="background:none;border:0;color:#94a3b8;font-size:12px;cursor:pointer;text-decoration:underline;">${isEn ? 'Continue without an account (Guest)' : 'Continuar sin cuenta (Modo invitado)'}</button>
-          </div>
         </div>
       ` : `
         <!-- =========================================================
@@ -9545,29 +9577,59 @@ function renderUserProjectModal() {
       `}
     </div>
 
-    <div class="modal-footer" style="display:flex;justify-content:flex-end;align-items:center;gap:8px;background:rgba(8,13,26,0.95);padding:10px 18px;">
-      <button type="button" class="btn ghost sm" onclick="closeUserProjectModal()" style="font-size:12px;padding:6px 12px;">${isEn ? 'Close' : 'Cerrar'}</button>
+    <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(8,13,26,0.95);padding:10px 18px;">
+      <div style="font-size:11.5px;color:#94a3b8;">
+        ${!isCurrentSessionIdentified
+          ? `<span style="color:#fbbf24;font-weight:600;">🔒 ${isEn ? 'Please sign in or create an account to access the workspace' : 'Identifíquese o cree su cuenta para acceder al espacio de trabajo y las técnicas'}</span>`
+          : `<span style="color:#34d399;font-weight:600;">● ${isEn ? 'Active workspace:' : 'Espacio activo:'} <b>${esc(selUser.name)}</b></span>`}
+      </div>
+      ${isCurrentSessionIdentified ? `
+        <button type="button" class="btn ghost sm" onclick="closeUserProjectModal()" style="font-size:12px;padding:6px 12px;">${isEn ? 'Close' : 'Cerrar'}</button>
+      ` : ''}
     </div>
   `;
 }
 
 function openUserProjectModal(step) {
   save();
-  if (step === 'auth' || step === 'model') {
-    mtPortalStep = step;
-  }
-  if (step === 'auth') {
-    mtAuthMode = 'login';
+  const store = loadUserProjectsStore();
+  const regUsers = store.users.filter(u => u.id !== 'u_default' && u.id !== 'u_guest');
+  if (!isCurrentSessionIdentified) {
+    mtPortalStep = 'auth';
+    mtAuthMode = regUsers.length === 0 ? 'register' : 'login';
+  } else {
+    if (step === 'auth' || step === 'model') {
+      mtPortalStep = step;
+    }
   }
   const modal = document.getElementById('user-project-modal');
   if (!modal) return;
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
   renderUserProjectModal();
+  setTimeout(() => {
+    if (mtPortalStep === 'auth') {
+      if (mtAuthMode === 'login') {
+        const uInp = document.getElementById('mt-login-username');
+        const pInp = document.getElementById('mt-login-password');
+        if (uInp && uInp.value) {
+          if (pInp) pInp.focus();
+        } else if (uInp) {
+          uInp.focus();
+        }
+      } else {
+        const nInp = document.getElementById('up-new-user-name');
+        if (nInp) nInp.focus();
+      }
+    }
+  }, 100);
 }
 window.openUserProjectModal = openUserProjectModal;
 
-function closeUserProjectModal() {
+function closeUserProjectModal(force) {
+  if (!force && !isCurrentSessionIdentified) {
+    return;
+  }
   const modal = document.getElementById('user-project-modal');
   if (!modal) return;
   // Asegurar que el usuario activo tenga siempre su propio proyecto aislado al cerrar el modal
@@ -9580,7 +9642,6 @@ function closeUserProjectModal() {
   }
   modal.classList.remove('open');
   document.body.style.overflow = '';
-  sessionStorage.setItem('micmac_user_chosen', '1');
 }
 window.closeUserProjectModal = closeUserProjectModal;
 
@@ -9620,8 +9681,10 @@ async function loginTenantFromPortal() {
       saveUserProjectsStore(store);
       await mergeCloudProjects(store, sbFound, data.user.id);
       saveUserProjectsStore(store);
+      isCurrentSessionIdentified = true;
+      try { localStorage.setItem('micmac_last_username', rawUser); } catch(e) {}
       selectModalUser(sbFound.id, false);
-      closeUserProjectModal();
+      closeUserProjectModal(true);
       showSaveToast(isEn
         ? `✅ Welcome back, <b>${esc(sbFound.name)}</b>! Your work is loaded.`
         : `✅ ¡Bienvenido/a de vuelta, <b>${esc(sbFound.name)}</b>! Su trabajo ha sido cargado.`);
@@ -9641,8 +9704,14 @@ async function loginTenantFromPortal() {
     if (pInp) pInp.focus();
     return;
   }
+  if (!found.password || found.password.trim() === '') {
+    found.password = rawPass;
+    saveUserProjectsStore(store);
+  }
+  isCurrentSessionIdentified = true;
+  try { localStorage.setItem('micmac_last_username', rawUser); } catch(e) {}
   selectModalUser(found.id, false);
-  closeUserProjectModal();
+  closeUserProjectModal(true);
   showSaveToast(isEn
     ? `✅ Welcome back, <b>${esc(found.name)}</b>! Your work is loaded.`
     : `✅ ¡Bienvenido/a de vuelta, <b>${esc(found.name)}</b>! Su trabajo ha sido cargado.`);
@@ -9669,6 +9738,8 @@ function quickLoginTenant(userId) {
       }
     }
   }
+  isCurrentSessionIdentified = true;
+  try { localStorage.setItem('micmac_last_username', found.email || found.username || ''); } catch(e) {}
   selectModalUser(found.id, true);
 }
 window.quickLoginTenant = quickLoginTenant;
@@ -9779,6 +9850,8 @@ async function createNewUserFromModal() {
     updateUserProjectPill();
   }
 
+  isCurrentSessionIdentified = true;
+  try { localStorage.setItem('micmac_last_username', newUser.email || newUser.username || ''); } catch(e) {}
   mtPortalStep = 'model';
   renderUserProjectModal();
   showSaveToast(isEn
@@ -9855,7 +9928,7 @@ function startExampleProjectForUser() {
   saveUserProjectsStore(store);
 
   applyProjectToWorkspace(newProj);
-  closeUserProjectModal();
+  closeUserProjectModal(true);
   showSaveToast(isEn
     ? `📚 Loaded Existing Example Model for user "<b>${esc(user.name)}</b>"`
     : `📚 Modelo de Ejemplo Existente cargado en la cuenta de "<b>${esc(user.name)}</b>"`);
@@ -9919,7 +9992,7 @@ function createOwnProjectForUser() {
   saveUserProjectsStore(store);
 
   applyProjectToWorkspace(newProj);
-  closeUserProjectModal();
+  closeUserProjectModal(true);
   switchTab('vars');
 
   if (startMode === 'import_json') {
@@ -9969,7 +10042,7 @@ function openSavedUserProject(projId) {
   store.activeProjectId = proj.id;
   saveUserProjectsStore(store);
   applyProjectToWorkspace(proj);
-  closeUserProjectModal();
+  closeUserProjectModal(true);
   const u = store.users.find(x => x.id === proj.userId);
   showSaveToast(isEn
     ? `📂 Opened model "<b>${esc(proj.name)}</b>" (${esc(u ? u.name : '')})`
@@ -10005,7 +10078,7 @@ window.deleteSavedUserProject = deleteSavedUserProject;
 applyLanguage(currentLang);
 updateUserProjectPill();
 
-// Arranque: recuerda el usuario activo y su último modelo, o abre el portal si es visitante nuevo
+// Arranque: La pantalla de autentificación debe ser la primera que siempre se muestre
 (async function bootstrapAuth() {
   if (window.SupabaseSync && typeof window.SupabaseSync.onAuthChange === 'function') {
     window.SupabaseSync.onAuthChange(async (event, session) => {
@@ -10015,15 +10088,14 @@ updateUserProjectPill();
         saveUserProjectsStore(store);
         await mergeCloudProjects(store, found, session.user.id);
         saveUserProjectsStore(store);
+        isCurrentSessionIdentified = true;
         selectModalUser(found.id, false);
+        closeUserProjectModal(true);
       }
     });
   }
-  const resumed = await resumeActiveUserSession();
-  if (resumed) {
-    closeUserProjectModal();
-    return;
-  }
+
+  // La pantalla de autenticación debe ser la primera que siempre se muestre
   openUserProjectModal('auth');
 })();
 
