@@ -355,7 +355,7 @@ async function generateWordReportBlob() {
       spacing: { before: 240, after: 100 },
       children: [
         new TextRun({
-          text: isEn ? "2. CLASSICAL STRUCTURAL ANALYSIS (MICMAC GODET)" : "2. ANÁLISIS ESTRUCTURAL CLÁSICO (MICMAC DE GODET)",
+          text: isEn ? "3. CLASSICAL STRUCTURAL ANALYSIS (MICMAC GODET)" : "3. ANÁLISIS ESTRUCTURAL CLÁSICO DE MICMAC (MÉTODO GODET)",
           bold: true,
           size: 28,
           color: "1E3A8A"
@@ -480,7 +480,9 @@ async function generateWordReportBlob() {
       spacing: { before: 260, after: 100 },
       children: [
         new TextRun({
-          text: isEn ? "3. 4D DYNAMIC CONVERGENT MODEL (SPECTRAL & POLARITY)" : "3. MODELO DINÁMICO CONVERGENTE 4D (KATZ-BONACICH Y POLARIDAD)",
+          text: isEn
+            ? "4. 4D DYNAMIC CONVERGENT MODEL: OVERCOMING GODET DEFICIENCIES & VARIABLE RECLASSIFICATION"
+            : "4. MODELO DINÁMICO CONVERGENTE 4D: DEFICIENCIAS DE GODET Y JUSTIFICACIÓN DE NUEVOS INDICADORES",
           bold: true,
           size: 28,
           color: "1E3A8A"
@@ -488,12 +490,25 @@ async function generateWordReportBlob() {
       ]
     }),
     new Paragraph({
-      spacing: { before: 60, after: 120 },
+      spacing: { before: 60, after: 100 },
       children: [
         new TextRun({
           text: isEn
-            ? "The dynamic model introduces three critical innovations: (1) Time friction exp(-λt) accounting for implementation delays, (2) Signed polarity [-3, 3] revealing feedback loop cancellations, and (3) Resolvent attenuation S = (I - αW)⁻¹W overcoming Perron-Frobenius power collapse."
-            : "El modelo dinámico introduce tres innovaciones fundamentales: (1) Fricción temporal continua exp(-λt) que castiga los rezagos de implementación, (2) Polaridad con signos [-3, 3] que identifica bucles positivos y negativos, y (3) Operador resolvente S = (I - αW)⁻¹W que supera la convergencia trivial de Perron-Frobenius del método tradicional."
+            ? "4.1 Methodological Innovations of the 4D Model"
+            : "4.1 Innovaciones Metodológicas y Marco Conceptual 4D",
+          bold: true,
+          color: "1D4ED8",
+          size: 20
+        })
+      ]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 120 },
+      children: [
+        new TextRun({
+          text: isEn
+            ? "The 4D Dynamic Convergent Model fundamentally revamps prospective cross-impact analysis by expanding classical 2D motricity-dependence into a four-dimensional analytical manifold: (1) Net Motricity and Dependence, (2) Continuous Time Friction exp(-λt), (3) Systemic Ambiguity ratio (Ω) capturing feedback loop cancellation, and (4) Self-loop feedback (F) derived from spectral resolvent diagonal elements S_ii."
+            : "El Modelo Dinámico Convergente 4D transforma integralmente el análisis prospectivo tradicional, expandiendo el plano bidimensional clásico de motricidad-dependencia hacia una variedad analítica de cuatro dimensiones: (1) Motricidad y Dependencia Netas Efectivas, (2) Descuento por Fricción Temporal continua exp(-λt), (3) Ratio de Ambigüedad Sistémica (Ω) que mide la cancelación interna de bucles antagónicos, y (4) Coeficiente de Bucle Propio (F) obtenido de la diagonal principal del operador resolvente espectral S_ii."
         })
       ]
     })
@@ -529,66 +544,112 @@ async function generateWordReportBlob() {
     );
   }
 
-  // Interpretación ampliada de Palancas, Trampas y Bucles
+  // 4.2 DEFICIENCIAS DE GODET Y JUSTIFICACIÓN DE NUEVOS INDICADORES
   children.push(
     new Paragraph({
-      spacing: { before: 80, after: 60 },
-      children: [new TextRun({ text: isEn ? "4.1 Strategic Diagnostic Findings — Levers, Traps, Amplifiers, Stabilizers:" : "4.1 Hallazgos Estratégicos Críticos — Palancas, Trampas, Amplificadores, Estabilizadores:", bold: true, color: "1E3A8A", size: 20 })]
-    }),
-    new Paragraph({
-      spacing: { before: 40, after: 80 },
+      spacing: { before: 120, after: 80 },
       children: [
-        new TextRun({ text: isEn ? "\u2605 Consistent Master Levers: " : "\u2605 Palancas Maestras Consistentes: ", bold: true, color: "059669" }),
-        new TextRun({ text: (palancas.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None identified' : 'Ninguna identificada')) + '. ' }),
         new TextRun({
           text: isEn
-            ? `CRITICAL RECOMMENDATION: These variables exhibit high Net Motricity and low Ambiguity (\u03a9). Their causal paths are coherent and free from destructive internal pushback (Bonacich, 1987). They should receive 70\u201380% of leadership focus and budget allocation. From Meadows\u2019 (1999) Leverage Points theory, these correspond to the highest-order leverage points: changing the goals, rules, or paradigms of the system. Sterman (2000, p. 350) calls these \u2018high-leverage policy interventions\u2019 because they exploit the structure\u2019s own dynamics. If a variable is simultaneously a Godet driver AND a dynamic lever, it receives absolute strategic priority.`
-            : `RECOMENDACI\u00d3N CR\u00cdTICA: Estas variables exhiben alta Motricidad Neta Efectiva y baja Ambig\u00fcedad (\u03a9 reducido). Su se\u00f1al viaja limpia sin cancelarse en la red (Bonacich, 1987). Deben constituir el 70\u201380% del presupuesto y la gesti\u00f3n directiva. Desde la teor\u00eda de Puntos de Apalancamiento de Meadows (1999), estas corresponden a los puntos de apalancamiento de mayor orden: cambiar las metas, reglas o paradigmas del sistema. Sterman (2000, p. 350) las denomina \u2018intervenciones de pol\u00edtica de alto apalancamiento\u2019. Si una variable es simult\u00e1neamente motriz de Godet Y palanca din\u00e1mica, recibe la m\u00e1xima prioridad estrat\u00e9gica absoluta.`
+            ? "4.2 Critical Deficiencies of Classical Godet MICMAC & Mathematical Remedies"
+            : "4.2 Deficiencias Estructurales del Método MICMAC Clásico de Godet y Justificación de los Nuevos Indicadores",
+          bold: true,
+          color: "1D4ED8",
+          size: 20
         })
       ]
     }),
     new Paragraph({
-      spacing: { before: 40, after: 80 },
+      spacing: { before: 40, after: 60 },
       children: [
-        new TextRun({ text: isEn ? "\u26a0 Policy Traps & Causal Mirages: " : "\u26a0 Trampas de Pol\u00edtica y Espejismos Causales: ", bold: true, color: "E11D48" }),
-        new TextRun({ text: (trampas.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None detected' : 'Ninguna detectada')) + '. ' }),
         new TextRun({
           text: isEn
-            ? `EXECUTIVE WARNING: These variables appear highly motrice under classical Godet analysis (Godet, 2001), but suffer severe dissipation (\u03a9 > 30%) due to opposing balancing loops. This corresponds to the \u2018Fixes that Fail\u2019 and \u2018Limits to Growth\u2019 system archetypes (Senge, 1990, pp. 103\u2013145; Meadows, 2008, pp. 112\u2013145). The balancing loops generating ambiguity often represent: (a) organizational resistance to change (Kotter, 1996); (b) resource constraints that re-emerge after superficial fixes (Sterman, 2000); (c) cultural norms resisting innovation (Schein, 2010). Before intervening, leadership must first dismantle the resistance loops \u2014 this is a PREREQUISITE condition, not optional.`
-            : `ADVERTENCIA DIRECTIVA: Parecen grandes motores en el MICMAC cl\u00e1sico de Godet (Godet, 2001), pero sufren una severa p\u00e9rdida por cancelaci\u00f3n de bucles opuestos (\u03a9 elevado > 30%). Esto corresponde a los arquetipos sist\u00e9micos \u2018Soluciones que Fracasan\u2019 y \u2018L\u00edmites al Crecimiento\u2019 (Senge, 1990, pp. 103\u2013145; Meadows, 2008, pp. 112\u2013145). Los bucles equilibradores que generan ambig\u00fcedad representan frecuentemente: (a) resistencia organizacional al cambio (Kotter, 1996); (b) restricciones de recursos que reemergen tras soluciones superficiales (Sterman, 2000); (c) normas culturales que resisten la innovaci\u00f3n (Schein, 2010). Destrabar los bucles de resistencia es una condici\u00f3n PREVIA, no un complemento opcional.`
+            ? "Although Michel Godet's classical MICMAC represented an extraordinary advance in 1970–1990 prospective matrix analysis, contemporary complex systems theory and practical public policy experience have exposed four fundamental flaws that often lead decision-makers to catastrophic resource misallocations:"
+            : "Aunque el método MICMAC original de Michel Godet representó un hito histórico en la prospectiva de las décadas de 1970 a 1990, los avances en teoría de sistemas complejos y la evidencia empírica en gestión pública han revelado cuatro deficiencias estructurales críticas que inducen a graves errores de diagnóstico y asignación presupuestaria:"
         })
       ]
     }),
     new Paragraph({
-      spacing: { before: 40, after: 80 },
+      spacing: { before: 30, after: 60 },
       children: [
-        new TextRun({ text: isEn ? "\uD83D\uDD04 Positive Self-Loops (Snowball / Virtuous Cycle Effect): " : "\uD83D\uDD04 Bucles Propios Expansivos (Ciclo Virtuoso / Efecto Bola de Nieve): ", bold: true, color: "0284C7" }),
-        new TextRun({ text: (amplificadores.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None' : 'Ninguno')) + '. ' }),
+        new TextRun({ text: isEn ? "1. Sign Blindness (Absolute Value Flaw): " : "1. Ceguera de Polaridad y Signos (La Falacia del Valor Absoluto): ", bold: true, color: "DC2626" }),
         new TextRun({
           text: isEn
-            ? `F > 0 (75th percentile): These nodes return energy amplified through reinforcing loops across the network \u2014 Senge\u2019s \u2018Virtuous Cycle\u2019 archetype (Senge, 1990, pp. 77\u201389). Once triggered, they compound over time. Strategic implication: Use as \u2018seed variables\u2019 for a positive tipping point. If combined with master levers, the system can self-amplify toward desired outcomes without continuous external pressure (Meadows, 2008).`
-            : `F > 0 (percentil 75): Estos nodos retornan energ\u00eda amplificada a trav\u00e9s de bucles reforzadores de la red \u2014 el arquetipo del \u2018Ciclo Virtuoso\u2019 de Senge (1990, pp. 77\u201389). Una vez activados, se componen a lo largo del tiempo. Implicaci\u00f3n estrat\u00e9gica: Usarlos como \u2018variables semilla\u2019 para un punto de inflexi\u00f3n positivo. Combinados con palancas maestras, el sistema puede auto-amplificarse hacia los resultados deseados sin presi\u00f3n externa continua (Meadows, 2008).`
+            ? "Classical Godet evaluates links using strictly absolute sums |W_ij| in {0, 1, 2, 3}. A positive transformative link (+3) is added identically to a destructive reaction (-3), summing to 6 instead of resolving to 0. In reality, competing positive and negative feedback loops cancel each other out. To remedy this, the 4D model computes Net Motricity M_net = |M^+ - M^-| and the Systemic Ambiguity Ratio Ω = |M^+ - M^-| / M_total × 100%. This distinguishes pure, high-potency levers from 'Policy Traps' (Meadows, 2008; Senge, 1990) where massive public investment triggers equal and opposite resistance."
+            : "El MICMAC tradicional opera con la matriz en valor absoluto |W_ij| ∈ {0, 1, 2, 3}. Una influencia que impulsa positivamente (+3) y una barrera que destruye (-3) son sumadas como 6 en vez de resolverse en 0. En la realidad sistémica, los bucles antagónicos se neutralizan. Para resolver esta falacia, el modelo 4D calcula la Motricidad Neta M_neta = |M^+ - M^-| y el Ratio de Ambigüedad Sistémica Ω = |M^+ - M^-| / M_total × 100%, distinguiendo entre palancas de transmisión limpia y 'Trampas de Política' (Meadows, 2008; Senge, 1990) donde el esfuerzo institucional se auto-cancela."
         })
       ]
     }),
     new Paragraph({
-      spacing: { before: 40, after: 120 },
+      spacing: { before: 30, after: 60 },
       children: [
-        new TextRun({ text: isEn ? "\uD83D\uDEE1 Stabilizer Nodes (Negative Self-Loops, Q1): " : "\uD83D\uDEE1 Nodos Estabilizadores (Bucles Propios Negativos, Q1): ", bold: true, color: "7C3AED" }),
-        new TextRun({ text: (estabilizadores.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None' : 'Ninguno')) + '. ' }),
+        new TextRun({ text: isEn ? "2. Timelessness & Absence of Friction: " : "2. Atemporalidad y Carencia de Fricción Institucional: ", bold: true, color: "DC2626" }),
         new TextRun({
           text: isEn
-            ? `F < 0 (25th percentile): These variables act as internal stabilizers or shock absorbers. They naturally resist deviation from equilibrium. From control theory (Sterman, 2000, pp. 96\u2013110), they represent \u2018goal-seeking feedback loops\u2019 providing system homeostasis. Strategic implication: Do not try to amplify them \u2014 leverage their stabilizing role to buffer shocks while levers are activated.`
-            : `F < 0 (percentil 25): Estas variables act\u00faan como estabilizadores internos o amortiguadores de choques. Resisten naturalmente la desviaci\u00f3n del equilibrio. Desde la teor\u00eda de control (Sterman, 2000, pp. 96\u2013110), representan \u2018bucles buscadores de meta\u2019 que proveen homeostasis sist\u00e9mica. Implicaci\u00f3n estrat\u00e9gica: No intentar amplificarlos \u2014 aprovechar su rol estabilizador para amortiguar choques mientras se activan las palancas.`
+            ? "Classical matrix multiplication assumes instantaneous propagation or abstract algebraic steps k without real chronological calibration. An educational curriculum reform taking 4 years is treated identically to an executive regulatory decree taking 2 weeks. The 4D model introduces Continuous Time Friction discount ω_ij = exp(-λ·t_ij) and the Effective Matrix W_eff = W ⊙ Ω (Hadamard product), mathematically capturing implementation delays (Sterman, 2000; Richardson, 1991) and discounting links that arrive too late to alter strategic outcomes."
+            : "La multiplicación matricial de Godet asume pasos algebraicos k atemporales, ignorando el calendario real. Una reforma curricular que madura en 4 años recibe el mismo peso que un decreto ejecutivo de 2 semanas. El modelo 4D introduce el factor de Fricción Temporal continua ω_ij = exp(-λ·t_ij) y la Matriz Efectiva W_eff = W ⊙ Ω (producto de Hadamard), modelando formalmente los rezagos de implementación (Sterman, 2000; Richardson, 1991) y penalizando las rutas lentas que llegan fuera de la ventana de oportunidad."
+        })
+      ]
+    }),
+    new Paragraph({
+      spacing: { before: 30, after: 60 },
+      children: [
+        new TextRun({ text: isEn ? "3. Perron-Frobenius Rank-1 Collapse Flaw: " : "3. El Colapso Singular de Perron-Frobenius hacia Rango 1: ", bold: true, color: "DC2626" }),
+        new TextRun({
+          text: isEn
+            ? "In classical MICMAC, indirect impacts are computed by elevating matrix powers M^k. By the Perron-Frobenius theorem, any irreducible non-negative matrix elevated to high powers converges strictly to its dominant rank-1 outer product u·v^T. Beyond power k ≥ 5..10, every single row becomes 100% proportional, erasing all structural nuance and making indirect ranking degenerate. The 4D model replaces unconstrained powers with the Katz-Bonacich Spectral Resolvent S = α(I - αW)⁻¹W calibrated at α·ρ = 0.80 (equivalent to the Leontief Input-Output inverse; Leontief, 1951; Bonacich, 1987). This sums infinite indirect paths (k=1..∞) while maintaining a 20% safety margin before singularity, preserving 100% of network structural heterogeneity."
+            : "Al elevar M^k sucesivamente para calcular efectos indirectos, el teorema matemático de Perron-Frobenius demuestra que toda matriz irreducible no negativa colapsa sobre su autovector dominante u·v^T. A partir de potencias k ≥ 5..10, todas las filas se vuelven 100% proporcionales (rango 1), borrando las identidades individuales de las variables y desvirtuando el análisis indirecto. El modelo 4D supera esto reemplazando las potencias libres por la Resolvente Espectral de Katz-Bonacich S = α(I - αW)⁻¹W calibrada en α·ρ = 0.80 (análoga a la Inversa de Leontief; Leontief, 1951; Bonacich, 1987), que suma infinitas cadenas indirectas (k=1..∞) con un margen de seguridad del 20% antes de la inestabilidad, preservando toda la riqueza estructural."
+        })
+      ]
+    }),
+    new Paragraph({
+      spacing: { before: 30, after: 80 },
+      children: [
+        new TextRun({ text: isEn ? "4. Omission of Self-Feedback Loops: " : "4. Omisión de Bucles Propios de Retroalimentación: ", bold: true, color: "DC2626" }),
+        new TextRun({
+          text: isEn
+            ? "Godet forces diagonal elements to zero (W_ii = 0), falsely assuming variables do not feedback into themselves. In complex networks, a variable influences neighbors which in turn feedback energy through 2-cycle and higher loops. The 4D model computes the Self-Loop Feedback Coefficient F_i = S_ii from the resolvent diagonal, distinguishing between Amplifying / Snowball variables (F > 0; virtuous reinforcing cycles) and Stabilizing / Homeostatic variables (F < 0; system shock absorbers)."
+            : "Godet anula forzosamente la diagonal (W_ii = 0), asumiendo erróneamente que las variables no actúan sobre sí mismas. En sistemas complejos, una variable influye en otras que retornan energía a través de bucles de 2 o más ciclos. El modelo 4D extrae el Coeficiente de Bucle Propio F_i = S_ii de la diagonal de la resolvente, distinguiendo entre variables Amplificadoras / Bola de Nieve (F > 0; ciclos virtuosos expansivos) y variables Estabilizadoras / Amortiguadoras (F < 0; homeostasis sistémica)."
         })
       ]
     })
   );
 
-  // Tabla comparativa completa
-  const dynHeaders = isEn
-    ? ["No.", "Code", "Variable Name", "Classic Mot", "Net Mot", "Ambiguity Ω", "Self-Loop F", "Dynamic Quadrant", "Strategic Diagnosis"]
-    : ["N°", "Cód", "Nombre Variable", "Mot. Clásica", "Mot. Neta", "Ambigüedad Ω", "Bucle F", "Cuadrante Dinámico", "Diagnóstico Estratégico"];
+  // Tabla Síntesis de Deficiencias vs Indicadores Correctores
+  const defHeaders = isEn
+    ? ["Classical Godet Flaw", "Real Policy Risk", "4D Dynamic Indicator", "Mathematical Formula", "Strategic Value to Leadership"]
+    : ["Deficiencia de Godet", "Riesgo en Políticas Públicas", "Nuevo Indicador 4D", "Fórmula Matemática", "Aporte Clave al Decisor"];
+
+  const defData = [
+    [
+      isEn ? "Sign Blindness (|W| sums)" : "Ceguera de Signos (Suma en |W|)",
+      isEn ? "Policy Traps & wasted budget in cancelled loops." : "Trampas de política y gasto desperdiciado en bucles cancelados.",
+      isEn ? "Systemic Ambiguity (Ω) & Net Motricity" : "Ratio de Ambigüedad (Ω) y Motricidad Neta",
+      "Ω = |M⁺ - M⁻| / M_tot × 100%",
+      isEn ? "Identifies pure levers vs. self-cancelling initiatives." : "Discrimina palancas limpias frente a espejismos causales."
+    ],
+    [
+      isEn ? "Timelessness (steps k)" : "Atemporalidad (Pasos k abstractos)",
+      isEn ? "Intervening in slow paths that mature too late." : "Invertir en variables cuyos efectos maduran fuera de plazo.",
+      isEn ? "Continuous Time Friction Discount" : "Atenuación Temporal por Retardos",
+      "ω_ij = exp(-λ · t_ij)",
+      isEn ? "Aligns investments with real institutional absorption speed." : "Sincroniza el presupuesto con el calendario de absorción."
+    ],
+    [
+      isEn ? "Perron-Frobenius Rank-1 Collapse" : "Colapso de Rango 1 (Perron-Frobenius)",
+      isEn ? "All variables look identical at high powers M^k." : "Todas las variables se vuelven idénticas a potencias altas.",
+      isEn ? "Katz-Bonacich Resolvent (α·ρ = 0.80)" : "Resolvente de Katz-Bonacich (α·ρ = 0.80)",
+      "S = α(I - αW)⁻¹W",
+      isEn ? "Preserves 100% structural heterogeneity + 20% safety buffer." : "Preserva la heterogeneidad de la red con 20% de colchón."
+    ],
+    [
+      isEn ? "Omission of Diagonal (W_ii = 0)" : "Omisión de la Diagonal (W_ii = 0)",
+      isEn ? "Inability to detect compounding virtuous cycles." : "Incapacidad de detectar efectos acumulativos bola de nieve.",
+      isEn ? "Self-Loop Feedback Coefficient" : "Coeficiente de Bucle Propio",
+      "F_i = S_ii (Diagonal Resolvente)",
+      isEn ? "Detects self-amplifying seed nodes vs. shock absorbers." : "Detecta nodos multiplicadores vs. estabilizadores homeostáticos."
+    ]
+  ];
 
   children.push(
     new Table({
@@ -597,37 +658,195 @@ async function generateWordReportBlob() {
       rows: [
         new TableRow({
           tableHeader: true,
-          children: dynHeaders.map(h => new TableCell({
+          children: defHeaders.map(h => new TableCell({
             shading: { fill: "1E293B" },
-            margins: { top: 80, bottom: 80, left: 100, right: 100 },
-            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: "FFFFFF", size: 17 })] })]
+            margins: { top: 80, bottom: 80, left: 80, right: 80 },
+            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: "FFFFFF", size: 15 })] })]
           }))
         }),
-        ...dynamicRows.map((r, idx) => new TableRow({
-          children: [
-            (idx + 1).toString(),
-            r.v.code,
-            r.v.name,
-            r.mc.toFixed(1),
-            r.mn.toFixed(2),
-            `${r.om_i.toFixed(1)} %`,
-            `${r.f_i >= 0 ? '+' : ''}${r.f_i.toFixed(2)}`,
-            r.quadName,
-            r.esPalanca ? (isEn ? "★ Master Lever" : "★ Palanca Maestra") : (r.esTrampa ? (isEn ? "⚠ Policy Trap" : "⚠ Trampa Política") : (isEn ? "Regular" : "Evolución Regular"))
-          ].map((cText, cIdx) => new TableCell({
-            shading: { fill: idx % 2 === 0 ? "F8FAFC" : "FFFFFF" },
-            margins: { top: 60, bottom: 60, left: 100, right: 100 },
+        ...defData.map((rowCells, rIdx) => new TableRow({
+          children: rowCells.map((cText, cIdx) => new TableCell({
+            shading: { fill: rIdx % 2 === 0 ? "F8FAFC" : "FFFFFF" },
+            margins: { top: 60, bottom: 60, left: 80, right: 80 },
             children: [new Paragraph({
-              alignment: cIdx === 0 ? AlignmentType.CENTER : AlignmentType.LEFT,
               children: [new TextRun({
                 text: cText,
-                bold: cIdx === 0 || cIdx === 1 || cIdx === 8,
-                color: cIdx === 8 && cText.includes("★") ? "059669" : (cIdx === 8 && cText.includes("⚠") ? "E11D48" : "1F2937"),
-                size: 16
+                bold: cIdx === 0 || cIdx === 2,
+                color: cIdx === 2 ? "059669" : (cIdx === 0 ? "DC2626" : "1F2937"),
+                size: 15
               })]
             })]
           }))
         }))
+      ]
+    }),
+    new Paragraph({ spacing: { before: 120, after: 60 }, children: [] })
+  );
+
+  // 4.3 ANÁLISIS DE DISCREPANCIAS Y RECLASIFICACIÓN DE VARIABLES
+  const quadClasNames = {
+    power: isEn ? "Motriz (Poder)" : "Motriz (Poder)",
+    conflict: isEn ? "Crítica (Enlace)" : "Crítica (Enlace)",
+    result: isEn ? "Resultado (Dep.)" : "Resultado (Dep.)",
+    auto: isEn ? "Autónoma" : "Autónoma"
+  };
+
+  const variablesDesplazadas = dynamicRows.filter(r => {
+    const clasQKey = (typeof PD !== 'undefined' && PD.q) ? PD.q[r.i] : 'auto';
+    return (r.quadKey !== clasQKey) || r.esTrampa;
+  });
+
+  children.push(
+    new Paragraph({
+      spacing: { before: 60, after: 60 },
+      children: [
+        new TextRun({
+          text: isEn
+            ? "4.3 Detailed Analysis of Classification Shifts & Strategic Discrepancies"
+            : "4.3 Análisis Detallado de Discrepancias y Cambios en la Clasificación de Variables",
+          bold: true,
+          color: "1D4ED8",
+          size: 20
+        })
+      ]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 60 },
+      children: [
+        new TextRun({
+          text: isEn
+            ? `When comparing classical Godet quadrants with the 4D Dynamic Convergent Model, significant structural discrepancies emerge in ${variablesDesplazadas.length} variable(s). These shifts prove that traditional analysis can lead to severe misdiagnoses by mistaking internal friction for genuine driving power:`
+            : `Al contrastar la matriz clásica de Godet con el Modelo Dinámico Convergente 4D, se detectan discrepancias estructurales significativas en ${variablesDesplazadas.length} variable(s). Estos desplazamientos demuestran cómo el enfoque clásico genera falsos positivos al confundir fricción o volumen bruto con auténtica potencia transformadora:`
+        })
+      ]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 60 },
+      children: [
+        new TextRun({ text: isEn ? "★ Consistent Master Levers (Highest Strategic Priority): " : "★ Palancas Maestras Consistentes (Máxima Prioridad Estratégica): ", bold: true, color: "059669" }),
+        new TextRun({ text: (palancas.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None identified' : 'Ninguna identificada')) + '. ' }),
+        new TextRun({
+          text: isEn
+            ? "These variables combine high Net Motricity with low Ambiguity (Ω ≤ median). Their causal signal propagates cleanly through the network without triggering destructive internal balancing loops (Bonacich, 1987). They represent Meadows' (1999) highest-order leverage points and must absorb 70–80% of executive bandwidth and investment."
+            : "Estas variables combinan una alta Motricidad Neta Efectiva con un nivel de Ambigüedad controlado (Ω ≤ mediana). Su impulso causal viaja limpio por la red sin activar bucles de resistencia destructiva (Bonacich, 1987). Representan los puntos de apalancamiento de mayor orden de Meadows (1999) y deben concentrar entre el 70% y el 80% de la atención directiva y del presupuesto."
+        })
+      ]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 60 },
+      children: [
+        new TextRun({ text: isEn ? "⚠ Policy Traps & Causal Mirages (Severe Executive Risk): " : "⚠ Trampas de Política y Espejismos Causales (Riesgo Directivo Crítico): ", bold: true, color: "E11D48" }),
+        new TextRun({ text: (trampas.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None detected' : 'Ninguna detectada')) + '. ' }),
+        new TextRun({
+          text: isEn
+            ? "CRITICAL WARNING: Under classical Godet analysis, these variables look like primary drivers or key conflict pivots due to large gross sums. However, the 4D signed model proves they suffer extreme ambiguity (Ω > 30%): their positive impacts are cancelled out by opposing negative loops. This reproduces Senge's (1990) 'Fixes that Fail' archetype and Sterman's (2000) 'Policy Resistance'. Pushing resources into these variables without first dismantling their resistance loops generates frustration and waste."
+            : "ADVERTENCIA DIRECTIVA CRÍTICA: En el MICMAC clásico de Godet, estas variables aparentaban ser motores o pivotes clave debido a su abultada suma bruta. Sin embargo, el modelo 4D con signos demuestra que sufren una ambigüedad severa (Ω > 30%): su impacto positivo es cancelado por bucles negativos antagónicos. Esto reproduce el arquetipo de 'Soluciones que Fracasan' de Senge (1990) y la 'Resistencia a las Políticas' de Sterman (2000). Inyectar recursos en ellas sin destrabar previamente sus bucles de resistencia es la causa principal del fracaso de reformas institucionales."
+        })
+      ]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 60 },
+      children: [
+        new TextRun({ text: isEn ? "🔄 Positive Self-Loops (Virtuous Snowball Cycles, F > 0): " : "🔄 Bucles Propios Expansivos (Efecto Bola de Nieve, F > 0): ", bold: true, color: "0284C7" }),
+        new TextRun({ text: (amplificadores.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None' : 'Ninguno')) + '. ' }),
+        new TextRun({
+          text: isEn
+            ? "Nodes with F_i in the upper quartile return amplified momentum through reinforcing feedback loops. Once activated, they self-propagate, creating a virtuous compounding dynamic with minimal ongoing maintenance (Meadows, 2008)."
+            : "Variables ubicadas en el cuartil superior de F_i: devuelven energía amplificada a través de bucles reforzadores de la red. Una vez detonadas, se auto-sostienen generando una dinámica virtuosa acumulativa que reduce la necesidad de presión externa continua (Meadows, 2008)."
+        })
+      ]
+    }),
+    new Paragraph({
+      spacing: { before: 40, after: 120 },
+      children: [
+        new TextRun({ text: isEn ? "🛡 Homeostatic Stabilizers (Shock Absorbers, F < 0): " : "🛡 Nodos Estabilizadores (Amortiguadores Homeostáticos, F < 0): ", bold: true, color: "7C3AED" }),
+        new TextRun({ text: (estabilizadores.map(v => `${v.code} (${v.name})`).join(', ') || (isEn ? 'None' : 'Ninguno')) + '. ' }),
+        new TextRun({
+          text: isEn
+            ? "Variables with negative self-loops in the lower quartile act as systemic buffers. They naturally resist disturbance and restore equilibrium (Sterman, 2000). Strategy: Do not force them into aggressive growth; use their stabilizing nature to absorb transitional shocks."
+            : "Variables en el cuartil inferior de F_i: actúan como amortiguadores sistémicos. Absorben choques externos y devuelven el sistema hacia el equilibrio (Sterman, 2000). Recomendación: No forzarlas hacia un crecimiento agresivo; utilizar su rol estabilizador para amortiguar turbulencias mientras se activan las palancas maestras."
+        })
+      ]
+    })
+  );
+
+  // 4.4 TABLA COMPARATIVA CRUZADA EXHAUSTIVA
+  const dynHeaders = isEn
+    ? ["#", "Code", "Variable Name", "Godet Mot", "Godet Quad", "Net Mot (4D)", "4D Quad", "Ambiguity Ω", "Self-Loop F", "Status Shift", "Strategic Diagnosis"]
+    : ["#", "Cód", "Nombre Variable", "Mot. Godet", "Cuadrante Godet", "Mot. Neta 4D", "Cuadrante 4D", "Ambigüedad Ω", "Bucle F", "¿Cambió Rol?", "Diagnóstico Estratégico"];
+
+  children.push(
+    new Paragraph({
+      spacing: { before: 60, after: 60 },
+      children: [
+        new TextRun({
+          text: isEn
+            ? "4.4 Comprehensive Cross-Classification Table (Godet Classical vs. 4D Dynamic Convergent)"
+            : "4.4 Tabla Comparativa Cruzada Exhaustiva (Godet Clásico vs. Extendido Dinámico 4D)",
+          bold: true,
+          color: "1D4ED8",
+          size: 20
+        })
+      ]
+    }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: tableBorderLight,
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          children: dynHeaders.map(h => new TableCell({
+            shading: { fill: "1E293B" },
+            margins: { top: 80, bottom: 80, left: 60, right: 60 },
+            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: "FFFFFF", size: 14 })] })]
+          }))
+        }),
+        ...dynamicRows.map((r, idx) => {
+          const clasQKey = (typeof PD !== 'undefined' && PD.q) ? PD.q[r.i] : 'auto';
+          const clasQName = quadClasNames[clasQKey] || clasQKey;
+          const cambioCuad = (r.quadKey !== clasQKey);
+          const cambioTxt = cambioCuad
+            ? (isEn ? "⚠️ Shift" : "⚠️ Cambio")
+            : (isEn ? "✓ Stable" : "✓ Mantiene");
+
+          let diagTxt = isEn ? "Regular" : "Evolución Regular";
+          if (r.esPalanca) diagTxt = isEn ? "★ Master Lever" : "★ Palanca Maestra";
+          else if (r.esTrampa) diagTxt = isEn ? "⚠ Policy Trap" : "⚠ Trampa Política";
+          else if (r.f_i > 0 && r.f_i >= q3F) diagTxt = isEn ? "🔄 Amplifier" : "🔄 Amplificador";
+          else if (r.f_i < 0 && r.f_i <= q1F) diagTxt = isEn ? "🛡 Stabilizer" : "🛡 Estabilizador";
+
+          const rowBg = r.esPalanca ? "F0FDF4" : (r.esTrampa ? "FEF2F2" : (idx % 2 === 0 ? "F8FAFC" : "FFFFFF"));
+
+          const cells = [
+            (idx + 1).toString(),
+            r.v.code,
+            r.v.name,
+            r.mc.toFixed(1),
+            clasQName,
+            r.mn.toFixed(2),
+            r.quadName,
+            `${r.om_i.toFixed(1)} %`,
+            `${r.f_i >= 0 ? '+' : ''}${r.f_i.toFixed(2)}`,
+            cambioTxt,
+            diagTxt
+          ];
+
+          return new TableRow({
+            children: cells.map((cText, cIdx) => new TableCell({
+              shading: { fill: rowBg },
+              margins: { top: 60, bottom: 60, left: 60, right: 60 },
+              children: [new Paragraph({
+                alignment: cIdx === 0 ? AlignmentType.CENTER : AlignmentType.LEFT,
+                children: [new TextRun({
+                  text: cText,
+                  bold: cIdx === 0 || cIdx === 1 || cIdx === 10,
+                  color: cIdx === 10 && cText.includes("★") ? "059669" : (cIdx === 10 && cText.includes("⚠") ? "E11D48" : (cIdx === 9 && cText.includes("⚠️") ? "D97706" : "1F2937")),
+                  size: 14
+                })]
+              })]
+            }))
+          });
+        })
       ]
     }),
     new Paragraph({ spacing: { before: 180, after: 100 }, children: [] })
@@ -640,7 +859,7 @@ async function generateWordReportBlob() {
       spacing: { before: 240, after: 100 },
       children: [
         new TextRun({
-          text: isEn ? "4. DYNAMIC SIMULATION & TEMPORAL TRAJECTORIES" : "4. SIMULACIÓN TEMPORAL Y DINÁMICA DE TRAYECTORIAS",
+          text: isEn ? "5. CONTINUOUS DYNAMIC SIMULATION & TRAJECTORY ANALYSIS" : "5. SIMULACIÓN DINÁMICA CONTINUA: ANÁLISIS DE TRAYECTORIAS TEMPORALES",
           bold: true,
           size: 28,
           color: "1E3A8A"
