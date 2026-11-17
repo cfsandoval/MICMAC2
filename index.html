@@ -24,45 +24,56 @@
       </div>
     </div>
     <div class="actions">
-      <div class="lang-switcher-wrap" id="lang-menu" title="Select language / Seleccionar idioma">
-        <span class="lang-label">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/></svg>
-          <span id="lang-label-txt">Language</span>
-        </span>
-        <div class="lang-switcher">
-          <button type="button" class="lang-btn" data-lang="es" id="lang-btn-es" onclick="applyLanguage('es')">Español</button>
-          <button type="button" class="lang-btn active" data-lang="en" id="lang-btn-en" onclick="applyLanguage('en')">English</button>
-        </div>
-      </div>
-      <button type="button" class="btn" id="btn-user-project" onclick="openUserProjectModal('model')" style="background:rgba(15,23,42,0.92);color:#e2e8f0;border:1px solid rgba(56,189,248,0.45);display:inline-flex;align-items:center;gap:6px;padding:6px 11px;font-size:12px;font-weight:600;box-shadow:0 2px 10px rgba(56,189,248,0.14);" title="Cambiar entre el Ejemplo existente o crear un Modelo Propio">
+      <button type="button" class="btn secondary" id="btn-user-project" onclick="openUserProjectModal('model')" title="Cambiar entre el Ejemplo existente o crear un Modelo Propio">
         <span id="user-project-pill-txt" data-i18n="btn_user_project_short">Modelo</span>
       </button>
-      <button type="button" class="btn ghost" id="btn-tenant-logout" onclick="openUserProjectModal('auth')" style="border:1px solid rgba(148,163,255,0.3);color:#cbd5e1;display:inline-flex;align-items:center;gap:5px;padding:6px 10px;font-size:12px;font-weight:600;" title="Cuenta y sincronización">
-        <span data-i18n="btn_switch_user">Cuenta</span>
-      </button>
-      <button type="button" class="btn" id="btn-save-changes" data-save-btn onclick="saveChangesManual()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(16,185,129,0.28);border:1px solid rgba(52,211,153,0.4);" title="Guardar todos los cambios realizados (Ctrl+S)">
+      <span id="save-status-badge" onclick="saveChangesManual()" title="Estado de guardado en el navegador (clic para guardar ahora)">✓ Guardado</span>
+      <button type="button" class="btn success" id="btn-save-changes" data-save-btn onclick="saveChangesManual()" title="Guardar todos los cambios realizados (Ctrl+S)">
         <span data-i18n="btn_save_changes">💾 Guardar cambios</span>
       </button>
-      <span id="save-status-badge" onclick="saveChangesManual()" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#34d399;background:rgba(16,185,129,0.12);border:1px solid rgba(52,211,153,0.3);padding:4px 9px;border-radius:999px;cursor:pointer;white-space:nowrap;" title="Estado de guardado en el navegador (clic para guardar ahora)">✓ Guardado</span>
-      <button type="button" class="btn ghost" id="btn-versions" onclick="openSnapshotsModal()" title="Guardar o restaurar versiones con nombre (puntos de control)" data-i18n="btn_versions">📌 Versiones</button>
-      <button class="btn" id="btn-export-word-top" onclick="exportWordReport()" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;display:inline-flex;align-items:center;gap:6px" title="Generate Word strategy report (.docx)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        <span data-i18n="btn_word">Word Report (.docx)</span>
-      </button>
-      <button type="button" class="btn primary" id="btn-export-excel" onclick="exportExcelReport(event)" style="display:inline-flex;align-items:center;gap:6px"><span>⬇</span><b data-i18n="btn_excel">Multi-Sheet Excel (.xlsx)</b></button>
-      <button class="btn danger" id="btn-reset" data-i18n="btn_reset">Reset Base</button>
+      <div class="menu" id="menu-export">
+        <button type="button" class="btn menu-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="menu-export-pop"><span>⬇</span><span data-i18n="menu_export">Exportar</span><span aria-hidden="true">▾</span></button>
+        <div class="menu-pop" id="menu-export-pop" role="menu">
+          <button type="button" class="menu-item" role="menuitem" id="btn-export-word-top" onclick="exportWordReport()" title="Generate Word strategy report (.docx)">📄 <span data-i18n="btn_word">Word Report (.docx)</span></button>
+          <button type="button" class="menu-item" role="menuitem" id="btn-export-excel" onclick="exportExcelReport(event)">📊 <span data-i18n="btn_excel">Multi-Sheet Excel (.xlsx)</span></button>
+        </div>
+      </div>
+      <div class="menu" id="menu-more">
+        <button type="button" class="btn secondary menu-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="menu-more-pop" aria-label="Menú / Menu" title="Menú / Menu"><span aria-hidden="true">☰</span><span aria-hidden="true">▾</span></button>
+        <div class="menu-pop" id="menu-more-pop" role="menu">
+          <div class="menu-row">
+            <span id="lang-label-txt">Language</span>
+            <div class="lang-switcher-wrap" id="lang-menu" title="Select language / Seleccionar idioma">
+              <div class="lang-switcher">
+                <button type="button" class="lang-btn" data-lang="es" id="lang-btn-es" onclick="applyLanguage('es')">Español</button>
+                <button type="button" class="lang-btn active" data-lang="en" id="lang-btn-en" onclick="applyLanguage('en')">English</button>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="menu-item" role="menuitem" id="btn-theme">🌓 <span data-i18n="menu_theme">Tema claro / oscuro</span></button>
+          <div class="menu-sep"></div>
+          <button type="button" class="menu-item" role="menuitem" id="btn-tenant-logout" onclick="openUserProjectModal('auth')" title="Cuenta y sincronización">👤 <span data-i18n="btn_switch_user">Cuenta</span></button>
+          <button type="button" class="menu-item" role="menuitem" id="btn-versions" onclick="openSnapshotsModal()" title="Guardar o restaurar versiones con nombre (puntos de control)" data-i18n="btn_versions">📌 Versiones</button>
+          <div class="menu-sep"></div>
+          <button type="button" class="menu-item danger" role="menuitem" id="btn-reset" data-i18n="btn_reset">Reset Base</button>
+        </div>
+      </div>
     </div>
   </div>
   <nav class="tabs" id="tabs">
+    <button type="button" class="tab-group" data-goto="vars" data-i18n="grp_data">DATOS</button>
     <button data-tab="vars" class="active" id="tab-btn-vars" data-i18n="tab_vars">1 · Variables</button>
     <button data-tab="matrix" id="tab-btn-matrix" data-i18n="tab_matrix">2 · Justified Matrix</button>
     <button data-tab="igo" id="tab-btn-igo" data-i18n="tab_igo">3 · IGO Matrix & Territorial Purposes</button>
+    <button type="button" class="tab-group" data-goto="plane" data-i18n="grp_analysis">ANÁLISIS Y SIMULACIÓN</button>
     <button data-tab="plane" id="tab-btn-plane" data-i18n="tab_plane">4 · Direct & Indirect Plane</button>
     <button data-tab="sim" id="tab-btn-sim" data-i18n="tab_sim">5 · Dynamic Simulation</button>
     <button data-tab="dynamic" id="tab-btn-dynamic" data-i18n="tab_dynamic">6 · 4D Dynamic Signed-MICMAC</button>
     <button data-tab="flow" id="tab-btn-flow" data-i18n="tab_flow">7 · Causal Network Diagram</button>
+    <button type="button" class="tab-group" data-goto="godet" data-i18n="grp_valid">VALIDACIÓN</button>
     <button data-tab="godet" id="tab-btn-godet" data-i18n="tab_godet">8 · Godet Order Stability</button>
     <button data-tab="stability" id="tab-btn-stability" data-i18n="tab_stability">9 · Advanced Stability & Networks</button>
+    <button type="button" class="tab-group" data-goto="method" data-i18n="grp_ref">REFERENCIA</button>
     <button data-tab="method" id="tab-btn-method" data-i18n="tab_method">10 · Methodology</button>
   </nav>
 </header>
@@ -75,7 +86,7 @@
       <h2 data-i18n="vars_title">Variables del sistema</h2>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <button type="button" class="btn sm" onclick="openUserProjectModal()" style="background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;font-weight:700;" data-i18n="btn_new_or_example" title="Partir con un usuario o crear nuevo usuario y elegir entre el proyecto de ejemplo o crear su propio proyecto">✨ Nuevo Proyecto / Ejemplo</button>
-        <button type="button" class="btn sm" data-save-btn onclick="saveChangesManual()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;" data-i18n="btn_save_changes">💾 Guardar cambios</button>
+        <button type="button" class="btn sm success" data-save-btn onclick="saveChangesManual()" data-i18n="btn_save_changes">💾 Guardar cambios</button>
         <button class="btn ghost" id="btn-add-preset" data-i18n="btn_add_preset" title="Incorporar variables predefinidas al sistema">＋ Variables predefinidas</button>
         <button class="btn" id="add-var" data-i18n="vars_add">+ Agregar variable</button>
       </div>
@@ -183,7 +194,7 @@
         <h2 data-i18n="matrix_title">Matriz de influencias directas</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <span class="chip" id="completeness"></span>
-          <button type="button" class="btn sm" data-save-btn onclick="saveChangesManual()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;" data-i18n="btn_save_changes">💾 Guardar cambios</button>
+          <button type="button" class="btn sm success" data-save-btn onclick="saveChangesManual()" data-i18n="btn_save_changes">💾 Guardar cambios</button>
         </div>
       </div>
       <p class="muted" data-i18n="matrix_desc">Lea <b>fila → columna</b>: “la variable de la fila influye directamente en la de la columna” en escala de <b>0 a 3</b> (<b>0</b> = Nula, <b>1</b> = Débil, <b>2</b> = Moderada, <b>3</b> = Fuerte). Puede <b>valorar directamente sobre cada celda de la matriz</b> (desplegable 0–3, teclado 0–3 o doble clic). La justificación es <b>optativa</b>.</p>
@@ -233,7 +244,7 @@
 
 <!-- 3 PLANO -->
 <section id="tab-plane" class="panel">
-  <div class="card controls">
+  <div class="card controls plane-toolbar">
     <label><span data-i18n="pl_mode_lbl">Tipo de influencia</span>
       <select id="pl-mode">
         <option value="direct" data-i18n="pl_mode_direct">Directa (suma de filas/columnas)</option>
@@ -241,6 +252,7 @@
       </select>
     </label>
     <label><span data-i18n="pl_k_lbl">Profundidad k</span> <input type="range" id="pl-k" min="2" max="6" value="4"><output id="pl-k-out">4</output></label>
+    <details class="adv-controls"><summary data-i18n="pl_adv_lbl">Ajustes avanzados</summary><div class="adv-body">
     <label><span data-i18n="pl_thr_lbl">Umbral de cuadrantes</span>
       <select id="pl-thr">
         <option value="mean" data-i18n="pl_thr_mean">Media</option>
@@ -252,7 +264,9 @@
     <label class="check"><input type="checkbox" id="pl-zoom" checked> <span data-i18n="pl_zoom_lbl">Ampliar diferencias</span></label>
     <label class="check"><input type="checkbox" id="pl-diag" checked> <span data-i18n="pl_diag_lbl">Diagonal estratégica (bisectriz)</span></label>
     <label class="check"><input type="checkbox" id="pl-links"> <span data-i18n="pl_links_lbl">Mostrar vínculos fuertes</span></label>
-    <button type="button" class="btn sm" onclick="switchTab('igo')" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;padding:5px 12px;border-radius:8px;margin-left:auto;" data-i18n="pl_btn_go_igo">🎯 Priorizar en Matriz IGO</button>
+    </div></details>
+    <button type="button" class="btn sm secondary" id="pl-rank-toggle" aria-pressed="false" data-i18n="pl_rank_toggle">📋 Posiciones</button>
+    <button type="button" class="btn sm success plane-go" onclick="switchTab('igo')" data-i18n="pl_btn_go_igo">🎯 Priorizar en Matriz IGO</button>
   </div>
   <div class="grid-plane">
     <div class="card"><div id="plane-wrap"></div></div>
@@ -284,7 +298,7 @@
           <input type="color" id="cfg-color-neg" value="#ef4444" style="width:26px;height:26px;padding:0;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:none;">
         </label>
         <button type="button" class="btn ghost sm" id="btn-invert-colors" style="padding:3px 10px;font-size:11.5px;margin-left:6px;" data-i18n="btn_invert_colors" title="Intercambiar colores favorable y adverso">⇄ Invertir paleta</button>
-        <button type="button" class="btn sm" data-save-btn onclick="saveChangesManual()" style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-weight:700;padding:4px 10px;font-size:11.5px;" data-i18n="btn_save_changes">💾 Guardar cambios</button>
+        <button type="button" class="btn sm success" data-save-btn onclick="saveChangesManual()" data-i18n="btn_save_changes">💾 Guardar cambios</button>
       </div>
     </div>
     <div id="sim-x0-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:14px;"></div>

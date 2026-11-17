@@ -595,14 +595,19 @@ const name = id => V()[idx(id)]?.name || '?';
 /* ---------- Pestañas ---------- */
 function switchTab(t) {
   if (!t) return;
-  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  document.querySelectorAll('.tabs button[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  let curGrp = null;
+  document.querySelectorAll('#tabs > *').forEach(el => {
+    if (el.classList.contains('tab-group')) { curGrp = el; el.classList.remove('on'); }
+    else if (curGrp && el.dataset.tab === t) curGrp.classList.add('on');
+  });
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + t));
   renderAll();
 }
 window.switchTab = switchTab;
 
 $('#tabs').onclick = e => {
-  const t = e.target.dataset.tab; if (!t) return;
+  const t = e.target.dataset.tab || e.target.dataset.goto; if (!t) return;
   switchTab(t);
 };
 
@@ -1600,10 +1605,10 @@ function renderPlane() {
   for (let i = 0; i <= 5; i++) {
     const vx = x0 + (x1 - x0) * i / 5, vy = y0 + (y1 - y0) * i / 5;
     s += `<line x1="${X(vx)}" x2="${X(vx)}" y1="${m.t}" y2="${m.t + ph}" stroke="#94a3ff" opacity=".07"/><line y1="${Y(vy)}" y2="${Y(vy)}" x1="${m.l}" x2="${m.l + pw}" stroke="#94a3ff" opacity=".07"/>
-    <text x="${X(vx)}" y="${m.t + ph + 18}" text-anchor="middle" fill="#93a0c4" font-size="11">${vx.toFixed(0)}</text><text x="${m.l - 8}" y="${Y(vy) + 4}" text-anchor="end" fill="#93a0c4" font-size="11">${vy.toFixed(0)}</text>`;
+    <text x="${X(vx)}" y="${m.t + ph + 18}" text-anchor="middle" fill="#93a0c4" font-size="12.5">${vx.toFixed(0)}</text><text x="${m.l - 8}" y="${Y(vy) + 4}" text-anchor="end" fill="#93a0c4" font-size="12.5">${vy.toFixed(0)}</text>`;
   }
   s += `<line x1="${X(tx)}" x2="${X(tx)}" y1="${m.t}" y2="${m.t + ph}" stroke="#fff" stroke-width="1.6" stroke-dasharray="6 4" opacity=".75"/><line y1="${Y(ty)}" y2="${Y(ty)}" x1="${m.l}" x2="${m.l + pw}" stroke="#fff" stroke-width="1.6" stroke-dasharray="6 4" opacity=".75"/>
-  <text x="${X(tx) + 5}" y="${m.t + ph - 6}" fill="#fff" font-size="10" opacity=".7">${t('tip_threshold_dep')} ${tx.toFixed(1)}</text><text x="${m.l + 6}" y="${Y(ty) - 5}" fill="#fff" font-size="10" opacity=".7">${t('tip_threshold_mot')} ${ty.toFixed(1)}</text>`;
+  <text x="${X(tx) + 5}" y="${m.t + ph - 6}" fill="#fff" font-size="11.5" opacity=".7">${t('tip_threshold_dep')} ${tx.toFixed(1)}</text><text x="${m.l + 6}" y="${Y(ty) - 5}" fill="#fff" font-size="11.5" opacity=".7">${t('tip_threshold_mot')} ${ty.toFixed(1)}</text>`;
 
   /* Eje Estratégico / Diagonal Estratégica (Bisectriz I = D) */
   if (showDiag) {
@@ -10204,3 +10209,76 @@ updateUserProjectPill();
   openUserProjectModal('auth');
 })();
 
+
+
+/* ===== Menús desplegables de la cabecera ===== */
+(function initHeaderMenus() {
+  const menus = Array.from(document.querySelectorAll('.top .menu'));
+  const closeAll = except => menus.forEach(m => {
+    if (m === except) return;
+    m.classList.remove('open');
+    const tr = m.querySelector('.menu-trigger');
+    if (tr) tr.setAttribute('aria-expanded', 'false');
+  });
+  menus.forEach(m => {
+    const tr = m.querySelector('.menu-trigger');
+    if (!tr) return;
+    tr.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = !m.classList.contains('open');
+      closeAll(m);
+      m.classList.toggle('open', open);
+      tr.setAttribute('aria-expanded', String(open));
+    });
+    m.querySelector('.menu-pop').addEventListener('click', e => {
+      if (e.target.closest('.menu-item')) closeAll();
+    });
+  });
+  document.addEventListener('click', e => { if (!e.target.closest('.top .menu')) closeAll(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+})();
+
+
+/* ===== Matriz: resaltado de fila y columna ===== */
+(function initMatrixHighlight() {
+  const tbl = document.getElementById('matrix');
+  if (!tbl) return;
+  const clear = () => tbl.querySelectorAll('.hl,.hl-row,.hl-col').forEach(el => el.classList.remove('hl', 'hl-row', 'hl-col'));
+  const apply = c => {
+    clear();
+    if (!c || !c.dataset.a) return;
+    const rows = [...tbl.rows];
+    const tr = c.parentElement;
+    const col = c.cellIndex;
+    tr.querySelectorAll('td.cell').forEach(td => td.classList.add('hl-row'));
+    const rh = tr.querySelector('th.row-hdr'); if (rh) rh.classList.add('hl');
+    rows.forEach(r => { const cell = r.cells[col]; if (cell && cell.classList.contains('cell')) cell.classList.add('hl-col'); });
+    const ch = rows[0] && rows[0].cells[col]; if (ch && ch.tagName === 'TH') ch.classList.add('hl');
+  };
+  tbl.addEventListener('mouseover', e => apply(e.target.closest('td.cell')));
+  tbl.addEventListener('focusin', e => apply(e.target.closest('td.cell')));
+  tbl.addEventListener('mouseleave', clear);
+})();
+
+
+/* ===== Panel de posiciones desplegable (plano) ===== */
+(function initRankDrawer() {
+  const btn = document.getElementById('pl-rank-toggle');
+  const tab = document.getElementById('tab-plane');
+  if (!btn || !tab) return;
+  const set = on => { tab.classList.toggle('rank-open', on); btn.setAttribute('aria-pressed', String(on)); };
+  btn.addEventListener('click', () => set(!tab.classList.contains('rank-open')));
+})();
+
+/* ===== Tema claro / oscuro ===== */
+(function initTheme() {
+  const root = document.documentElement;
+  const apply = th => { if (th === 'light') root.setAttribute('data-theme', 'light'); else root.removeAttribute('data-theme'); };
+  try { apply(localStorage.getItem('micmac-theme')); } catch (e) { }
+  const btn = document.getElementById('btn-theme');
+  if (btn) btn.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    apply(next);
+    try { localStorage.setItem('micmac-theme', next); } catch (e) { }
+  });
+})();

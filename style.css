@@ -1421,3 +1421,92 @@ tr.sel td{background:rgba(124,140,255,.16)}
 .flow-chart-dot {
   transition: r 0.15s ease;
 }
+
+
+/* ===== Fase A · Design tokens y botones unificados ===== */
+:root{
+  --primary:#7c8cff;--primary-2:#5b6cf5;--success:#10b981;--success-2:#059669;--danger:#fb7185;
+  --surface-1:rgba(15,23,42,.92);--surface-2:rgba(24,32,53,.72);--surface-3:rgba(8,12,24,.7);
+  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;
+  --r-sm:8px;--r-md:10px;--r-lg:16px;--r-pill:999px;
+  --txt-2:#b4bfdc;
+}
+.btn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:focus-visible,.menu-trigger:focus-visible,.menu-item:focus-visible,.tabs button:focus-visible{outline:2px solid var(--acc2);outline-offset:2px}
+.btn.secondary{background:var(--surface-1);color:var(--txt);border:1px solid rgba(148,163,255,.3)}
+.btn.secondary:hover{background:rgba(124,140,255,.14)}
+.btn.success{background:linear-gradient(135deg,var(--success-2),var(--success));color:#fff;font-weight:700;border:1px solid rgba(52,211,153,.4);box-shadow:0 2px 10px rgba(16,185,129,.28)}
+.btn.ghost{color:var(--txt-2)}
+.btn.ghost:hover{background:rgba(124,140,255,.1)}
+
+/* ===== Fase B · Cabecera compacta ===== */
+.top{gap:6px;padding:8px 24px 6px}
+.top-bar{flex-wrap:nowrap;gap:var(--sp-3)}
+.brand{min-width:0}
+.brand h1{font-size:17px;white-space:nowrap}
+.brand p,.brand-update-pill{display:none}
+.logo{font-size:24px;line-height:1}
+.actions{flex-wrap:nowrap;gap:var(--sp-2);justify-content:flex-end}
+#btn-user-project{padding:6px 11px;font-size:12px;font-weight:600;max-width:320px;overflow:hidden;text-overflow:ellipsis;border:1px solid rgba(56,189,248,.45);background:var(--surface-1);color:#e2e8f0}
+#save-status-badge{font:500 11px 'JetBrains Mono',monospace;background:rgba(16,185,129,.12);border:1px solid rgba(52,211,153,.3);padding:4px 9px;border-radius:var(--r-pill);cursor:pointer;white-space:nowrap}
+.menu{position:relative}
+.menu-trigger{cursor:pointer}
+.menu-pop{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:230px;background:#0f172a;border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.55);z-index:200}
+.menu.open .menu-pop{display:block}
+.menu-item{display:flex;align-items:center;gap:8px;width:100%;background:transparent;border:0;color:var(--txt);padding:9px 10px;border-radius:8px;font:500 13px 'Outfit',sans-serif;cursor:pointer;text-align:left}
+.menu-item:hover{background:rgba(124,140,255,.14)}
+.menu-item.danger{color:var(--danger)}
+.menu-item.danger:hover{background:rgba(251,113,133,.12)}
+.menu-sep{height:1px;background:var(--line);margin:6px 4px}
+.menu-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 10px;font-size:12px;color:var(--mut)}
+.menu .lang-switcher-wrap{border:0;background:transparent;box-shadow:none;padding:0}
+.menu .lang-label{display:none}
+.tabs{margin-top:0}
+.tabs button{padding:6px 12px;font-size:13px}
+@media(max-width:900px){
+  .top{padding:8px 12px 6px}
+  .top-bar{flex-wrap:wrap}
+  .brand-version-pill,#save-status-badge{display:none}
+  #btn-user-project{max-width:150px}
+}
+
+/* ===== Fase C · Navegación por fases ===== */
+.tabs{align-items:center;gap:4px}
+.tab-group{flex-shrink:0;font:700 10px 'Outfit',sans-serif;letter-spacing:.12em;color:var(--acc2);opacity:.85;padding:0 6px 0 12px;margin-left:8px;border-left:1px solid var(--line);white-space:nowrap}
+.tabs .tab-group:first-child{margin-left:0;padding-left:0;border-left:0}
+
+/* ===== Fase D · Plano y matriz ===== */
+.plane-toolbar{padding:10px 16px;gap:var(--sp-4);align-items:center;margin-bottom:var(--sp-3)}
+.plane-toolbar .plane-go{margin-left:auto}
+.adv-controls{flex:1 1 100%;order:5;border-top:1px dashed var(--line);padding-top:8px}
+.adv-controls summary{cursor:pointer;color:var(--txt-2);font-size:12.5px;font-weight:600;list-style:none;user-select:none}
+.adv-controls summary::before{content:'▸ ';color:var(--acc2)}
+.adv-controls[open] summary::before{content:'▾ '}
+.adv-controls summary:focus-visible{outline:2px solid var(--acc2);outline-offset:3px;border-radius:4px}
+.adv-body{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end;margin-top:10px}
+.plane-toolbar .plane-go{order:4}
+#matrix td.cell.hl-row,#matrix td.cell.hl-col{box-shadow:inset 0 0 0 100px rgba(124,140,255,.10)}
+#matrix th.hl{background:rgba(56,189,248,.22);color:var(--acc2)}
+#matrix th.row-hdr{position:sticky;left:0;z-index:2;background:#0f172a}
+#matrix .matrix-cell-select.is-zero{color:rgba(232,236,248,.5)}
+
+/* Grupos de pestañas clicables */
+.tabs button.tab-group{background:transparent;border:0;border-left:1px solid var(--line);border-radius:0;color:var(--acc2);font:700 10px 'Outfit',sans-serif;letter-spacing:.12em;padding:4px 8px 4px 12px;margin-left:8px;cursor:pointer;opacity:.75}
+.tabs button.tab-group:first-child{margin-left:0;padding-left:0;border-left:0}
+.tabs button.tab-group:hover{opacity:1;background:rgba(34,211,238,.08)}
+.tabs button.tab-group.on{opacity:1;text-decoration:underline;text-underline-offset:4px}
+
+/* ===== Fase D · panel de posiciones desplegable ===== */
+#tab-plane .grid-plane{grid-template-columns:minmax(0,1fr)}
+#tab-plane .grid-plane .side{display:none}
+#tab-plane.rank-open .grid-plane{grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr)}
+#tab-plane.rank-open .grid-plane .side{display:block}
+#plane-wrap svg{max-height:78vh;margin:0 auto}
+@media(max-width:1000px){#tab-plane.rank-open .grid-plane{grid-template-columns:minmax(0,1fr)}}
+#pl-rank-toggle[aria-pressed="true"]{background:rgba(124,140,255,.25);border-color:var(--acc)}
+
+/* ===== Fase E · tema claro, movimiento y toques ===== */
+html[data-theme="light"]{filter:invert(1) hue-rotate(180deg);background:#fff}
+html[data-theme="light"] img,html[data-theme="light"] video,html[data-theme="light"] canvas{filter:invert(1) hue-rotate(180deg)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media(max-width:640px){.btn,.menu-item,.tabs button{min-height:40px}.tab-group{min-height:40px}}
