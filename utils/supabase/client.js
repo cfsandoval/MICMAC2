@@ -182,7 +182,15 @@
         };
       }
       try {
-        const redirectTo = window.location.origin + window.location.pathname;
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        let redirectTo;
+        if (isLocal) {
+          redirectTo = window.location.origin + (window.location.pathname || '/');
+        } else if (window.location.hostname.endsWith('vercel.app')) {
+          redirectTo = 'https://micmac2.vercel.app/';
+        } else {
+          redirectTo = window.location.origin + (window.location.pathname || '/');
+        }
         const options = {
           redirectTo,
           queryParams: provider === 'google' ? { prompt: 'select_account', access_type: 'offline' } : undefined
