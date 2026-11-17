@@ -410,31 +410,31 @@
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:22px;background:rgba(167,139,250,0.2);border:1px solid #a78bfa;padding:3px 8px;border-radius:8px;">🎲</span>
           <div>
-            <h2 id="mc-title" style="margin:0;color:#c4b5fd;">Simulación de Monte Carlo: Incertidumbre, Mayor Impacto y Momento Óptimo</h2>
-            <p class="muted" id="mc-desc" style="margin:3px 0 0;font-size:12px;">Simula cientos de escenarios aleatorios variando la fuerza de los vínculos (±20%), retardos temporales y momentos de inicio para determinar con rigor estadístico qué variable genera el mayor impacto, en qué momento (t) y con qué duración.</p>
+            <h2 id="mc-title" style="margin:0;color:#c4b5fd;" data-i18n="mc_title">Monte Carlo Simulation: Uncertainty, Greatest Impact &amp; Optimal Timing</h2>
+            <p class="muted" id="mc-desc" style="margin:3px 0 0;font-size:12px;" data-i18n="mc_desc">Simulates hundreds of randomized scenarios varying link strengths (±20%), time lags, and intervention start timings to determine with statistical rigor which variable drives the greatest systemic impact, at what moment (t), and for what duration.</p>
           </div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;background:rgba(8,12,24,.75);padding:8px 14px;border-radius:10px;border:1px solid var(--line);flex-wrap:wrap;">
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0;white-space:nowrap;">
-          <span id="mc-runs-lbl">Iteraciones:</span>
+          <span id="mc-runs-lbl" data-i18n="mc_runs_lbl">Iterations:</span>
           <select id="mc-runs-select" style="width:auto;padding:4px 8px;font-size:12px;font-weight:700;">
-            <option value="300">300 escenarios (Rápido)</option>
-            <option value="500">500 escenarios (Estándar)</option>
-            <option value="1000">1.000 escenarios (Alta precisión)</option>
-            <option value="2000" selected>2.000 escenarios (Máxima robustez / Convergencia)</option>
+            <option value="300" data-i18n="mc_opt_runs_300">300 scenarios (Fast)</option>
+            <option value="500" data-i18n="mc_opt_runs_500">500 scenarios (Standard)</option>
+            <option value="1000" data-i18n="mc_opt_runs_1000">1,000 scenarios (High precision)</option>
+            <option value="2000" selected data-i18n="mc_opt_runs_2000">2,000 scenarios (Maximum robustness / Convergence)</option>
           </select>
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0;white-space:nowrap;">
-          <span id="mc-noise-lbl">Incertidumbre (±):</span>
+          <span id="mc-noise-lbl" data-i18n="mc_noise_lbl">Uncertainty (±):</span>
           <select id="mc-noise-select" style="width:auto;padding:4px 8px;font-size:12px;">
-            <option value="0.10">±10% (Baja)</option>
-            <option value="0.20" selected>±20% (Moderada)</option>
-            <option value="0.35">±35% (Alta dispersión)</option>
+            <option value="0.10" data-i18n="mc_opt_noise_10">±10% (Low)</option>
+            <option value="0.20" selected data-i18n="mc_opt_noise_20">±20% (Moderate)</option>
+            <option value="0.35" data-i18n="mc_opt_noise_35">±35% (High dispersion)</option>
           </select>
         </label>
         <button type="button" class="btn" id="btn-run-montecarlo" onclick="runMonteCarloSimulation()" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;padding:6px 16px;box-shadow:0 4px 14px rgba(124,58,237,0.4);border:none;cursor:pointer;">
-          🎲 <span id="mc-btn-run-txt">Ejecutar Monte Carlo (2.000 Casos)</span>
+          🎲 <span id="mc-btn-run-txt" data-i18n="mc_btn_run_txt">Run Monte Carlo (2,000 Runs)</span>
         </button>
       </div>
     </div>
@@ -450,8 +450,8 @@
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:22px;">💡</span>
           <div>
-            <h4 style="margin:0;font-size:14px;color:#c4b5fd;font-weight:700;">Guía Práctica: ¿Cómo interpretar los resultados de la Simulación de Monte Carlo?</h4>
-            <p style="margin:2px 0 0;font-size:12px;color:#94a3b8;">Comprenda qué significan los 2.000 escenarios, los intervalos de confianza y las recomendaciones temporales.</p>
+            <h4 style="margin:0;font-size:14px;color:#c4b5fd;font-weight:700;" data-i18n="mc_guide_title">Practical Guide: How to interpret Monte Carlo Simulation results?</h4>
+            <p style="margin:2px 0 0;font-size:12px;color:#94a3b8;" data-i18n="mc_guide_subtitle">Understand what the 2,000 scenarios, confidence intervals, and temporal recommendations mean.</p>
           </div>
         </div>
         <span class="pill" style="background:rgba(167,139,250,0.15);color:#c4b5fd;border:1px solid rgba(167,139,250,0.4);font-size:11px;">
@@ -460,40 +460,40 @@
       </div>
 
       <!-- Cuadrícula 4 Dimensiones Clave -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;">
-        <!-- 1. Palanca Ganadora -->
+      <div id="mc-guide-cards-grid" data-i18n="mc_guide_cards_html" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;">
+        <!-- 1. Winning Strategic Lever -->
         <div style="background:rgba(8,12,24,0.75);border-radius:10px;padding:12px;border:1px solid rgba(167,139,250,0.25);border-top:3px solid #a855f7;">
-          <b style="color:#c4b5fd;font-size:12px;display:block;margin-bottom:5px;">🏆 1. Palanca Estratégica Ganadora</b>
+          <b style="color:#c4b5fd;font-size:12px;display:block;margin-bottom:5px;">🏆 1. Winning Strategic Lever</b>
           <p style="margin:0;font-size:11.5px;color:#cbd5e1;line-height:1.45;">
-            <b>¿Qué significa?</b> Es la variable más <b>antifrágil</b> del sistema. Mientras en una matriz estática una variable puede parecer influyente por azar o sesgo de expertos, la ganadora de Monte Carlo demuestra ser superior en <b>2.000 futuros posibles</b> con perturbaciones aleatorias de hasta ±20% en las relaciones causales.
+            <b>What does it mean?</b> It is the most <b>antifragile</b> variable in the system. While in a static matrix a variable may appear influential due to chance or expert bias, the Monte Carlo winner proves consistently superior across <b>2,000 possible futures</b> under random perturbations of up to ±20% across causal links.
           </p>
         </div>
 
-        <!-- 2. Rango P10 - P50 - P90 -->
+        <!-- 2. P10 - P50 - P90 Range -->
         <div style="background:rgba(8,12,24,0.75);border-radius:10px;padding:12px;border:1px solid rgba(56,189,248,0.25);border-top:3px solid #38bdf8;">
-          <b style="color:#38bdf8;font-size:12px;display:block;margin-bottom:5px;">📊 2. Intervalo P10 – P50 – P90 (Riesgo vs. Certeza)</b>
+          <b style="color:#38bdf8;font-size:12px;display:block;margin-bottom:5px;">📊 2. P10 – P50 – P90 Interval (Risk vs. Certainty)</b>
           <p style="margin:0;font-size:11.5px;color:#cbd5e1;line-height:1.45;">
-            <b>P10 (Piso Pesimista):</b> El 90% de las veces el impacto será mayor a este nivel (mínimo garantizado).<br>
-            <b>P50 (Mediana):</b> El resultado central más probable.<br>
-            <b>P90 (Techo Optimista):</b> El potencial máximo.<br>
-            <i>Una barra estrecha significa certidumbre y predictibilidad; una barra ancha significa alto potencial pero mayor volatilidad.</i>
+            <b>P10 (Pessimistic Floor):</b> 90% of simulated scenarios deliver impact above this level (guaranteed minimum baseline).<br>
+            <b>P50 (Median):</b> Most probable central outcome.<br>
+            <b>P90 (Optimistic Ceiling):</b> Peak transformative upside.<br>
+            <i>A narrow bar indicates certainty and predictability; a wide bar reflects high potential coupled with greater volatility.</i>
           </p>
         </div>
 
-        <!-- 3. Momento Óptimo t -->
+        <!-- 3. Optimal Activation Timing t* -->
         <div style="background:rgba(8,12,24,0.75);border-radius:10px;padding:12px;border:1px solid rgba(52,211,153,0.25);border-top:3px solid #34d399;">
-          <b style="color:#34d399;font-size:12px;display:block;margin-bottom:5px;">⏱ 3. Momento Óptimo de Activación (t*)</b>
+          <b style="color:#34d399;font-size:12px;display:block;margin-bottom:5px;">⏱ 3. Optimal Activation Timing (t*)</b>
           <p style="margin:0;font-size:11.5px;color:#cbd5e1;line-height:1.45;">
-            <b>¿Por qué no siempre empezar en t=1?</b> Ciertas políticas públicas o inversiones rinden mucho más cuando se activan en un momento en que el sistema ya ha madurado ciertas condiciones de base. El análisis estocástico revela la <b>ventana temporal de resonancia</b> donde cada unidad de esfuerzo produce el mayor efecto multiplicador.
+            <b>Why not always start at t=1?</b> Certain public policies and structural investments yield vastly higher returns when activated once the system has matured foundational conditions. Stochastic analysis discovers the <b>resonant temporal window</b> where each unit of effort generates the highest multiplier effect.
           </p>
         </div>
 
-        <!-- 4. Duración Óptima y Pico -->
+        <!-- 4. Recommended Duration and Peak -->
         <div style="background:rgba(8,12,24,0.75);border-radius:10px;padding:12px;border:1px solid rgba(251,191,36,0.25);border-top:3px solid #fbbf24;">
-          <b style="color:#fbbf24;font-size:12px;display:block;margin-bottom:5px;">⏳ 4. Duración Recomendada (τ*) y Momento Pico</b>
+          <b style="color:#fbbf24;font-size:12px;display:block;margin-bottom:5px;">⏳ 4. Recommended Duration (τ*) &amp; Peak Timing</b>
           <p style="margin:0;font-size:11.5px;color:#cbd5e1;line-height:1.45;">
-            <b>Duración (τ*):</b> Cantidad ideal de periodos para mantener el estímulo activo antes de que la disipación sistémica y los rendimientos decrecientes hagan ineficiente seguir inyectando recursos.<br>
-            <b>Momento Pico (t_pico):</b> Cuándo se alcanza la máxima intensidad transformadora en el conjunto del sistema.
+            <b>Duration (τ*):</b> Ideal number of periods to maintain the active stimulus before systemic dissipation and diminishing returns render continued resource injection inefficient.<br>
+            <b>Peak Moment (t_peak):</b> When maximum transformative intensity is achieved across the entire system.
           </p>
         </div>
       </div>
@@ -507,19 +507,19 @@
       <!-- Columna Izquierda: Gráfico de Barras con Intervalos de Confianza P10-P50-P90 -->
       <div style="background:rgba(8,12,24,0.7);border:1px solid rgba(148,163,255,0.18);border-radius:10px;padding:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <b style="font-size:13px;color:#c4b5fd;" id="mc-chart-title">📊 Ranking de Robustez e Intervalos de Confianza (P10 - Media - P90)</b>
-          <span style="font-size:10.5px;color:#94a3b8;">Impacto Sistémico Total (Σ|Δx|)</span>
+          <b style="font-size:13px;color:#c4b5fd;" id="mc-chart-title" data-i18n="mc_chart_title">📊 Robustness Ranking &amp; Confidence Intervals (P10 - Mean - P90)</b>
+          <span style="font-size:10.5px;color:#94a3b8;" data-i18n="mc_chart_sub">Total Systemic Impact (Σ|Δx|)</span>
         </div>
         <div id="mc-chart-container" style="min-height:280px;display:flex;align-items:center;justify-content:center;">
-          <div style="color:#94a3b8;font-size:12px;padding:40px 20px;text-align:center;">Haga clic en <b>«🎲 Ejecutar Monte Carlo»</b> para simular los 500 escenarios estocásticos.</div>
+          <div style="color:#94a3b8;font-size:12px;padding:40px 20px;text-align:center;" data-i18n="mc_chart_empty">Click on <b>«🎲 Run Monte Carlo»</b> to simulate the stochastic scenarios.</div>
         </div>
       </div>
 
       <!-- Columna Derecha: Tabla con Momento Óptimo (t) y Duración Recomendada -->
       <div style="background:rgba(8,12,24,0.7);border:1px solid rgba(148,163,255,0.18);border-radius:10px;padding:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <b style="font-size:13px;color:#38bdf8;" id="mc-table-title">⏱ Momento Óptimo de Intervención (t) y Probabilidad de Éxito</b>
-          <span style="font-size:10.5px;color:#94a3b8;">Clic en una fila para graficar</span>
+          <b style="font-size:13px;color:#38bdf8;" id="mc-table-title" data-i18n="mc_table_title">⏱ Optimal Intervention Timing (t) &amp; Success Probability</b>
+          <span style="font-size:10.5px;color:#94a3b8;" data-i18n="mc_table_sub">Click on a row to plot</span>
         </div>
         <div class="table-wrap" style="max-height:360px;overflow-y:auto;">
           <table id="mc-results-table" style="font-size:12px;">
@@ -527,16 +527,16 @@
               <tr>
                 <th style="width:38px;text-align:center;">#</th>
                 <th>Variable</th>
-                <th style="text-align:center;">Impacto Medio</th>
-                <th style="text-align:center;">Rango 90% (P10-P90)</th>
-                <th style="text-align:center;">Momento Óptimo (t)</th>
-                <th style="text-align:center;">Duración Óptima</th>
-                <th style="text-align:center;">Acción</th>
+                <th style="text-align:center;" data-i18n="mc_th_mean">Mean Impact</th>
+                <th style="text-align:center;" data-i18n="mc_th_range">90% Range (P10-P90)</th>
+                <th style="text-align:center;" data-i18n="mc_th_start">Optimal Timing (t)</th>
+                <th style="text-align:center;" data-i18n="mc_th_dur">Optimal Duration</th>
+                <th style="text-align:center;" data-i18n="mc_th_act">Action</th>
               </tr>
             </thead>
             <tbody id="mc-results-tbody">
               <tr>
-                <td colspan="7" style="text-align:center;color:#94a3b8;padding:30px;">Haga clic en «🎲 Ejecutar Monte Carlo» para calcular la distribución temporal.</td>
+                <td colspan="7" style="text-align:center;color:#94a3b8;padding:30px;" data-i18n="mc_table_empty">Click on «🎲 Run Monte Carlo» to compute the temporal distribution.</td>
               </tr>
             </tbody>
           </table>
@@ -550,8 +550,8 @@
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:24px;" id="mc-det-icon">🎯</span>
           <div>
-            <h3 style="margin:0;font-size:15px;color:#c4b5fd;" id="mc-det-title">Ficha Táctica Detallada: Variable</h3>
-            <p style="margin:2px 0 0;font-size:12px;color:#94a3b8;" id="mc-det-sub">Análisis exhaustivo sobre los 2.000 escenarios estocásticos simulados</p>
+            <h3 style="margin:0;font-size:15px;color:#c4b5fd;" id="mc-det-title" data-i18n="mc_det_title_default">Detailed Tactical Dossier: Variable</h3>
+            <p style="margin:2px 0 0;font-size:12px;color:#94a3b8;" id="mc-det-sub" data-i18n="mc_det_sub_default">Exhaustive analysis across 2,000 simulated stochastic scenarios</p>
           </div>
         </div>
         <div id="mc-det-action-btn"></div>
@@ -2780,9 +2780,9 @@
 <script>if (!window.docx) { document.write('<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"><\/script>'); }</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="utils/supabase/client.js?v=6"></script>
-<script src="i18n.js?v=150"></script>
+<script src="i18n.js?v=151"></script>
 <script src="data.js?v=147"></script>
-<script src="app.js?v=159"></script>
+<script src="app.js?v=160"></script>
 <script src="word-export.js?v=149"></script>
 </body>
 </html>

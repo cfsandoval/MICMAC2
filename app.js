@@ -2828,15 +2828,15 @@ async function runMonteCarloSimulation() {
           <span>${isEn ? 'Most Robust Strategic Lever (Monte Carlo)' : 'Palanca Estratégica de Mayor Impacto Robusto'}</span>
         </div>
         <div class="kpi-card" style="border-color:rgba(56,189,248,0.5);background:rgba(56,189,248,0.12);">
-          <b style="font-size:1.25rem;color:#38bdf8;">⏱ t = ${winner ? winner.optStart : 1} ➔ Duración ${winner ? winner.optDur : 10}p</b>
+          <b style="font-size:1.25rem;color:#38bdf8;">⏱ t = ${winner ? winner.optStart : 1} ➔ ${isEn ? 'Duration' : 'Duración'} ${winner ? winner.optDur : 10}p</b>
           <span>${isEn ? 'Optimal Timing & Duration Window' : 'Ventana Óptima de Inicio y Duración'}</span>
         </div>
         <div class="kpi-card" style="border-color:rgba(52,211,153,0.5);background:rgba(16,185,129,0.12);">
-          <b style="font-size:1.25rem;color:#34d399;">🎯 Pico Máximo en t = ${winner ? winner.medianPeakT : '—'}</b>
+          <b style="font-size:1.25rem;color:#34d399;">🎯 ${isEn ? 'Max Peak at t = ' : 'Pico Máximo en t = '}${winner ? winner.medianPeakT : '—'}</b>
           <span>${isEn ? 'Moment of Peak Systemic Impact' : 'Momento Temporal de Impacto Pico en el Sistema'}</span>
         </div>
         <div class="kpi-card" style="border-color:rgba(251,191,36,0.5);background:rgba(245,158,11,0.12);">
-          <b style="font-size:1.25rem;color:#fbbf24;">🎲 ${runs.toLocaleString()} Casos (±${Math.round(noise * 100)}%)</b>
+          <b style="font-size:1.25rem;color:#fbbf24;">🎲 ${runs.toLocaleString()} ${isEn ? 'Runs' : 'Casos'} (±${Math.round(noise * 100)}%)</b>
           <span>${isEn ? 'Simulated Stochastic Scenarios' : 'Escenarios Estocásticos Simulados'}</span>
         </div>
       `;
@@ -2892,7 +2892,7 @@ async function runMonteCarloSimulation() {
       tbody.innerHTML = varStats.map((st, rank) => {
         const isWinner = rank === 0;
         return `
-          <tr style="background:${isWinner ? 'rgba(124,58,237,0.15)' : 'transparent'};cursor:pointer;" onclick="showMonteCarloVariableDetail(${rank})" title="Clic para ver desglose detallado">
+          <tr style="background:${isWinner ? 'rgba(124,58,237,0.15)' : 'transparent'};cursor:pointer;" onclick="showMonteCarloVariableDetail(${rank})" title="${isEn ? 'Click to view detailed breakdown' : 'Clic para ver desglose detallado'}">
             <td style="text-align:center;"><span class="var-idx sm" style="background:${isWinner ? '#7c3aed' : 'rgba(255,255,255,0.1)'};">${rank + 1}</span></td>
             <td>
               <span class="dot" style="background:${varColor(st.i)}"></span>
@@ -2909,12 +2909,12 @@ async function runMonteCarloSimulation() {
               t = ${st.optStart}
             </td>
             <td style="text-align:center;font-family:'JetBrains Mono';font-weight:700;color:#fbbf24;">
-              ${st.optDur} periodos
+              ${st.optDur} ${isEn ? 'periods' : 'periodos'}
             </td>
             <td style="text-align:center;" onclick="event.stopPropagation()">
               <button type="button" class="btn sm" onclick="applyMonteCarloRecommendation('${st.v.id}', ${st.optStart}, ${st.optDur})"
                 style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:10.5px;padding:3px 8px;font-weight:700;">
-                ▶ Simular
+                ▶ ${isEn ? 'Simulate' : 'Simular'}
               </button>
             </td>
           </tr>
@@ -2935,7 +2935,7 @@ async function runMonteCarloSimulation() {
     alert((isEn ? 'Error during Monte Carlo simulation: ' : 'Error durante la simulación de Monte Carlo: ') + err.message);
   } finally {
     if (btnRun) btnRun.disabled = false;
-    if (btnTxt) btnTxt.textContent = isEn ? 'Run Monte Carlo' : `Ejecutar Monte Carlo (${runs.toLocaleString()} Casos)`;
+    if (btnTxt) btnTxt.textContent = isEn ? `Run Monte Carlo (${runs.toLocaleString()} Runs)` : `Ejecutar Monte Carlo (${runs.toLocaleString()} Casos)`;
     if (progWrap) {
       setTimeout(() => { progWrap.style.display = 'none'; }, 1000);
     }
@@ -2967,10 +2967,12 @@ function showMonteCarloVariableDetail(rankOrVid) {
   card.style.display = 'block';
 
   if (title) {
-    title.innerHTML = `Ficha Táctica: <b style="color:#fff;">${esc(st.v.code)} · ${esc(st.v.name)}</b>`;
+    title.innerHTML = `${isEn ? 'Tactical Dossier:' : 'Ficha Táctica:'} <b style="color:#fff;">${esc(st.v.code)} · ${esc(st.v.name)}</b>`;
   }
   if (sub) {
-    sub.innerHTML = `Posición en Ranking de Robustez: <b>#${lastMonteCarloResults.indexOf(st) + 1} de ${lastMonteCarloResults.length}</b> · Base: <b>${st.impactScores.length.toLocaleString()} escenarios estocásticos</b>`;
+    sub.innerHTML = isEn
+      ? `Robustness Ranking Position: <b>#${lastMonteCarloResults.indexOf(st) + 1} of ${lastMonteCarloResults.length}</b> · Sample: <b>${st.impactScores.length.toLocaleString()} stochastic scenarios</b>`
+      : `Posición en Ranking de Robustez: <b>#${lastMonteCarloResults.indexOf(st) + 1} de ${lastMonteCarloResults.length}</b> · Base: <b>${st.impactScores.length.toLocaleString()} escenarios estocásticos</b>`;
   }
 
   // Evaluación de Volatilidad / Riesgo (CV = sigma / mu)
@@ -2987,40 +2989,46 @@ function showMonteCarloVariableDetail(rankOrVid) {
   if (body) {
     body.innerHTML = `
       <div style="background:rgba(15,23,42,0.8);border:1px solid rgba(167,139,250,0.25);border-radius:8px;padding:10px 12px;border-left:3px solid #a855f7;">
-        <small style="color:#94a3b8;font-size:11px;display:block;">IMPACTO MEDIO (μ)</small>
+        <small style="color:#94a3b8;font-size:11px;display:block;">${isEn ? 'MEAN IMPACT (μ)' : 'IMPACTO MEDIO (μ)'}</small>
         <b style="font-size:16px;color:#c4b5fd;font-family:'JetBrains Mono';">${st.mean.toFixed(2)}</b>
         <div style="font-size:11px;color:#94a3b8;margin-top:2px;">± σ = ${st.stdDev.toFixed(2)}</div>
       </div>
       <div style="background:rgba(15,23,42,0.8);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:10px 12px;border-left:3px solid #38bdf8;">
-        <small style="color:#94a3b8;font-size:11px;display:block;">PISO PESIMISTA (P10)</small>
+        <small style="color:#94a3b8;font-size:11px;display:block;">${isEn ? 'PESSIMISTIC FLOOR (P10)' : 'PISO PESIMISTA (P10)'}</small>
         <b style="font-size:16px;color:#38bdf8;font-family:'JetBrains Mono';">${st.p10.toFixed(2)}</b>
-        <div style="font-size:11px;color:#94a3b8;margin-top:2px;">90% certeza mínima</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${isEn ? '90% minimum certainty' : '90% certeza mínima'}</div>
       </div>
       <div style="background:rgba(15,23,42,0.8);border:1px solid rgba(52,211,153,0.25);border-radius:8px;padding:10px 12px;border-left:3px solid #34d399;">
-        <small style="color:#94a3b8;font-size:11px;display:block;">MEDIANA CENTRAL (P50)</small>
+        <small style="color:#94a3b8;font-size:11px;display:block;">${isEn ? 'CENTRAL MEDIAN (P50)' : 'MEDIANA CENTRAL (P50)'}</small>
         <b style="font-size:16px;color:#34d399;font-family:'JetBrains Mono';">${st.p50.toFixed(2)}</b>
-        <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Techo P90: ${st.p90.toFixed(2)}</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${isEn ? 'P90 Ceiling: ' : 'Techo P90: '}${st.p90.toFixed(2)}</div>
       </div>
       <div style="background:rgba(15,23,42,0.8);border:1px solid rgba(251,191,36,0.25);border-radius:8px;padding:10px 12px;border-left:3px solid ${riskColor};">
-        <small style="color:#94a3b8;font-size:11px;display:block;">VOLATILIDAD (CV = σ/μ)</small>
+        <small style="color:#94a3b8;font-size:11px;display:block;">${isEn ? 'VOLATILITY (CV = σ/μ)' : 'VOLATILIDAD (CV = σ/μ)'}</small>
         <b style="font-size:16px;color:${riskColor};font-family:'JetBrains Mono';">${(st.cv * 100).toFixed(1)}%</b>
         <div style="font-size:11px;color:${riskColor};margin-top:2px;">${riskLabel}</div>
       </div>
       <div style="background:rgba(15,23,42,0.8);border:1px solid rgba(148,163,255,0.25);border-radius:8px;padding:10px 12px;border-left:3px solid #38bdf8;">
-        <small style="color:#94a3b8;font-size:11px;display:block;">VENTANA ÓPTIMA</small>
+        <small style="color:#94a3b8;font-size:11px;display:block;">${isEn ? 'OPTIMAL WINDOW' : 'VENTANA ÓPTIMA'}</small>
         <b style="font-size:16px;color:#38bdf8;font-family:'JetBrains Mono';">t = ${st.optStart} ➔ ${st.optDur}p</b>
-        <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Pico sistémico: t = ${st.medianPeakT}</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${isEn ? 'Systemic peak: t = ' : 'Pico sistémico: t = '}${st.medianPeakT}</div>
       </div>
     `;
   }
 
   if (narrative) {
     const isWinner = lastMonteCarloResults.indexOf(st) === 0;
-    const diagnosis = isWinner
-      ? `<b>Diagnóstico Estratégico: Palanca Sistémica Suprema.</b> Esta variable demostró la máxima potencia transformadora promedio (μ = ${st.mean.toFixed(2)}) a lo largo de ${st.impactScores.length.toLocaleString()} escenarios con ruido estocástico de ±20%. Con un piso pesimista P10 de ${st.p10.toFixed(2)}, garantiza impacto medible incluso en el peor 10% de las coyunturas futuras.`
-      : `<b>Diagnóstico Estratégico: Palanca de Nivel ${lastMonteCarloResults.indexOf(st) + 1}.</b> Ofrece un impacto medio de μ = ${st.mean.toFixed(2)} con una dispersión P10-P90 de [${st.p10.toFixed(1)} — ${st.p90.toFixed(1)}].`;
+    const diagnosis = isEn
+      ? (isWinner
+          ? `<b>Strategic Diagnosis: Supreme Systemic Lever.</b> This variable demonstrated maximum average transformative power (μ = ${st.mean.toFixed(2)}) across ${st.impactScores.length.toLocaleString()} scenarios with ±20% stochastic noise. With a pessimistic P10 floor of ${st.p10.toFixed(2)}, it guarantees measurable impact even in the bottom 10% worst-case future conjunctures.`
+          : `<b>Strategic Diagnosis: Level ${lastMonteCarloResults.indexOf(st) + 1} Lever.</b> Delivers average impact of μ = ${st.mean.toFixed(2)} with a P10-P90 dispersion of [${st.p10.toFixed(1)} — ${st.p90.toFixed(1)}].`)
+      : (isWinner
+          ? `<b>Diagnóstico Estratégico: Palanca Sistémica Suprema.</b> Esta variable demostró la máxima potencia transformadora promedio (μ = ${st.mean.toFixed(2)}) a lo largo de ${st.impactScores.length.toLocaleString()} escenarios con ruido estocástico de ±20%. Con un piso pesimista P10 de ${st.p10.toFixed(2)}, garantiza impacto medible incluso en el peor 10% de las coyunturas futuras.`
+          : `<b>Diagnóstico Estratégico: Palanca de Nivel ${lastMonteCarloResults.indexOf(st) + 1}.</b> Ofrece un impacto medio de μ = ${st.mean.toFixed(2)} con una dispersión P10-P90 de [${st.p10.toFixed(1)} — ${st.p90.toFixed(1)}].`);
 
-    const timingTip = `<b>Recomendación de Calendario:</b> Se recomienda iniciar la intervención en el <b>periodo t = ${st.optStart}</b> y sostenerla durante <b>${st.optDur} periodos</b>. La red alcanzará su punto de máxima aceleración e impacto en el <b>periodo t = ${st.medianPeakT}</b>, momento en el cual los efectos indirectos habrán reverberado por los bucles del sistema.`;
+    const timingTip = isEn
+      ? `<b>Calendar Recommendation:</b> It is recommended to start the intervention at <b>period t = ${st.optStart}</b> and sustain it for <b>${st.optDur} periods</b>. The network will reach maximum acceleration and impact at <b>period t = ${st.medianPeakT}</b>, when indirect feedback has fully reverberated across system loops.`
+      : `<b>Recomendación de Calendario:</b> Se recomienda iniciar la intervención en el <b>periodo t = ${st.optStart}</b> y sostenerla durante <b>${st.optDur} periodos</b>. La red alcanzará su punto de máxima aceleración e impacto en el <b>periodo t = ${st.medianPeakT}</b>, momento en el cual los efectos indirectos habrán reverberado por los bucles del sistema.`;
 
     narrative.innerHTML = `<p style="margin:0 0 6px 0;">${diagnosis}</p><p style="margin:0;">${timingTip}</p>`;
   }
@@ -3029,7 +3037,7 @@ function showMonteCarloVariableDetail(rankOrVid) {
     actionBtn.innerHTML = `
       <button type="button" class="btn" onclick="applyMonteCarloRecommendation('${st.v.id}', ${st.optStart}, ${st.optDur})"
         style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;font-size:12px;padding:6px 14px;border:none;box-shadow:0 4px 12px rgba(124,58,237,0.4);">
-        ▶ Simular ${esc(st.v.code)} en t=${st.optStart} (${st.optDur}p)
+        ▶ ${isEn ? 'Simulate' : 'Simular'} ${esc(st.v.code)} ${isEn ? 'at' : 'en'} t=${st.optStart} (${st.optDur}p)
       </button>
     `;
   }
@@ -6012,6 +6020,11 @@ function applyLanguage(lang) {
   // Re-render components
   renderRubric();
   renderAll();
+  if (typeof lastMonteCarloResults !== 'undefined' && lastMonteCarloResults && lastMonteCarloResults.length) {
+    if (typeof showMonteCarloVariableDetail === 'function') {
+      showMonteCarloVariableDetail(0);
+    }
+  }
 }
 
 // Expose globally for inline onclick
