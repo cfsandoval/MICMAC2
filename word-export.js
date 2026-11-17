@@ -680,10 +680,189 @@ async function generateWordReportBlob() {
         }))
       ]
     }),
-    new Paragraph({ spacing: { before: 120, after: 60 }, children: [] })
+    new Paragraph({ spacing: { before: 100, after: 80 }, children: [] })
   );
 
-  // 4.3 ANÁLISIS DE DISCREPANCIAS Y RECLASIFICACIÓN DE VARIABLES
+  // 4.3 RECUADRO DESTACADO: GUÍA PRÁCTICA EN PALABRAS SENCILLAS PARA EL TÉCNICO DE LA FUNCIÓN PÚBLICA
+  const calloutBoxBorder = {
+    top: { style: BorderStyle.SINGLE, size: 6, color: "CBD5E1" },
+    bottom: { style: BorderStyle.SINGLE, size: 6, color: "CBD5E1" },
+    left: { style: BorderStyle.SINGLE, size: 28, color: "1E3A8A" },
+    right: { style: BorderStyle.SINGLE, size: 6, color: "CBD5E1" }
+  };
+
+  children.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: calloutBoxBorder,
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              shading: { fill: "F8FAFC" },
+              margins: { top: 120, bottom: 120, left: 160, right: 140 },
+              children: [
+                new Paragraph({
+                  spacing: { before: 40, after: 60 },
+                  children: [
+                    new TextRun({
+                      text: isEn
+                        ? "📌 HIGHLIGHTED POLICY BOX: WHAT HAPPENS IF A PUBLIC SECTOR ANALYST USES ORIGINAL GODET MICMAC?"
+                        : "📌 RECUADRO DESTACADO: ¿QUÉ PASARÍA SI UN TÉCNICO DE LA FUNCIÓN PÚBLICA USA EL MÉTODO MICMAC ORIGINAL?",
+                      bold: true,
+                      color: "1E3A8A",
+                      size: 20
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { before: 20, after: 100 },
+                  children: [
+                    new TextRun({
+                      text: isEn
+                        ? "Practical translation guide for civil servants, policy planners, and budget evaluators (plain language, avoiding academic jargon):"
+                        : "Guía práctica de traducción para analistas, evaluadores de proyectos y planificadores del sector público (en palabras sencillas y aplicadas a la realidad de ministerios, gobernaciones y municipios):",
+                      italics: true,
+                      color: "475569",
+                      size: 17
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { before: 40, after: 60 },
+                  children: [
+                    new TextRun({
+                      text: isEn
+                        ? "1. The 'Wasted Budget' Risk (Why Some Major Initiatives Go Nowhere): "
+                        : "1. El Riesgo de 'Tirar Presupuesto a la Basura' (Trampas de Política vs. Palancas Reales): ",
+                      bold: true,
+                      color: "DC2626",
+                      size: 17
+                    }),
+                    new TextRun({
+                      text: isEn
+                        ? "If a public analyst uses Godet's classical tool, they will see a variable with an enormous score and immediately recommend the Minister allocate large public funding to it. But Godet added positive pushes (+3) and negative resistance (-3) as 3 + 3 = 6. In real public administration, +3 - 3 = 0. The initiative provokes bureaucratic hurdles, union pushback, or procedural gridlock of equal intensity. Result: the budget is spent, but the indicator never moves. The 4D model detects this instantly through the Ambiguity Index (Ω) and warns the technical team: 'Do not pour money here until you solve internal administrative friction and conflicting incentives first.'"
+                        : "Si un técnico de planificación usa el MICMAC tradicional de Godet, el software le mostrará variables con puntajes altísimos de influencia y le recomendará a la autoridad (Ministro, Subsecretario o Alcalde) crear un programa masivo o inyectarle gran presupuesto. Pero el método tradicional cometió un error grave: sumó los impactos positivos (+3) y las resistencias negativas (-3) como 3 + 3 = 6. En la vida real de la administración pública, +3 - 3 = 0. Cada peso gastado genera un conflicto normativo, traba burocrática o resistencia gremial de igual tamaño. Resultado: se gasta todo el presupuesto del año y el problema público sigue exactamente igual. El modelo 4D detecta esto de inmediato mediante el Índice de Ambigüedad (Ω) y le advierte al técnico: '¡Alerta roja! Esta variable es una Trampa de Política: no ponga dinero aquí a ciegas; primero arme una mesa de destrabe institucional antes de presupuestar'.",
+                      size: 16
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { before: 40, after: 60 },
+                  children: [
+                    new TextRun({
+                      text: isEn
+                        ? "2. False Promises of 'Quick Wins' vs. Real Institutional Pace (Time Friction): "
+                        : "2. La Falsa Promesa de 'Resultados Inmediatos' frente a los Tiempos Reales del Estado (Fricción Temporal): ",
+                      bold: true,
+                      color: "D97706",
+                      size: 17
+                    }),
+                    new TextRun({
+                      text: isEn
+                        ? "Godet assumes all policies happen at the same theoretical speed. A civil servant might promise a Mayor or Minister that educational reforms or major infrastructure will yield visible KPIs within the next budget cycle. When results lag, the project is unfairly declared a 'failure' and defunded. The 4D model incorporates Time Friction (exp(-λt)): it gives the technical team a synchronized timeline, distinguishing 'quick administrative levers' (decrees, fast-track procurement, digitalization) to generate short-term political credibility, while protecting long-term structural reforms until their natural maturation window."
+                        : "El método de Godet asume que todas las acciones estatales ocurren a la misma velocidad teórica. Un técnico inexperto podría prometer a su jefatura resultados de alto impacto en el informe de gestión del próximo año basándose en reformas que, por naturaleza institucional, tardan 5 a 10 años en madurar (como cambios curriculares, modernización del Estado o grandes obras viales). Al no verse resultados en 12 meses, la autoridad suele declarar la política como 'un fracaso' y cancela los fondos. El modelo 4D incluye el factor de Fricción Temporal continua (exp(-λt)): le permite al técnico diseñar una estrategia en dos tiempos: 'victorias tempranas' de rápida absorción (decretos, simplificación de trámites) para dar legitimidad inmediata, y 'reformas de fondo' blindadas presupuestariamente para su maduración real.",
+                      size: 16
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { before: 40, after: 60 },
+                  children: [
+                    new TextRun({
+                      text: isEn
+                        ? "3. The 'Everything is a Top Priority' Trap (Preserving Real Priorities): "
+                        : "3. El Síndrome del 'Todo es Urgente y Prioritario' (La Imposibilidad de Priorizar el Gasto): ",
+                      bold: true,
+                      color: "1D4ED8",
+                      size: 17
+                    }),
+                    new TextRun({
+                      text: isEn
+                        ? "When classical matrix multiplication calculates long-term indirect impacts, mathematical collapse makes almost all variables converge to identical scores. The technical analyst delivers a report concluding that 'all 20 variables are critical and must be funded'. For the Budget Directorate or Ministry of Finance, that report is useless because fiscal resources and staff capacities are strictly finite. The 4D model uses the regularized Katz-Bonacich resolvent to prevent this collapse, isolating the 2 or 3 genuine Master Levers that truly move the system, giving the public servant airtight justification to defend budget focus."
+                        : "Al calcular efectos indirectos a largo plazo elevando matrices, la matemática de Godet colapsa y hace que casi todas las variables terminen teniendo números muy parecidos. El técnico termina entregando un informe que dice: 'Todas las variables del sistema son críticas y deben ser financiadas'. Para el Ministerio de Hacienda o la Dirección de Presupuestos (DIPRES), ese informe es inútil: cuando todo es prioritario, nada es prioritario. El presupuesto fiscal y los recursos humanos son limitados. El modelo 4D, al regularizar matemáticamente la red (Katz-Bonacich), no aplana las diferencias y separa con precisión quirúrgica cuáles son las 2 o 3 Palancas Maestras que verdaderamente mueven la aguja, entregando al técnico una justificación inobjetable ante los evaluadores fiscales.",
+                      size: 16
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { before: 40, after: 60 },
+                  children: [
+                    new TextRun({
+                      text: isEn
+                        ? "4. 'Self-Sustaining Programs' vs. 'Bottomless Pits' (Self-Loop Compounding): "
+                        : "4. Programas que 'Caminan Solos' vs. Programas que son un 'Barril sin Fondo' (Bucles Propios): ",
+                      bold: true,
+                      color: "059669",
+                      size: 17
+                    }),
+                    new TextRun({
+                      text: isEn
+                        ? "Classical Godet sets diagonal elements to zero, blind to self-reinforcing dynamics. In public administration, there are programs where the State only needs to provide initial seed funding, and the virtuous cycle self-sustains over time (Multiplier / Snowball Effect, F > 0). Other programs act as bottomless pits: the moment public subsidies or technical teams stop, the benefits vanish immediately (Homeostatic Dampener, F < 0). The 4D model identifies which programs require permanent budget line items in the annual budget law and which will become self-sustaining."
+                        : "Godet borra la diagonal de la matriz, asumiendo falsamente que ninguna variable se retroalimenta a sí misma. En el Estado existen programas donde solo se requiere un impulso inicial o 'capital semilla' y la rueda empieza a girar sola gracias a círculos virtuosos comunitarios o productivos (Efecto Bola de Nieve o Multiplicador, F > 0). En cambio, existen otros programas que son un 'barril sin fondo': apenas el Estado suspende el subsidio o retira a los profesionales a contrata, el beneficio desaparece por completo (Efecto Amortiguador, F < 0). El modelo 4D le indica al técnico con exactitud cuáles programas necesitarán asignación presupuestaria permanente año a año y cuáles podrán sostenerse con inercia propia.",
+                      size: 16
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { before: 60, after: 40 },
+                  children: [
+                    new TextRun({
+                      text: isEn
+                        ? "🎯 3 Golden Decision Rules for Public Sector Technicians:"
+                        : "🎯 3 Reglas de Oro para el Técnico Público ante el Ministro o Director de Presupuestos:",
+                      bold: true,
+                      color: "1E3A8A",
+                      size: 17
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { before: 20, after: 20 },
+                  children: [
+                    new TextRun({ text: isEn ? "• Rule 1 (Master Levers): " : "• Regla 1 (Palancas Maestras): ", bold: true, color: "059669", size: 16 }),
+                    new TextRun({
+                      text: isEn
+                        ? "Concentrate 70% to 80% of program resources here. Their positive signal moves through the State apparatus cleanly without triggering internal blockages."
+                        : "Concentrar entre el 70% y el 80% de los recursos de inversión aquí. Son variables que empujan el sistema hacia adelante con mínimo rebote destructivo.",
+                      size: 16
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { before: 20, after: 20 },
+                  children: [
+                    new TextRun({ text: isEn ? "• Rule 2 (Policy Traps): " : "• Regla 2 (Trampas de Política): ", bold: true, color: "DC2626", size: 16 }),
+                    new TextRun({
+                      text: isEn
+                        ? "NEVER propose budget increases directly. Propose first an inter-agency taskforce, legal simplification, or governance consensus to dismantle resistance loops before spending public money."
+                        : "JAMÁS pedir aumento de presupuesto directo ni crear nuevos subsidios de inmediato. Proponer primero una mesa de coordinación interministerial, simplificación normativa o diálogo de gobernanza para destrabar las resistencias antes de gastar.",
+                      size: 16
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { before: 20, after: 40 },
+                  children: [
+                    new TextRun({ text: isEn ? "• Rule 3 (Output / Result Variables): " : "• Regla 3 (Variables de Resultado): ", bold: true, color: "7C3AED", size: 16 }),
+                    new TextRun({
+                      text: isEn
+                        ? "Do NOT try to push these directly. Use them as Key Performance Indicators (KPIs) for public accountability, congressional reporting, and Comptroller audits."
+                        : "NO intentar manipularlas directamente. Utilizarlas como indicadores de impacto final (KPIs) en el tablero de control para la rendición de cuentas pública, la cuenta ante el Congreso y las auditorías de Contraloría.",
+                      size: 16
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    }),
+    new Paragraph({ spacing: { before: 100, after: 60 }, children: [] })
+  );
+
+  // 4.4 ANÁLISIS DE DISCREPANCIAS Y RECLASIFICACIÓN DE VARIABLES
   const quadClasNames = {
     power: isEn ? "Motriz (Poder)" : "Motriz (Poder)",
     conflict: isEn ? "Crítica (Enlace)" : "Crítica (Enlace)",
@@ -702,8 +881,8 @@ async function generateWordReportBlob() {
       children: [
         new TextRun({
           text: isEn
-            ? "4.3 Detailed Analysis of Classification Shifts & Strategic Discrepancies"
-            : "4.3 Análisis Detallado de Discrepancias y Cambios en la Clasificación de Variables",
+            ? "4.4 Detailed Analysis of Classification Shifts & Strategic Discrepancies"
+            : "4.4 Análisis Detallado de Discrepancias y Cambios en la Clasificación de Variables",
           bold: true,
           color: "1D4ED8",
           size: 20
@@ -770,7 +949,7 @@ async function generateWordReportBlob() {
     })
   );
 
-  // 4.4 TABLA COMPARATIVA CRUZADA EXHAUSTIVA
+  // 4.5 TABLA COMPARATIVA CRUZADA EXHAUSTIVA
   const dynHeaders = isEn
     ? ["#", "Code", "Variable Name", "Godet Mot", "Godet Quad", "Net Mot (4D)", "4D Quad", "Ambiguity Ω", "Self-Loop F", "Status Shift", "Strategic Diagnosis"]
     : ["#", "Cód", "Nombre Variable", "Mot. Godet", "Cuadrante Godet", "Mot. Neta 4D", "Cuadrante 4D", "Ambigüedad Ω", "Bucle F", "¿Cambió Rol?", "Diagnóstico Estratégico"];
@@ -781,8 +960,8 @@ async function generateWordReportBlob() {
       children: [
         new TextRun({
           text: isEn
-            ? "4.4 Comprehensive Cross-Classification Table (Godet Classical vs. 4D Dynamic Convergent)"
-            : "4.4 Tabla Comparativa Cruzada Exhaustiva (Godet Clásico vs. Extendido Dinámico 4D)",
+            ? "4.5 Comprehensive Cross-Classification Table (Godet Classical vs. 4D Dynamic Convergent)"
+            : "4.5 Tabla Comparativa Cruzada Exhaustiva (Godet Clásico vs. Extendido Dinámico 4D)",
           bold: true,
           color: "1D4ED8",
           size: 20
