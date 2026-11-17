@@ -8967,6 +8967,29 @@ function handleUserProjectBackdrop(e) {
 }
 window.handleUserProjectBackdrop = handleUserProjectBackdrop;
 
+function ensureTestAccount(st) {
+  if (!st || !Array.isArray(st.users)) return;
+  let tu = st.users.find(u =>
+    (u.email && u.email.toLowerCase() === 'user@gmail.com') ||
+    (u.username && u.username.toLowerCase() === 'user@gmail.com')
+  );
+  if (!tu) {
+    tu = {
+      id: 'u_test_demo',
+      username: 'user@gmail.com',
+      email: 'user@gmail.com',
+      name: 'Usuario Demo / Test User',
+      org: 'Demo / Testing',
+      password: 'user12345',
+      createdAt: new Date().toISOString()
+    };
+    st.users.push(tu);
+  } else {
+    tu.password = 'user12345';
+    if (!tu.email) tu.email = 'user@gmail.com';
+  }
+}
+
 function loadUserProjectsStore() {
   try {
     const raw = JSON.parse(localStorage.getItem(LS_UP));
@@ -8983,6 +9006,7 @@ function loadUserProjectsStore() {
           });
         }
       });
+      ensureTestAccount(raw);
       return raw;
     }
   } catch (e) {}
@@ -9014,6 +9038,7 @@ function loadUserProjectsStore() {
     users: [defaultUser],
     projects: [defaultProj]
   };
+  ensureTestAccount(initStore);
   try {
     localStorage.setItem(LS_UP, JSON.stringify(initStore));
   } catch (e) {}
@@ -9414,6 +9439,34 @@ function renderUserProjectModal() {
               : (isEn ? 'Enter your email or username and password to load your saved models and continue your work.' : 'Ingrese su email o nombre de usuario y su contraseña para cargar sus modelos guardados y continuar su trabajo.')}
           </p>
 
+          <!-- NOTA EN ESPAÑOL E INGLÉS CON EL USUARIO DE PRUEBAS -->
+          <div style="background:linear-gradient(135deg,rgba(30,58,138,0.28),rgba(15,23,42,0.92));border:1.5px solid rgba(56,189,248,0.45);border-radius:11px;padding:12px 14px;margin-bottom:15px;box-shadow:0 4px 18px rgba(0,0,0,0.3);">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:12.5px;color:#38bdf8;">
+                <span style="font-size:15px;">🧪</span>
+                <span>${isEn ? 'Test User Account (Demo Access)' : 'Usuario de Pruebas (Acceso Demo)'}</span>
+              </div>
+              <button type="button" class="btn sm" onclick="fillTestCredentials()" style="padding:4px 10px;font-size:11px;font-weight:700;background:rgba(56,189,248,0.18);color:#38bdf8;border:1px solid #38bdf8;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+                ⚡ ${isEn ? 'Auto-fill' : 'Auto-completar'}
+              </button>
+            </div>
+            <p style="margin:0 0 8px;font-size:11.8px;color:#cbd5e1;line-height:1.45;">
+              ${isEn
+                ? 'You can explore the system without creating an account using the demo test credentials:'
+                : 'Puede ingresar sin registrarse utilizando las credenciales del usuario de pruebas:'}
+            </p>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;background:rgba(8,12,24,0.8);padding:7px 11px;border-radius:7px;border:1px solid rgba(148,163,255,0.18);align-items:center;">
+              <div>
+                <span style="color:#94a3b8;font-size:11px;">${isEn ? 'User:' : 'Usuario:'}</span>
+                <code style="color:#38bdf8;font-weight:700;margin-left:5px;background:rgba(56,189,248,0.12);padding:2px 6px;border-radius:4px;font-size:11.5px;">user@gmail.com</code>
+              </div>
+              <div>
+                <span style="color:#94a3b8;font-size:11px;">${isEn ? 'Password:' : 'Contraseña:'}</span>
+                <code style="color:#34d399;font-weight:700;margin-left:5px;background:rgba(52,211,153,0.12);padding:2px 6px;border-radius:4px;font-size:11.5px;">user12345</code>
+              </div>
+            </div>
+          </div>
+
           ${mtAuthMode === 'register' ? `
             <div style="display:flex;flex-direction:column;gap:10px;">
               <div>
@@ -9702,6 +9755,27 @@ async function loginTenantFromPortal() {
   }
 
   // Fallback con la base de datos local del navegador
+  // Soporte directo para usuario de pruebas
+  if (rawUser.toLowerCase() === 'user@gmail.com' && rawPass === 'user12345') {
+    if (!found) {
+      found = {
+        id: 'u_test_demo',
+        username: 'user@gmail.com',
+        email: 'user@gmail.com',
+        name: 'Usuario Demo / Test User',
+        org: 'CEPAL - ILPES / Prospectiva',
+        password: 'user12345',
+        createdAt: new Date().toISOString()
+      };
+      store.users.push(found);
+      ensureUserIsolatedProject(store, found.id);
+      saveUserProjectsStore(store);
+    } else {
+      found.password = 'user12345';
+      saveUserProjectsStore(store);
+    }
+  }
+
   if (!found) {
     alert(isEn
       ? `Account "${rawUser}" was not found. Click "Create User" above to register.`
@@ -9726,6 +9800,20 @@ async function loginTenantFromPortal() {
     : `✅ ¡Bienvenido/a de vuelta, <b>${esc(found.name)}</b>! Su trabajo ha sido cargado.`);
 }
 window.loginTenantFromPortal = loginTenantFromPortal;
+
+function fillTestCredentials() {
+  if (mtAuthMode !== 'login') {
+    setMtAuthMode('login');
+  }
+  setTimeout(() => {
+    const uInp = document.getElementById('mt-login-username');
+    const pInp = document.getElementById('mt-login-password');
+    if (uInp) uInp.value = 'user@gmail.com';
+    if (pInp) pInp.value = 'user12345';
+    if (pInp) pInp.focus();
+  }, 40);
+}
+window.fillTestCredentials = fillTestCredentials;
 
 function quickLoginTenant(userId) {
   const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
