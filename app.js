@@ -8995,7 +8995,7 @@ function saveUserProjectsStore(store) {
   }
 }
 
-let lastOAuthError = null;
+
 
 function syncProjectToCloud(store, proj) {
   if (!proj || !store) return;
@@ -9127,84 +9127,21 @@ function setMtAuthMode(mode) {
 }
 window.setMtAuthMode = setMtAuthMode;
 
-async function loginWithOAuth(provider) {
-  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
-  const providerName = provider === 'apple' ? 'Apple' : 'Google';
-
-  // Si se abre como archivo local (file://), Google OAuth no permite redirección HTTP
-  if (window.location.protocol === 'file:') {
-    const gEmail = prompt(
-      isEn
-        ? `Notice: You opened MICMAC directly as a local file (file://), where Google OAuth redirect is blocked by browsers.\n\nTo sign in right now with your Google account locally, enter your Gmail address (or open MICMAC via http://localhost or Vercel):`
-        : `Aviso: Está abriendo MICMAC como archivo local (file://), donde los navegadores bloquean la redirección de Google OAuth.\n\nPara entrar ahora mismo con su cuenta de Google en este equipo, escriba su correo de Gmail (o abra la app desde http://localhost o Vercel):`,
-      ''
-    );
-    if (!gEmail || !gEmail.trim()) return;
-    const cleanEmail = gEmail.trim().toLowerCase();
-    const store = loadUserProjectsStore();
-    let found = store.users.find(u => (u.email || '').toLowerCase() === cleanEmail || (u.username || '').toLowerCase() === cleanEmail);
-    if (!found) {
-      const display = cleanEmail.split('@')[0];
-      found = {
-        id: 'u_google_' + Date.now(),
-        email: gEmail.trim(),
-        username: cleanEmail,
-        name: display.charAt(0).toUpperCase() + display.slice(1),
-        org: 'Google',
-        password: '',
-        createdAt: new Date().toISOString()
-      };
-      store.users.unshift(found);
-      saveUserProjectsStore(store);
-    }
-    selectModalUser(found.id, true);
-    return;
-  }
-
-  if (!window.SupabaseSync || typeof window.SupabaseSync.signInWithOAuth !== 'function') {
-    alert(isEn ? 'Supabase is not available. Use email or continue without an account.' : 'Supabase no está disponible. Use email o continúe sin cuenta.');
-    return;
-  }
-  if (typeof window.SupabaseSync.getAuthSettings === 'function') {
-    const settings = await window.SupabaseSync.getAuthSettings();
-    if (settings && settings.external && settings.external[provider] === false) {
-      alert(isEn
-        ? `${providerName} sign-in is not enabled in Supabase yet. Enable it in Authentication → Providers.`
-        : `El inicio de sesión con ${providerName} aún no está habilitado en Supabase. Actívelo en Authentication → Providers.`);
-      return;
-    }
-  }
-  showSaveToast(isEn
-    ? `Redirecting to ${providerName}…`
-    : `Redirigiendo a ${providerName}…`);
-  lastOAuthError = null;
-  if (window.SupabaseSync && typeof window.SupabaseSync.clearUrlAuthParams === 'function') {
-    window.SupabaseSync.clearUrlAuthParams();
-  }
-  const { error } = await window.SupabaseSync.signInWithOAuth(provider);
-  if (error) {
-    console.error('[Supabase] OAuth error:', error);
-    lastOAuthError = {
-      error: error.code || 'oauth_error',
-      errorCode: error.code || '',
-      errorDescription: error.message || String(error)
-    };
-    renderUserProjectModal();
-  }
-}
-window.loginWithOAuth = loginWithOAuth;
-
 function logoutCurrentUser() {
   const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
   save();
   if (window.SupabaseSync && typeof window.SupabaseSync.signOut === 'function') {
     window.SupabaseSync.signOut();
   }
+  const store = loadUserProjectsStore();
+  store.activeUserId = 'u_guest';
+  saveUserProjectsStore(store);
   mtPortalStep = 'auth';
   mtAuthMode = 'login';
   renderUserProjectModal();
+  updateUserProjectPill();
   showSaveToast(
-    isEn ? '🔒 Signed out. Choose another user or sign in.' : '🔒 Sesión cerrada. Puede iniciar sesión con otro usuario o crear uno nuevo.',
+    isEn ? '🔒 Signed out. Please sign in or create an account.' : '🔒 Sesión cerrada. Inicie sesión o cree una cuenta para continuar.',
     '#1e293b',
     '#475569'
   );
@@ -9324,25 +9261,43 @@ async function mergeCloudProjects(store, found, cloudUserId) {
   }
 }
 
-async function resumeSupabaseSession() {
-  if (!window.SupabaseSync || typeof window.SupabaseSync.getSession !== 'function') return false;
-  try {
-    const session = await window.SupabaseSync.getSession();
-    if (!session || !session.user) return false;
-    const store = loadUserProjectsStore();
-    const found = upsertSupabaseUser(store, session.user);
-    saveUserProjectsStore(store);
-    await mergeCloudProjects(store, found, session.user.id);
-    const nonStarterProjs = store.projects.filter(p => p.userId === found.id && !p.isAutoStarter);
-    saveUserProjectsStore(store);
-    selectModalUser(found.id, nonStarterProjs.length === 0);
-    return nonStarterProjs.length > 0;
-  } catch (err) {
-    console.warn('[Supabase] Could not resume session:', err);
-    return false;
+async function resumeActiveUserSession() {
+  // 1. Intentar sesión remota con Supabase si está disponible
+  if (window.SupabaseSync && typeof window.SupabaseSync.getSession === 'function') {
+    try {
+      const session = await window.SupabaseSync.getSession();
+      if (session && session.user) {
+        const store = loadUserProjectsStore();
+        const found = upsertSupabaseUser(store, session.user);
+        saveUserProjectsStore(store);
+        await mergeCloudProjects(store, found, session.user.id);
+        saveUserProjectsStore(store);
+        selectModalUser(found.id, false);
+        return true;
+      }
+    } catch (err) {
+      console.warn('[Supabase] Could not resume session:', err);
+    }
   }
+
+  // 2. Si no hay sesión remota, revisar si ya hay un usuario registrado activo en este navegador
+  const store = loadUserProjectsStore();
+  const activeUser = store.users.find(u => u.id === store.activeUserId);
+  if (activeUser && activeUser.id !== 'u_default' && activeUser.id !== 'u_guest') {
+    selectModalUser(activeUser.id, false);
+    return true;
+  }
+
+  // 3. Si en esta sesión de pestaña ya eligió continuar como invitado
+  if (sessionStorage.getItem('micmac_user_chosen') === '1') {
+    const activeProj = store.projects.find(p => p.id === store.activeProjectId);
+    if (activeProj) applyProjectToWorkspace(activeProj);
+    return true;
+  }
+
+  return false;
 }
-window.resumeSupabaseSession = resumeSupabaseSession;
+window.resumeActiveUserSession = resumeActiveUserSession;
 
 function renderUserProjectModal() {
   const box = document.getElementById('user-project-modal-content');
@@ -9408,28 +9363,26 @@ function renderUserProjectModal() {
     <div class="modal-body" style="padding:18px;max-height:78vh;overflow-y:auto;">
       ${mtPortalStep === 'auth' ? `
         <div style="max-width:440px;margin:0 auto;padding:4px 0 2px;">
-          ${oauthErrorBanner}
-
           ${isRegisteredActive ? `
-            <div style="margin-bottom:16px;padding:11px 14px;border-radius:10px;background:linear-gradient(135deg,rgba(16,185,129,0.14),rgba(2,132,199,0.14));border:1.5px solid rgba(52,211,153,0.4);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="margin-bottom:16px;padding:12px 14px;border-radius:10px;background:linear-gradient(135deg,rgba(16,185,129,0.14),rgba(2,132,199,0.14));border:1.5px solid rgba(52,211,153,0.4);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
               <div>
-                <div style="font-size:10.5px;color:#34d399;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">● ${isEn ? 'Active Session' : 'Sesión activa actual'}</div>
-                <div style="font-size:13.5px;font-weight:700;color:#f8fafc;">👤 ${esc(selUser.name)}</div>
-                ${selUser.email && selUser.email !== selUser.name ? `<div style="font-size:11px;color:#94a3b8;">${esc(selUser.email)}${selUser.org ? ' · ' + esc(selUser.org) : ''}</div>` : ''}
+                <div style="font-size:10.5px;color:#34d399;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">● ${isEn ? 'Active Account' : 'Cuenta activa actual'}</div>
+                <div style="font-size:14px;font-weight:700;color:#f8fafc;">👤 ${esc(selUser.name)}</div>
+                <div style="font-size:11.5px;color:#94a3b8;">${esc(selUser.email || selUser.username)}${selUser.org ? ' · ' + esc(selUser.org) : ''} · <b>${userProjects.length}</b> ${isEn ? (userProjects.length === 1 ? 'model' : 'models') : (userProjects.length === 1 ? 'modelo' : 'modelos')}</div>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
-                <button type="button" class="btn sm" onclick="setMtPortalStep('model')" style="background:#059669;color:#fff;font-size:11.5px;font-weight:700;padding:6px 11px;">📂 ${isEn ? `My Models (${userProjects.length})` : `Mis Modelos (${userProjects.length})`} →</button>
-                <button type="button" class="btn ghost sm" onclick="logoutCurrentUser()" style="font-size:11.5px;padding:6px 9px;color:#fca5a5;border-color:rgba(248,113,113,0.35);">${isEn ? 'Sign out' : 'Salir'}</button>
+                <button type="button" class="btn sm" onclick="setMtPortalStep('model')" style="background:#059669;color:#fff;font-size:11.5px;font-weight:700;padding:6px 12px;">📂 ${isEn ? 'View My Models' : 'Ver Mis Modelos'} →</button>
+                <button type="button" class="btn ghost sm" onclick="logoutCurrentUser()" style="font-size:11.5px;padding:6px 9px;color:#fca5a5;border-color:rgba(248,113,113,0.35);">${isEn ? 'Sign out' : 'Cerrar sesión'}</button>
               </div>
             </div>
           ` : ''}
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#080d1a;padding:4px;border-radius:9px;border:1px solid rgba(148,163,255,0.2);margin-bottom:14px;">
-            <button type="button" onclick="setMtAuthMode('login')" style="padding:7px 10px;border-radius:6px;border:0;font-size:12.5px;font-weight:700;cursor:pointer;background:${mtAuthMode === 'login' ? '#2563eb' : 'transparent'};color:${mtAuthMode === 'login' ? '#fff' : '#94a3b8'};">
+            <button type="button" onclick="setMtAuthMode('login')" style="padding:8px 10px;border-radius:6px;border:0;font-size:13px;font-weight:700;cursor:pointer;background:${mtAuthMode === 'login' ? '#2563eb' : 'transparent'};color:${mtAuthMode === 'login' ? '#fff' : '#94a3b8'};">
               🔐 ${isEn ? 'Sign In' : 'Iniciar Sesión'}
             </button>
-            <button type="button" onclick="setMtAuthMode('register')" style="padding:7px 10px;border-radius:6px;border:0;font-size:12.5px;font-weight:700;cursor:pointer;background:${mtAuthMode === 'register' ? '#059669' : 'transparent'};color:${mtAuthMode === 'register' ? '#fff' : '#94a3b8'};">
-              ➕ ${isEn ? 'Create New User' : 'Crear Nuevo Usuario'}
+            <button type="button" onclick="setMtAuthMode('register')" style="padding:8px 10px;border-radius:6px;border:0;font-size:13px;font-weight:700;cursor:pointer;background:${mtAuthMode === 'register' ? '#059669' : 'transparent'};color:${mtAuthMode === 'register' ? '#fff' : '#94a3b8'};">
+              ➕ ${isEn ? 'Create User' : 'Crear Usuario'}
             </button>
           </div>
 
@@ -9440,44 +9393,49 @@ function renderUserProjectModal() {
           </h3>
           <p style="margin:0 0 14px;font-size:12px;color:#94a3b8;line-height:1.45;">
             ${mtAuthMode === 'register'
-              ? (isEn ? 'Each user has an isolated workspace to create, save, and resume their own models independently.' : 'Cada usuario cuenta con un espacio aislado para guardar y retomar sus modelos de forma individual.')
-              : (isEn ? 'Access your saved models via Google or with your email and password.' : 'Accede a tus modelos guardados con Google o con tu correo y contraseña.')}
+              ? (isEn ? 'Each user has an isolated workspace in the database. All your models, variables, and matrix edits will be saved automatically to your account.' : 'Cada usuario dispone de un espacio de trabajo aislado en la base de datos. Todas sus matrices, variables y simulaciones se guardarán de forma permanente en su cuenta.')
+              : (isEn ? 'Enter your email or username and password to load your saved models and continue your work.' : 'Ingrese su email o nombre de usuario y su contraseña para cargar sus modelos guardados y continuar su trabajo.')}
           </p>
 
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <button type="button" onclick="loginWithOAuth('google')" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:9px 12px;border-radius:8px;border:1px solid rgba(148,163,255,0.25);background:#fff;color:#1f2937;font-size:13px;font-weight:600;cursor:pointer;">
-              <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.3 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.2-.1-2.4-.4-3.5z"/></svg>
-              ${isEn ? 'Continue with Google' : 'Continuar con Google'}
-            </button>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:10px;margin:13px 0;color:#64748b;font-size:10.5px;">
-            <span style="flex:1;height:1px;background:rgba(148,163,255,0.16);"></span>
-            <span>${isEn ? 'or with email & password' : 'o con email y contraseña'}</span>
-            <span style="flex:1;height:1px;background:rgba(148,163,255,0.16);"></span>
-          </div>
-
           ${mtAuthMode === 'register' ? `
-            <div style="display:flex;flex-direction:column;gap:8px;">
-              <input type="text" id="up-new-user-name" placeholder="${isEn ? 'Your Name (e.g. Ana Pérez)' : 'Nombre del usuario (ej.: Ana Pérez)'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(52,211,153,0.35);border-radius:8px;">
-              <input type="text" id="up-new-user-org" placeholder="${isEn ? 'Institution / Team (optional)' : 'Institución / Equipo (opcional)'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.22);border-radius:8px;">
-              <input type="email" id="up-new-user-email" placeholder="${isEn ? 'Email *' : 'Correo electrónico (Email) *'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.32);border-radius:8px;">
-              <input type="password" id="up-new-user-pass" placeholder="${isEn ? 'Password (min. 6 characters) *' : 'Contraseña (mín. 6 caracteres) *'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.22);border-radius:8px;">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div>
+                <label style="font-size:11.5px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:4px;">${isEn ? 'Full Name *' : 'Nombre Completo *'}</label>
+                <input type="text" id="up-new-user-name" placeholder="${isEn ? 'e.g. Carlos Sandoval' : 'ej: Carlos Sandoval'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(52,211,153,0.35);border-radius:8px;">
+              </div>
+              <div>
+                <label style="font-size:11.5px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:4px;">${isEn ? 'Email or Username *' : 'Email o Nombre de Usuario *'}</label>
+                <input type="text" id="up-new-user-email" placeholder="${isEn ? 'e.g. user@organization.org or username' : 'ej: usuario@organizacion.org o nombre'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.32);border-radius:8px;">
+              </div>
+              <div>
+                <label style="font-size:11.5px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:4px;">${isEn ? 'Institution / Organization (optional)' : 'Institución / Organización (opcional)'}</label>
+                <input type="text" id="up-new-user-org" placeholder="${isEn ? 'e.g. United Nations / Ministry' : 'ej: Naciones Unidas / Ministerio'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.22);border-radius:8px;">
+              </div>
+              <div>
+                <label style="font-size:11.5px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:4px;">${isEn ? 'Password (minimum 6 characters) *' : 'Contraseña (mínimo 6 caracteres) *'}</label>
+                <input type="password" id="up-new-user-pass" placeholder="${isEn ? 'Create your password' : 'Cree su contraseña'}" onkeydown="if(event.key==='Enter')createNewUserFromModal()" style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.25);border-radius:8px;">
+              </div>
             </div>
-            <button type="button" class="btn" onclick="createNewUserFromModal()" style="width:100%;margin-top:10px;padding:10px 14px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#059669,#10b981);border:0;color:#fff;">
+            <button type="button" class="btn" onclick="createNewUserFromModal()" style="width:100%;margin-top:14px;padding:11px 14px;font-size:13.5px;font-weight:700;background:linear-gradient(135deg,#059669,#10b981);border:0;color:#fff;box-shadow:0 4px 14px rgba(16,185,129,0.3);">
               ➕ ${isEn ? 'Create User & Choose Model →' : 'Crear Usuario y Elegir Modelo →'}
             </button>
           ` : `
-            <div style="display:flex;flex-direction:column;gap:8px;">
-              <input type="email" id="mt-login-username" placeholder="${isEn ? 'Email or Username' : 'Email o nombre de usuario'}" onkeydown="if(event.key==='Enter')loginTenantFromPortal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.28);border-radius:8px;">
-              <input type="password" id="mt-login-password" placeholder="${isEn ? 'Password' : 'Contraseña'}" onkeydown="if(event.key==='Enter')loginTenantFromPortal()" style="width:100%;padding:9px 11px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.22);border-radius:8px;">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div>
+                <label style="font-size:11.5px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:4px;">${isEn ? 'Email or Username *' : 'Email o Nombre de Usuario *'}</label>
+                <input type="text" id="mt-login-username" placeholder="${isEn ? 'e.g. user@organization.org or username' : 'ej: usuario@organizacion.org o nombre'}" onkeydown="if(event.key==='Enter')loginTenantFromPortal()" style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(56,189,248,0.32);border-radius:8px;">
+              </div>
+              <div>
+                <label style="font-size:11.5px;color:#cbd5e1;font-weight:600;display:block;margin-bottom:4px;">${isEn ? 'Password *' : 'Contraseña *'}</label>
+                <input type="password" id="mt-login-password" placeholder="${isEn ? 'Your password' : 'Su contraseña'}" onkeydown="if(event.key==='Enter')loginTenantFromPortal()" style="width:100%;padding:9px 12px;font-size:13px;background:#0f172a;color:#fff;border:1px solid rgba(148,163,255,0.25);border-radius:8px;">
+              </div>
             </div>
-            <button type="button" class="btn" onclick="loginTenantFromPortal()" style="width:100%;margin-top:10px;padding:10px 14px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#0284c7,#2563eb);border:0;color:#fff;">
-              🔐 ${isEn ? 'Sign In & Open My Models →' : 'Iniciar Sesión y Ver Mis Modelos →'}
+            <button type="button" class="btn" onclick="loginTenantFromPortal()" style="width:100%;margin-top:14px;padding:11px 14px;font-size:13.5px;font-weight:700;background:linear-gradient(135deg,#0284c7,#2563eb);border:0;color:#fff;box-shadow:0 4px 14px rgba(37,99,235,0.3);">
+              🔐 ${isEn ? 'Sign In & Load My Work →' : 'Iniciar Sesión y Cargar Mi Trabajo →'}
             </button>
           `}
 
-          <div style="text-align:center;margin-top:14px;">
+          <div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid rgba(148,163,255,0.12);">
             <button type="button" onclick="continueAsGuest()" style="background:none;border:0;color:#94a3b8;font-size:12px;cursor:pointer;text-decoration:underline;">${isEn ? 'Continue without an account (Guest)' : 'Continuar sin cuenta (Modo invitado)'}</button>
           </div>
         </div>
@@ -9666,6 +9624,11 @@ async function loginTenantFromPortal() {
     if (uInp) uInp.focus();
     return;
   }
+  if (!rawPass) {
+    alert(isEn ? 'Please enter your password.' : 'Por favor ingrese su contraseña.');
+    if (pInp) pInp.focus();
+    return;
+  }
   // Guardar primero el trabajo del usuario anterior antes de cambiar de cuenta
   save();
 
@@ -9677,7 +9640,7 @@ async function loginTenantFromPortal() {
     (u.name && u.name.toLowerCase() === q)
   );
 
-  // Intentar login primero con Supabase Auth si está disponible
+  // Intentar login primero con Supabase Auth si es email
   if (window.SupabaseSync && typeof window.SupabaseSync.signIn === 'function' && rawUser.includes('@')) {
     const { data, error } = await window.SupabaseSync.signIn(rawUser, rawPass);
     if (!error && data && data.user) {
@@ -9686,7 +9649,11 @@ async function loginTenantFromPortal() {
       saveUserProjectsStore(store);
       await mergeCloudProjects(store, sbFound, data.user.id);
       saveUserProjectsStore(store);
-      selectModalUser(sbFound.id, true);
+      selectModalUser(sbFound.id, false);
+      closeUserProjectModal();
+      showSaveToast(isEn
+        ? `✅ Welcome back, <b>${esc(sbFound.name)}</b>! Your work is loaded.`
+        : `✅ ¡Bienvenido/a de vuelta, <b>${esc(sbFound.name)}</b>! Su trabajo ha sido cargado.`);
       return;
     }
   }
@@ -9694,8 +9661,8 @@ async function loginTenantFromPortal() {
   // Fallback con la base de datos local del navegador
   if (!found) {
     alert(isEn
-      ? `Account "${rawUser}" was not found. Click "Create New User" above to create it.`
-      : `No se encontró el usuario "${rawUser}". Pulse la pestaña "➕ Crear Nuevo Usuario" arriba para registrarlo.`);
+      ? `Account "${rawUser}" was not found. Click "Create User" above to register.`
+      : `No se encontró el usuario "${rawUser}". Pulse la pestaña "➕ Crear Usuario" arriba para registrarse.`);
     return;
   }
   if (found.password && found.password.trim() !== '' && found.password !== rawPass) {
@@ -9703,7 +9670,11 @@ async function loginTenantFromPortal() {
     if (pInp) pInp.focus();
     return;
   }
-  selectModalUser(found.id, true);
+  selectModalUser(found.id, false);
+  closeUserProjectModal();
+  showSaveToast(isEn
+    ? `✅ Welcome back, <b>${esc(found.name)}</b>! Your work is loaded.`
+    : `✅ ¡Bienvenido/a de vuelta, <b>${esc(found.name)}</b>! Su trabajo ha sido cargado.`);
 }
 window.loginTenantFromPortal = loginTenantFromPortal;
 
@@ -9766,8 +9737,13 @@ async function createNewUserFromModal() {
   const rawEmail = (emailInp ? emailInp.value.trim() : '');
   const passVal = (passInp ? passInp.value : '');
 
+  if (!rawName) {
+    alert(isEn ? 'Please enter your full name.' : 'Por favor ingrese su nombre completo.');
+    if (nameInp) nameInp.focus();
+    return;
+  }
   if (!rawEmail) {
-    alert(isEn ? 'Please enter an email address to create the user.' : 'Por favor ingrese su email para crear el usuario.');
+    alert(isEn ? 'Please enter an email address or username.' : 'Por favor ingrese su email o nombre de usuario.');
     if (emailInp) emailInp.focus();
     return;
   }
@@ -9784,29 +9760,27 @@ async function createNewUserFromModal() {
   const store = loadUserProjectsStore();
   if (store.users.some(u => (u.email || u.username || '').toLowerCase() === emailLower)) {
     alert(isEn
-      ? `The email "${rawEmail}" is already registered. Please sign in.`
-      : `El email "${rawEmail}" ya está registrado. Por favor inicie sesión en la pestaña "Iniciar Sesión".`);
+      ? `The user "${rawEmail}" is already registered. Please sign in.`
+      : `El usuario "${rawEmail}" ya está registrado. Por favor inicie sesión en la pestaña "Iniciar Sesión".`);
     setMtAuthMode('login');
     return;
   }
 
-  const displayName = rawName || rawEmail.split('@')[0] || rawEmail;
+  const displayName = rawName;
 
-  // Registrar en Supabase Auth
+  // Registrar en Supabase Auth si es email con @
   let supabaseUserId = null;
-  let signUpError = null;
-  let needsEmailConfirmation = false;
-  if (window.SupabaseSync && typeof window.SupabaseSync.signUp === 'function') {
-    const { data, error } = await window.SupabaseSync.signUp(rawEmail, passVal, {
-      name: displayName,
-      org: rawOrg
-    });
-    if (!error && data && data.user) {
-      supabaseUserId = data.user.id;
-      needsEmailConfirmation = !data.session;
-    } else if (error) {
-      signUpError = error.message || String(error);
-      console.warn('[Supabase] SignUp notice:', signUpError);
+  if (window.SupabaseSync && typeof window.SupabaseSync.signUp === 'function' && rawEmail.includes('@')) {
+    try {
+      const { data, error } = await window.SupabaseSync.signUp(rawEmail, passVal, {
+        name: displayName,
+        org: rawOrg
+      });
+      if (!error && data && data.user) {
+        supabaseUserId = data.user.id;
+      }
+    } catch (e) {
+      console.warn('[Supabase] SignUp note:', e);
     }
   }
 
@@ -9824,29 +9798,21 @@ async function createNewUserFromModal() {
   store.activeUserId = newUser.id;
   store.selectedModalUserId = newUser.id;
 
-  // Crear de inmediato un proyecto aislado para este usuario (evita pisar modelos de otros usuarios)
+  // Crear de inmediato un proyecto aislado para este usuario
   const starterProj = ensureUserIsolatedProject(store, newUser.id);
   saveUserProjectsStore(store);
   if (starterProj) {
     applyProjectToWorkspace(starterProj);
+    syncProjectToCloud(store, starterProj);
   } else {
     updateUserProjectPill();
   }
 
   mtPortalStep = 'model';
   renderUserProjectModal();
-  const savedMsg = supabaseUserId
-    ? (needsEmailConfirmation
-      ? (isEn
-        ? `👤 User "<b>${esc(newUser.name)}</b>" created! Your workspace is active locally (confirm email to enable cloud sync across devices).`
-        : `👤 Usuario "<b>${esc(newUser.name)}</b>" creado con su propio espacio de trabajo (confirme su correo si desea sincronizar entre distintos equipos).`)
-      : (isEn
-        ? `👤 User "<b>${esc(newUser.name)}</b>" created & synced! Choose the Existing Example or Create Your Own Model.`
-        : `👤 Usuario "<b>${esc(newUser.name)}</b>" creado y sincronizado con éxito. Ahora elija el Ejemplo que Existe o Crear un Modelo Propio.`))
-    : (isEn
-      ? `👤 User "<b>${esc(newUser.name)}</b>" created with an isolated workspace in this browser.`
-      : `👤 Usuario "<b>${esc(newUser.name)}</b>" creado con su espacio de trabajo individual en este navegador.`);
-  showSaveToast(savedMsg);
+  showSaveToast(isEn
+    ? `👤 User "<b>${esc(newUser.name)}</b>" created! Choose Option A or B below to begin.`
+    : `👤 Usuario "<b>${esc(newUser.name)}</b>" creado con éxito. Elija abajo la Opción A o B para comenzar.`);
 }
 window.createNewUserFromModal = createNewUserFromModal;
 
@@ -10068,15 +10034,8 @@ window.deleteSavedUserProject = deleteSavedUserProject;
 applyLanguage(currentLang);
 updateUserProjectPill();
 
-// Arranque: detecta errores de callback OAuth, suscribe cambios de sesión y abre el portal
+// Arranque: recuerda el usuario activo y su último modelo, o abre el portal si es visitante nuevo
 (async function bootstrapAuth() {
-  if (window.SupabaseSync && typeof window.SupabaseSync.getUrlAuthError === 'function') {
-    const urlErr = window.SupabaseSync.getUrlAuthError();
-    if (urlErr) {
-      lastOAuthError = urlErr;
-      window.SupabaseSync.clearUrlAuthParams();
-    }
-  }
   if (window.SupabaseSync && typeof window.SupabaseSync.onAuthChange === 'function') {
     window.SupabaseSync.onAuthChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session && session.user) {
@@ -10089,8 +10048,8 @@ updateUserProjectPill();
       }
     });
   }
-  const resumed = await resumeSupabaseSession();
-  if (resumed && !lastOAuthError) {
+  const resumed = await resumeActiveUserSession();
+  if (resumed) {
     closeUserProjectModal();
     return;
   }
