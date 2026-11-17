@@ -5926,6 +5926,12 @@ function applyLanguage(lang) {
     }
   });
 
+  // Translate data-i18n-title elements
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const k = el.dataset.i18nTitle;
+    if (k) el.title = t(k);
+  });
+
   // Update language label text
   const lblTxt = $('#lang-label-txt');
   if (lblTxt) lblTxt.textContent = lang === 'en' ? 'Language' : 'Idioma';
