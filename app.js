@@ -9177,6 +9177,10 @@ async function loginWithOAuth(provider) {
   showSaveToast(isEn
     ? `Redirecting to ${providerName}…`
     : `Redirigiendo a ${providerName}…`);
+  lastOAuthError = null;
+  if (window.SupabaseSync && typeof window.SupabaseSync.clearUrlAuthParams === 'function') {
+    window.SupabaseSync.clearUrlAuthParams();
+  }
   const { error } = await window.SupabaseSync.signInWithOAuth(provider);
   if (error) {
     console.error('[Supabase] OAuth error:', error);
@@ -9362,7 +9366,7 @@ function renderUserProjectModal() {
     <div style="margin-bottom:14px;padding:11px 13px;border-radius:9px;background:rgba(239,68,68,0.14);border:1.5px solid rgba(248,113,113,0.5);color:#fecaca;font-size:12px;line-height:1.45;">
       <div style="font-weight:700;color:#fca5a5;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
         <span>⚠️ ${isEn ? 'Google / OAuth Sign-In Diagnostic' : 'Diagnóstico de Inicio de Sesión con Google'}</span>
-        <button type="button" onclick="lastOAuthError=null;renderUserProjectModal();" style="background:none;border:0;color:#fca5a5;cursor:pointer;font-size:14px;">&times;</button>
+        <button type="button" onclick="lastOAuthError=null;if(window.SupabaseSync&&typeof window.SupabaseSync.clearUrlAuthParams==='function')window.SupabaseSync.clearUrlAuthParams();renderUserProjectModal();" style="background:none;border:0;color:#fca5a5;cursor:pointer;font-size:14px;" title="Cerrar">&times;</button>
       </div>
       <div style="margin-bottom:6px;"><b>${esc(lastOAuthError.error)}:</b> ${esc(lastOAuthError.errorDescription)}</div>
       <div style="font-size:11px;color:#cbd5e1;background:rgba(15,23,42,0.75);padding:8px 10px;border-radius:6px;border:1px solid rgba(148,163,255,0.18);">

@@ -110,12 +110,16 @@
     clearUrlAuthParams() {
       try {
         if (window.history && typeof window.history.replaceState === 'function') {
-          const cleanUrl = window.location.pathname +
-            window.location.search
-              .replace(/([?&])(error|error_code|error_description|code|state)=[^&]*/g, '')
-              .replace(/^\?&/, '?')
-              .replace(/\?$/, '');
-          window.history.replaceState({}, document.title, cleanUrl || window.location.pathname);
+          const cleanSearch = (window.location.search || '')
+            .replace(/([?&])(error|error_code|error_description|code|state)=[^&]*/g, '')
+            .replace(/^\?&/, '?')
+            .replace(/\?$/, '');
+          let cleanHash = (window.location.hash || '')
+            .replace(/([#&])(error|error_code|error_description|code|state)=[^&]*/g, '')
+            .replace(/^#&/, '#')
+            .replace(/^#$/, '');
+          const cleanUrl = (window.location.pathname || '/') + cleanSearch + (cleanHash ? '#' + cleanHash.replace(/^#/, '') : '');
+          window.history.replaceState({}, document.title, cleanUrl);
         }
       } catch (e) {}
     },
