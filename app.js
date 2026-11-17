@@ -9348,20 +9348,6 @@ function renderUserProjectModal() {
     <div class="modal-body" style="padding:18px;max-height:78vh;overflow-y:auto;">
       ${mtPortalStep === 'auth' ? `
         <div style="max-width:440px;margin:0 auto;padding:4px 0 2px;">
-          ${isRegisteredActive ? `
-            <div style="margin-bottom:16px;padding:12px 14px;border-radius:10px;background:linear-gradient(135deg,rgba(16,185,129,0.14),rgba(2,132,199,0.14));border:1.5px solid rgba(52,211,153,0.4);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-              <div>
-                <div style="font-size:10.5px;color:#34d399;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">● ${isEn ? 'Active Account' : 'Cuenta activa actual'}</div>
-                <div style="font-size:14px;font-weight:700;color:#f8fafc;">👤 ${esc(selUser.name)}</div>
-                <div style="font-size:11.5px;color:#94a3b8;">${esc(selUser.email || selUser.username)}${selUser.org ? ' · ' + esc(selUser.org) : ''} · <b>${userProjects.length}</b> ${isEn ? (userProjects.length === 1 ? 'model' : 'models') : (userProjects.length === 1 ? 'modelo' : 'modelos')}</div>
-              </div>
-              <div style="display:flex;gap:6px;align-items:center;">
-                <button type="button" class="btn sm" onclick="setMtPortalStep('model')" style="background:#059669;color:#fff;font-size:11.5px;font-weight:700;padding:6px 12px;">📂 ${isEn ? 'View My Models' : 'Ver Mis Modelos'} →</button>
-                <button type="button" class="btn ghost sm" onclick="logoutCurrentUser()" style="font-size:11.5px;padding:6px 9px;color:#fca5a5;border-color:rgba(248,113,113,0.35);">${isEn ? 'Sign out' : 'Cerrar sesión'}</button>
-              </div>
-            </div>
-          ` : ''}
-
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#080d1a;padding:4px;border-radius:9px;border:1px solid rgba(148,163,255,0.2);margin-bottom:14px;">
             <button type="button" onclick="setMtAuthMode('login')" style="padding:8px 10px;border-radius:6px;border:0;font-size:13px;font-weight:700;cursor:pointer;background:${mtAuthMode === 'login' ? '#2563eb' : 'transparent'};color:${mtAuthMode === 'login' ? '#fff' : '#94a3b8'};">
               🔐 ${isEn ? 'Sign In' : 'Iniciar Sesión'}
