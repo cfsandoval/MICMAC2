@@ -9317,21 +9317,6 @@ function renderUserProjectModal() {
   const registeredUsers = store.users.filter(u => u.id !== 'u_default' && u.id !== 'u_guest');
   const isRegisteredActive = selUser && selUser.id !== 'u_default' && selUser.id !== 'u_guest';
 
-  const oauthErrorBanner = lastOAuthError ? `
-    <div style="margin-bottom:14px;padding:11px 13px;border-radius:9px;background:rgba(239,68,68,0.14);border:1.5px solid rgba(248,113,113,0.5);color:#fecaca;font-size:12px;line-height:1.45;">
-      <div style="font-weight:700;color:#fca5a5;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
-        <span>⚠️ ${isEn ? 'Google / OAuth Sign-In Diagnostic' : 'Diagnóstico de Inicio de Sesión con Google'}</span>
-        <button type="button" onclick="lastOAuthError=null;if(window.SupabaseSync&&typeof window.SupabaseSync.clearUrlAuthParams==='function')window.SupabaseSync.clearUrlAuthParams();renderUserProjectModal();" style="background:none;border:0;color:#fca5a5;cursor:pointer;font-size:14px;" title="Cerrar">&times;</button>
-      </div>
-      <div style="margin-bottom:6px;"><b>${esc(lastOAuthError.error)}:</b> ${esc(lastOAuthError.errorDescription)}</div>
-      <div style="font-size:11px;color:#cbd5e1;background:rgba(15,23,42,0.75);padding:8px 10px;border-radius:6px;border:1px solid rgba(148,163,255,0.18);">
-        ${isEn
-          ? `<b>How to fix in Supabase & Google Cloud:</b><br>1. In <b>Supabase → Authentication → URL Configuration</b>, set <b>Site URL</b> to <code>${esc(window.location.origin)}</code> and add <code>${esc(window.location.origin + window.location.pathname)}</code> to <b>Redirect URLs</b>.<br>2. In <b>Google Cloud → OAuth consent screen</b>, click <b>Publish App</b> (or add your email to Test Users), and verify the Client Secret in Supabase.`
-          : `<b>Cómo solucionarlo en Supabase y Google Cloud:</b><br>1. En <b>Supabase → Authentication → URL Configuration</b>, configure <b>Site URL</b> con <code>${esc(window.location.origin)}</code> y agregue <code>${esc(window.location.origin + window.location.pathname)}</code> en <b>Redirect URLs</b>.<br>2. En <b>Google Cloud → Pantalla de consentimiento de OAuth</b>, pulse <b>Publicar aplicación</b> (o agregue su correo en Usuarios de prueba) y verifique el Client Secret en Supabase.`}
-      </div>
-    </div>
-  ` : '';
-
   box.innerHTML = `
     <div class="modal-header" style="padding:12px 18px;align-items:center;">
       <div style="display:flex;align-items:center;gap:10px;min-width:0;">
